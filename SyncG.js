@@ -5,8 +5,8 @@
 
 (function() {
     // Google API configuration
-    const API_KEY = 'YAIzaSyB0sQhyITTtGcVGPDXZBb6NkWqmGT5dgKo'; // Replace with your Google API key
-    const CLIENT_ID = 'favoritiforum'; // Replace with your Google Client ID
+    const API_KEY = 'fAIzaSyB0sQhyITTtGcVGPDXZBb6NkWqmGT5dgKo'; // Replace with your Google API key
+    const CLIENT_ID = '1032602955752-3q7tmphm12eegl50j5j5bgcqaq6a7abk.apps.googleusercontent.com'; // Replace with your Google Client ID
     const SCOPES = 'https://www.googleapis.com/auth/drive.file';
     const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
     const FILE_NAME = 'forum_favorites.json';
@@ -16,18 +16,23 @@
     let gisInited = false;
     let fileId = null;
     
-    // DOM elements
-    const syncStatus = document.getElementById('ffav-syncStatus');
-    const syncProgressBar = document.getElementById('ffav-syncProgressBar');
-    const syncLog = document.getElementById('ffav-syncLog');
-    const authBtn = document.getElementById('ffav-authGdrive');
-    const syncNowBtn = document.getElementById('ffav-syncNow');
-    const logoutBtn = document.getElementById('ffav-logoutGdrive');
+    // Initialize DOM elements safely
+    function getElement(id) {
+        return document.getElementById(id);
+    }
     
     // Initialize the Google Drive sync
     function initGDriveSync() {
+        // Get DOM elements
+        const syncStatus = getElement('ffav-syncStatus');
+        const syncProgressBar = getElement('ffav-syncProgressBar');
+        const syncLog = getElement('ffav-syncLog');
+        const authBtn = getElement('ffav-authGdrive');
+        const syncNowBtn = getElement('ffav-syncNow');
+        const logoutBtn = getElement('ffav-logoutGdrive');
+        
         if (!window.gapi) {
-            logMessage('Google API non caricata correttamente', 'error');
+            logMessage('Google API non caricata correttamente', 'error', syncLog);
             return;
         }
         
@@ -43,43 +48,43 @@
                 tokenClient = google.accounts.oauth2.initTokenClient({
                     client_id: CLIENT_ID,
                     scope: SCOPES,
-                    callback: handleAuthResponse,
+                    callback: (tokenResponse) => handleAuthResponse(tokenResponse, syncStatus, syncProgressBar, syncLog),
                 });
                 gisInited = true;
                 
                 // Check if already authorized
                 if (localStorage.getItem('gdrive_token')) {
                     gapi.client.setToken(JSON.parse(localStorage.getItem('gdrive_token')));
-                    updateUIForAuthorized();
-                    checkForExistingFile();
+                    updateUIForAuthorized(syncStatus, authBtn, syncNowBtn, logoutBtn);
+                    checkForExistingFile(syncStatus, syncProgressBar, syncLog);
                 } else {
-                    updateUIForUnauthorized();
+                    updateUIForUnauthorized(syncStatus, authBtn, syncNowBtn, logoutBtn);
                 }
                 
-                logMessage('Google Drive API inizializzata', 'info');
+                logMessage('Google Drive API inizializzata', 'info', syncLog);
             } catch (error) {
-                logMessage('Errore durante l\'inizializzazione: ' + error.message, 'error');
+                logMessage('Errore durante l\'inizializzazione: ' + error.message, 'error', syncLog);
             }
         });
     }
     
     // Handle the authorization response
-    function handleAuthResponse(tokenResponse) {
+    function handleAuthResponse(tokenResponse, syncStatus, syncProgressBar, syncLog) {
         if (tokenResponse && tokenResponse.access_token) {
             localStorage.setItem('gdrive_token', JSON.stringify(tokenResponse));
-            updateUIForAuthorized();
-            checkForExistingFile();
+            updateUIForAuthorized(syncStatus, getElement('ffav-authGdrive'), getElement('ffav-syncNow'), getElement('ffav-logoutGdrive'));
+            checkForExistingFile(syncStatus, syncProgressBar, syncLog);
         } else {
-            updateUIForUnauthorized();
-            logMessage('Autorizzazione fallita', 'error');
+            updateUIForUnauthorized(syncStatus, getElement('ffav-authGdrive'), getElement('ffav-syncNow'), getElement('ffav-logoutGdrive'));
+            logMessage('Autorizzazione fallita', 'error', syncLog);
         }
     }
     
     // Check if the favorites file already exists in Google Drive
-    async function checkForExistingFile() {
+    async function checkForExistingFile(syncStatus, syncProgressBar, syncLog) {
         try {
-            updateProgress(20);
-            logMessage('Ricerca del file dei preferiti su Drive...', 'info');
+            updateProgress(20, syncProgressBar);
+            logMessage('Ricerca del file dei preferiti su Drive...', 'info', syncLog);
             
             const response = await gapi.client.drive.files.list({
                 q: `name='${FILE_NAME}' and trashed=false`,
@@ -91,35 +96,35 @@
             if (files && files.length > 0) {
                 fileId = files[0].id;
                 const lastModified = new Date(files[0].modifiedTime);
-                syncStatus.textContent = `Ultimo aggiornamento: ${lastModified.toLocaleString()}`;
-                logMessage(`File trovato (ID: ${fileId})`, 'success');
-                updateProgress(100);
+                if (syncStatus) syncStatus.textContent = `Ultimo aggiornamento: ${lastModified.toLocaleString()}`;
+                logMessage(`File trovato (ID: ${fileId})`, 'success', syncLog);
+                updateProgress(100, syncProgressBar);
                 
                 // Check if we need to sync
                 const localTimestamp = localStorage.getItem('gdrive_last_sync');
                 if (!localTimestamp || new Date(localTimestamp) < lastModified) {
-                    logMessage('Versione remota più recente, download in corso...', 'info');
-                    await downloadFavorites();
+                    logMessage('Versione remota più recente, download in corso...', 'info', syncLog);
+                    await downloadFavorites(syncStatus, syncProgressBar, syncLog);
                 }
             } else {
                 fileId = null;
-                syncStatus.textContent = 'Nessun file trovato su Drive';
-                logMessage('Nessun file trovato, sarà creato al primo salvataggio', 'info');
-                updateProgress(100);
+                if (syncStatus) syncStatus.textContent = 'Nessun file trovato su Drive';
+                logMessage('Nessun file trovato, sarà creato al primo salvataggio', 'info', syncLog);
+                updateProgress(100, syncProgressBar);
             }
         } catch (error) {
-            logMessage('Errore durante la ricerca del file: ' + error.message, 'error');
-            updateProgress(0);
+            logMessage('Errore durante la ricerca del file: ' + error.message, 'error', syncLog);
+            updateProgress(0, syncProgressBar);
         }
     }
     
     // Download favorites from Google Drive
-    async function downloadFavorites() {
+    async function downloadFavorites(syncStatus, syncProgressBar, syncLog) {
         if (!fileId) return;
         
         try {
-            updateProgress(30);
-            logMessage('Download dei preferiti da Drive...', 'info');
+            updateProgress(30, syncProgressBar);
+            logMessage('Download dei preferiti da Drive...', 'info', syncLog);
             
             const response = await gapi.client.drive.files.get({
                 fileId: fileId,
@@ -130,8 +135,8 @@
             localStorage.setItem('forumFavorites', JSON.stringify(favorites));
             localStorage.setItem('gdrive_last_sync', new Date().toISOString());
             
-            logMessage('Preferiti scaricati e aggiornati localmente', 'success');
-            updateProgress(100);
+            logMessage('Preferiti scaricati e aggiornati localmente', 'success', syncLog);
+            updateProgress(100, syncProgressBar);
             
             // Refresh the UI
             if (window.renderSavedItems) {
@@ -140,17 +145,17 @@
             
             return favorites;
         } catch (error) {
-            logMessage('Errore durante il download: ' + error.message, 'error');
-            updateProgress(0);
+            logMessage('Errore durante il download: ' + error.message, 'error', syncLog);
+            updateProgress(0, syncProgressBar);
             return null;
         }
     }
     
     // Upload favorites to Google Drive
-    async function uploadFavorites() {
+    async function uploadFavorites(syncStatus, syncProgressBar, syncLog) {
         try {
-            updateProgress(30);
-            logMessage('Caricamento dei preferiti su Drive...', 'info');
+            updateProgress(30, syncProgressBar);
+            logMessage('Caricamento dei preferiti su Drive...', 'info', syncLog);
             
             const favorites = JSON.parse(localStorage.getItem('forumFavorites') || '[]');
             const fileContent = JSON.stringify(favorites);
@@ -198,40 +203,44 @@
             }
             
             localStorage.setItem('gdrive_last_sync', new Date().toISOString());
-            syncStatus.textContent = `Ultimo aggiornamento: ${new Date().toLocaleString()}`;
+            if (syncStatus) syncStatus.textContent = `Ultimo aggiornamento: ${new Date().toLocaleString()}`;
             
-            logMessage('Preferiti caricati su Drive con successo', 'success');
-            updateProgress(100);
+            logMessage('Preferiti caricati su Drive con successo', 'success', syncLog);
+            updateProgress(100, syncProgressBar);
             
             return true;
         } catch (error) {
-            logMessage('Errore durante il caricamento: ' + error.message, 'error');
-            updateProgress(0);
+            logMessage('Errore durante il caricamento: ' + error.message, 'error', syncLog);
+            updateProgress(0, syncProgressBar);
             return false;
         }
     }
     
     // Sync favorites (two-way sync)
     async function syncFavorites() {
+        const syncStatus = getElement('ffav-syncStatus');
+        const syncProgressBar = getElement('ffav-syncProgressBar');
+        const syncLog = getElement('ffav-syncLog');
+        
         if (!isAuthorized()) {
-            logMessage('Devi autorizzare Google Drive prima di sincronizzare', 'error');
+            logMessage('Devi autorizzare Google Drive prima di sincronizzare', 'error', syncLog);
             return;
         }
         
         try {
-            updateProgress(10);
-            logMessage('Avvio sincronizzazione...', 'info');
+            updateProgress(10, syncProgressBar);
+            logMessage('Avvio sincronizzazione...', 'info', syncLog);
             
             // First check if remote file exists and is newer
-            await checkForExistingFile();
+            await checkForExistingFile(syncStatus, syncProgressBar, syncLog);
             
             // Then upload local changes
-            await uploadFavorites();
+            await uploadFavorites(syncStatus, syncProgressBar, syncLog);
             
             showNotification('Sincronizzazione completata', 'success');
         } catch (error) {
-            logMessage('Errore durante la sincronizzazione: ' + error.message, 'error');
-            updateProgress(0);
+            logMessage('Errore durante la sincronizzazione: ' + error.message, 'error', syncLog);
+            updateProgress(0, syncProgressBar);
             showNotification('Errore durante la sincronizzazione', 'error');
         }
     }
@@ -239,7 +248,8 @@
     // Authorize with Google Drive
     function authorize() {
         if (!gapiInited || !gisInited) {
-            logMessage('API Google non inizializzate correttamente', 'error');
+            const syncLog = getElement('ffav-syncLog');
+            logMessage('API Google non inizializzate correttamente', 'error', syncLog);
             return;
         }
         
@@ -248,6 +258,12 @@
     
     // Logout from Google Drive
     function logout() {
+        const syncStatus = getElement('ffav-syncStatus');
+        const syncLog = getElement('ffav-syncLog');
+        const authBtn = getElement('ffav-authGdrive');
+        const syncNowBtn = getElement('ffav-syncNow');
+        const logoutBtn = getElement('ffav-logoutGdrive');
+        
         const token = gapi.client.getToken();
         if (token) {
             google.accounts.oauth2.revoke(token.access_token);
@@ -255,53 +271,53 @@
             localStorage.removeItem('gdrive_token');
             localStorage.removeItem('gdrive_last_sync');
             fileId = null;
-            updateUIForUnauthorized();
-            logMessage('Disconnesso da Google Drive', 'info');
+            updateUIForUnauthorized(syncStatus, authBtn, syncNowBtn, logoutBtn);
+            logMessage('Disconnesso da Google Drive', 'info', syncLog);
         }
     }
     
     // Check if authorized
     function isAuthorized() {
-        return gapi.client.getToken() !== null;
+        return gapi.client && gapi.client.getToken() !== null;
     }
     
     // Update UI for authorized state
-    function updateUIForAuthorized() {
-        authBtn.style.display = 'none';
-        syncNowBtn.style.display = 'inline-block';
-        logoutBtn.style.display = 'inline-block';
-        syncStatus.textContent = 'Connesso a Google Drive';
+    function updateUIForAuthorized(syncStatus, authBtn, syncNowBtn, logoutBtn) {
+        if (authBtn) authBtn.style.display = 'none';
+        if (syncNowBtn) syncNowBtn.style.display = 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        if (syncStatus) syncStatus.textContent = 'Connesso a Google Drive';
     }
     
     // Update UI for unauthorized state
-    function updateUIForUnauthorized() {
-        authBtn.style.display = 'inline-block';
-        syncNowBtn.style.display = 'none';
-        logoutBtn.style.display = 'none';
-        syncStatus.textContent = 'Non connesso a Google Drive';
+    function updateUIForUnauthorized(syncStatus, authBtn, syncNowBtn, logoutBtn) {
+        if (authBtn) authBtn.style.display = 'inline-block';
+        if (syncNowBtn) syncNowBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (syncStatus) syncStatus.textContent = 'Non connesso a Google Drive';
     }
     
     // Update progress bar
-    function updateProgress(percent) {
-        if (syncProgressBar) {
-            syncProgressBar.style.width = percent + '%';
+    function updateProgress(percent, progressBar) {
+        if (progressBar) {
+            progressBar.style.width = percent + '%';
         }
     }
     
     // Log message to the sync log
-    function logMessage(message, type = 'info') {
-        if (!syncLog) return;
+    function logMessage(message, type = 'info', logElement) {
+        if (!logElement) return;
         
         const logEntry = document.createElement('p');
         logEntry.className = `ffav-log-${type}`;
         logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
         
-        syncLog.appendChild(logEntry);
-        syncLog.scrollTop = syncLog.scrollHeight;
+        logElement.appendChild(logEntry);
+        logElement.scrollTop = logElement.scrollHeight;
         
         // Limit log entries
-        while (syncLog.children.length > 20) {
-            syncLog.removeChild(syncLog.firstChild);
+        while (logElement.children.length > 20) {
+            logElement.removeChild(logElement.firstChild);
         }
     }
     
