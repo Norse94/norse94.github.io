@@ -450,7 +450,6 @@ span#ffav-saveThreadBtn {
 `;
 document.head.appendChild(style);
 
-
 const favoritesStorage = {
     get: function() {
         const favorites = localStorage.getItem('forumFavorites');
@@ -968,6 +967,7 @@ function handleDesktopPost(post, threadTitle) {
     let postContent = '';
     if (contentTable) {
         const contentClone = contentTable.cloneNode(true);
+        // Remove all quote elements before extracting text
         const quoteElements = contentClone.querySelectorAll('.quote_top, .quote');
         quoteElements.forEach(element => element.remove());
         
@@ -1032,7 +1032,13 @@ function handleMobilePost(post, threadTitle) {
         const contentTable = post.querySelector('table.color');
         let postContent = '';
         if (contentTable) {
-            postContent = contentTable.textContent.trim().replace(/\s+/g, ' ');
+            // Create a clone to manipulate without affecting the original DOM
+            const contentClone = contentTable.cloneNode(true);
+            // Remove all quote elements before extracting text
+            const quoteElements = contentClone.querySelectorAll('.quote_top, .quote');
+            quoteElements.forEach(element => element.remove());
+            
+            postContent = contentClone.textContent.trim().replace(/\s+/g, ' ');
             const words = postContent.split(' ');
             if (words.length > 20) {
                 postContent = words.slice(0, 20).join(' ') + '...';
