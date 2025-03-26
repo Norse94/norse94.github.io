@@ -912,7 +912,39 @@ function renderSavedItems(searchTerm = '', filters = {}) {
 let isBulkMode = false;
 let selectedItems = [];
 
-// Then in the createFavoritesMenu function, remove the variable declarations
+// Add the handleItemCheckboxClick function to the global scope
+function handleItemCheckboxClick(e) {
+    const id = parseInt(e.target.dataset.id);
+    
+    if (e.target.checked) {
+        if (!selectedItems.includes(id)) {
+            selectedItems.push(id);
+        }
+    } else {
+        selectedItems = selectedItems.filter(itemId => itemId !== id);
+        document.getElementById('ffav-select-all').checked = false;
+    }
+    
+    updateBulkCounter();
+    updateBulkDeleteButton();
+}
+
+// Add these utility functions to the global scope as well
+function updateBulkCounter() {
+    const bulkCounter = document.querySelector('.ffav-bulk-counter');
+    if (bulkCounter) {
+        bulkCounter.textContent = `${selectedItems.length} selezionati`;
+    }
+}
+
+function updateBulkDeleteButton() {
+    const bulkDeleteBtn = document.getElementById('ffav-bulk-delete-btn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.disabled = selectedItems.length === 0;
+    }
+}
+
+// Then in the createFavoritesMenu function, remove the handleItemCheckboxClick function
 function createFavoritesMenu() {
     const systemContainer = document.createElement('div');
     systemContainer.className = 'ffav-menu-system';
@@ -1007,10 +1039,6 @@ function createFavoritesMenu() {
     const bulkDeleteBtn = document.getElementById('ffav-bulk-delete-btn');
     const bulkCancelBtn = document.getElementById('ffav-bulk-cancel-btn');
     const bulkCounter = document.querySelector('.ffav-bulk-counter');
-    
-    // Remove these variable declarations since they're now global
-    // let isBulkMode = false;
-    // let selectedItems = [];
     
     // Bulk mode toggle
     bulkModeBtn.addEventListener('click', () => {
