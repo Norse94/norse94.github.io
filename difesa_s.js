@@ -46,6 +46,7 @@ style.textContent = `
     .ffav-menu-system #ffav-menuContainer {
         display: none;
         max-width: 90vw;
+        width: 400px;
         max-height: 80vh;
         background-color: white;
         border-radius: 8px;
@@ -230,11 +231,79 @@ style.textContent = `
     transform: translateX(20px);
 }
 
+/* Add these styles for the select all button and selected items */
 .ffav-menu-system .ffav-bulk-select-all {
     margin-right: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all .ffav-toggle-switch {
+    display: none; /* Hide the toggle switch */
+}
+
+.ffav-menu-system .ffav-select-all-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-select-all-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    position: relative;
+    cursor: pointer;
+    padding-left: 15px;
+    transition: background-color 0.2s;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-toggle {
+    display: none; /* Hide the toggle switch */
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode.selected {
+    background-color: rgba(74, 118, 168, 0.15);
+    border-left: 3px solid #4a76a8;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode.selected .ffav-title {
+    color: #4a76a8;
+    font-weight: bold;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode a {
+    pointer-events: none; /* Disable link clicks in bulk mode */
+}
+
+/* Add a visual indicator for selected items */
+.ffav-menu-system .ffav-saved-item.bulk-mode::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 0 5px 8px;
+    border-color: transparent transparent transparent #4a76a8;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode.selected::before {
+    opacity: 1;
 }
     
     .ffav-menu-system #ffav-addManualBtn {
@@ -673,19 +742,16 @@ const favoritesStorage = {
             showNotification('Hai raggiunto il limite di 100 elementi. Elimina qualcosa prima di aggiungere nuovi elementi.', 'error', true);
             return false;
         }
-        
         favorites.push({
             id: Date.now(),
             ...item,
             date: new Date().toLocaleDateString()
         });
-        this.set(favorites);
-        
+        this.set(favorites);        
         if (favorites.length >= 90 && favorites.length < 100) {
             showNotification(`Hai salvato ${favorites.length}/100 elementi. Stai per raggiungere il limite massimo.`, 'warning', true);
         }
-        
-        return favorites;
+                return favorites;
     },
     remove: function(id) {
         const favorites = this.get();
@@ -723,20 +789,16 @@ function toggleDuplicateCheck(disable = true) {
     showNotification(`Controllo duplicati ${disable ? 'disattivato' : 'attivato'}`, 'success');
     return `Duplicate checking is now ${disable ? 'disabled' : 'enabled'}`;
 }
-
 window.toggleDuplicateCheck = toggleDuplicateCheck;
 window.disableDupes = () => toggleDuplicateCheck(true);
 window.enableDupes = () => toggleDuplicateCheck(false);
-
 function normalizeUrl(url) {
     try {
         const urlObj = new URL(url);
         urlObj.searchParams.delete('st');
         urlObj.searchParams.delete('view');
-        
         let normalizedUrl = urlObj.toString();
-        const entryMatch = url.match(/#entry(\d+)/i);
-        
+        const entryMatch = url.match(/#entry(\d+)/i);       
         return entryMatch 
             ? normalizedUrl.split('#')[0] + '#entry' + entryMatch[1]
             : normalizedUrl.split('#')[0];
@@ -744,82 +806,59 @@ function normalizeUrl(url) {
         return url;
     }
 }
-
 function isDuplicateItem(newItem, existingItems) {
     if (disableDuplicateCheck) return false;
-    
     const normalizedNewUrl = normalizeUrl(newItem.url);
-    
     return existingItems.some(item => {
         if (item.type !== newItem.type) return false;
-        
         const normalizedExistingUrl = normalizeUrl(item.url);
-        
         if (newItem.type === 'post') {
             const newEntryMatch = normalizedNewUrl.match(/#entry(\d+)/i);
             const existingEntryMatch = normalizedExistingUrl.match(/#entry(\d+)/i);
-            
             if (newEntryMatch && existingEntryMatch) {
                 return newEntryMatch[1] === existingEntryMatch[1];
             }
-            
             const getPostId = url => {
                 const match = url.match(/[?&]p=(\d+)/);
                 return match ? match[1] : null;
             };
-            
             const newPostId = getPostId(normalizedNewUrl);
-            const existingPostId = getPostId(normalizedExistingUrl);
-            
+            const existingPostId = getPostId(normalizedExistingUrl);   
             return newPostId && existingPostId && newPostId === existingPostId;
         }
-        
         if (newItem.type === 'thread') {
             const getThreadId = url => {
                 const match = url.match(/[?&]t=(\d+)/);
                 return match ? match[1] : null;
             };
-            
             const newThreadId = getThreadId(normalizedNewUrl);
-            const existingThreadId = getThreadId(normalizedExistingUrl);
-            
+            const existingThreadId = getThreadId(normalizedExistingUrl);   
             return newThreadId && existingThreadId && newThreadId === existingThreadId;
-        }
-        
+        }       
         return normalizedNewUrl === normalizedExistingUrl;
     });
 }
-
 function isExactUrlSaved(url, favorites) {
     if (disableDuplicateCheck) return false;
     return favorites.some(item => normalizeUrl(item.url) === normalizeUrl(url));
 }
-
 let editingItemId = null;
-
 function showNotification(message, type = 'normal', isLimitWarning = false) {
     const notif = document.createElement('div');
     notif.className = `ffav-notification ffav-${type}`;
-    
     if (isLimitWarning) {
         notif.classList.add('ffav-limit-warning');
     }
-    
     notif.textContent = message;
-    
     const systemContainer = document.querySelector('.ffav-menu-system');
-    systemContainer.appendChild(notif);
-    
+    systemContainer.appendChild(notif);   
     setTimeout(() => notif.remove(), isLimitWarning ? 5000 : 3000);
 }
-
 function renderSavedItems(searchTerm = '', filters = {}) {
     const savedItems = document.getElementById('ffav-savedItems');
     if (!savedItems) return;
-    
     const favorites = favoritesStorage.get();
     savedItems.innerHTML = '';
-    
     const itemCount = favorites.length;
     if (itemCount >= 90 && itemCount < 100) {
         setTimeout(() => {
@@ -830,13 +869,10 @@ function renderSavedItems(searchTerm = '', filters = {}) {
             showNotification('Hai raggiunto il limite di 100 elementi. Elimina qualcosa prima di aggiungere nuovi elementi.', 'warning', true);
         }, 500);
     }
-    
     let filteredFavorites = favorites;
-  
     if (filters.type && filters.type !== 'all') {
         filteredFavorites = filteredFavorites.filter(item => item.type === filters.type);
     }
-    
     if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         filteredFavorites = filteredFavorites.filter(item => {
@@ -847,8 +883,6 @@ function renderSavedItems(searchTerm = '', filters = {}) {
                 (item.sectionName && item.sectionName.toLowerCase().includes(searchLower));
         });
     }
-    
-    // Sort items in reverse chronological order (newest first)
     filteredFavorites.sort((a, b) => b.id - a.id);
     
     if (filteredFavorites.length === 0) {
@@ -858,6 +892,7 @@ function renderSavedItems(searchTerm = '', filters = {}) {
         return;
     }
     
+    // In the renderSavedItems function, modify how we handle bulk mode items
     filteredFavorites.forEach(item => {
         const listItem = document.createElement('li');
         listItem.className = 'ffav-saved-item';
@@ -865,12 +900,44 @@ function renderSavedItems(searchTerm = '', filters = {}) {
         // Add bulk-mode class if in bulk mode
         if (isBulkMode) {
             listItem.classList.add('bulk-mode');
+            if (selectedItems.includes(item.id)) {
+                listItem.classList.add('selected');
+            }
+            
+            // Add click event to the entire list item with improved handling
+            listItem.addEventListener('click', (e) => {
+                // We'll handle all clicks in bulk mode
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const id = item.id;
+                const isSelected = selectedItems.includes(id);
+                
+                if (isSelected) {
+                    selectedItems = selectedItems.filter(itemId => itemId !== id);
+                    listItem.classList.remove('selected');
+                } else {
+                    selectedItems.push(id);
+                    listItem.classList.add('selected');
+                }
+                
+                // Update the hidden checkbox state
+                const checkbox = listItem.querySelector('.ffav-item-checkbox');
+                if (checkbox) {
+                    checkbox.checked = !isSelected;
+                }
+                
+                updateBulkCounter();
+                updateBulkDeleteButton();
+                
+                // If all items are selected, check the "select all" checkbox
+                const allCheckboxes = document.querySelectorAll('.ffav-item-checkbox');
+                const allSelected = Array.from(allCheckboxes).every(cb => selectedItems.includes(parseInt(cb.dataset.id)));
+                document.getElementById('ffav-select-all').checked = allSelected;
+            });
         }
         
         let itemHTML = '';
-        
-        // In the renderSavedItems function, modify the checkbox HTML:
-        // Add checkbox for bulk mode
         if (isBulkMode) {
             itemHTML += `
             <label class="ffav-toggle-switch ffav-item-toggle">
@@ -985,15 +1052,22 @@ let isBulkMode = false;
 let selectedItems = [];
 
 // Add the handleItemCheckboxClick function to the global scope
+// Update the handleItemCheckboxClick function
 function handleItemCheckboxClick(e) {
+    // Stop propagation to prevent the list item click handler from firing
+    e.stopPropagation();
+    
     const id = parseInt(e.target.dataset.id);
+    const listItem = e.target.closest('.ffav-saved-item');
     
     if (e.target.checked) {
         if (!selectedItems.includes(id)) {
             selectedItems.push(id);
+            if (listItem) listItem.classList.add('selected');
         }
     } else {
         selectedItems = selectedItems.filter(itemId => itemId !== id);
+        if (listItem) listItem.classList.remove('selected');
         document.getElementById('ffav-select-all').checked = false;
     }
     
@@ -1021,20 +1095,15 @@ function createFavoritesMenu() {
     const systemContainer = document.createElement('div');
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
-    
-    // In the createFavoritesMenu function, replace the bulk-select-all label with this:
+    // In the createFavoritesMenu function, replace the bulk-select-all label with a button
     const menuHTML = `
      <div id="ffav-favoritesMenu">
     <div id="ffav-menuContainer">
         <div id="ffav-bulk-actions" class="ffav-bulk-actions" style="display: none;">
             <div class="ffav-bulk-actions-left">
-                <label class="ffav-bulk-select-all">
-                    <label class="ffav-toggle-switch">
-                        <input type="checkbox" id="ffav-select-all">
-                        <span class="ffav-toggle-slider"></span>
-                    </label>
-                    <span>Seleziona tutti</span>
-                </label>
+                <button class="ffav-select-all-btn" id="ffav-select-all-btn">
+                    <i class="fa fa-check-square-o"></i> Seleziona tutti
+                </button>
                 <span class="ffav-bulk-counter">0 selezionati</span>
             </div>
             <div class="ffav-bulk-actions-right">
@@ -1057,7 +1126,7 @@ function createFavoritesMenu() {
                 </div>
             </div>
             <div id="ffav-menuButtons">
-                <button class="ffav-menu-btn ffav-bulk-mode-btn" id="ffav-bulk-mode-btn"><i class="fa fa-check-square-o"></i></button>
+                <button class="ffav-menu-btn ffav-bulk-mode-btn" id="ffav-bulk-mode-btn"><i class="fa fa-check-square-o"></i> Seleziona</button>
                 <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo</button>
                 <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
                 <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
@@ -1161,12 +1230,12 @@ function createFavoritesMenu() {
     });
     
     // Toggle bulk mode function
+    // Update the toggleBulkMode function to handle link functionality
     function toggleBulkMode(enable) {
         isBulkMode = enable;
         
         if (enable) {
             bulkActions.style.display = 'flex';
-            // Instead of hiding the button, just disable it
             bulkModeBtn.disabled = true;
             bulkModeBtn.classList.add('disabled');
             selectedItems = [];
@@ -1174,10 +1243,17 @@ function createFavoritesMenu() {
             updateBulkDeleteButton();
         } else {
             bulkActions.style.display = 'none';
-            // Re-enable the button when exiting bulk mode
             bulkModeBtn.disabled = false;
             bulkModeBtn.classList.remove('disabled');
             selectAllCheckbox.checked = false;
+            
+            // Re-enable links when exiting bulk mode
+            setTimeout(() => {
+                const links = document.querySelectorAll('.ffav-saved-item a');
+                links.forEach(link => {
+                    link.style.pointerEvents = 'auto';
+                });
+            }, 100);
         }
         
         renderSavedItems(searchInput.value.trim(), currentFilters);
@@ -1646,4 +1722,3 @@ function init() {
 document.readyState === 'loading' 
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
-
