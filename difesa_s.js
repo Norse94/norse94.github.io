@@ -1,4 +1,3 @@
-
 const style = document.createElement('style');
 style.textContent = `
 /* Main menu styles */
@@ -454,94 +453,140 @@ span#ffav-saveThreadBtn {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
-    border-top: 1px solid #eee;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
     width: 100%;
     box-sizing: border-box;
-    background-color: #f9f9f9;
 }
 
-.ffav-menu-system .ffav-bulk-actions button {
-    padding: 6px 12px;
-    border-radius: 4px;
-    border: none;
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
     font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
     transition: all 0.2s;
 }
 
-.ffav-menu-system #ffav-bulkDeleteBtn {
-    background-color: #bc3232;
-    color: white;
-}
-
-.ffav-menu-system #ffav-bulkDeleteBtn:hover {
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
     background-color: #a02020;
 }
 
-.ffav-menu-system #ffav-selectAllBtn {
-    background-color: #4a76a8;
-    color: white;
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
 }
 
-.ffav-menu-system #ffav-selectAllBtn:hover {
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
     background-color: #3a5b88;
 }
 
-.ffav-menu-system #ffav-cancelSelectionBtn {
-    background-color: #f1f1f1;
-    color: #333;
-}
-
-.ffav-menu-system #ffav-cancelSelectionBtn:hover {
-    background-color: #e0e0e0;
-}
-
-.ffav-menu-system .ffav-bulk-delete-mode .ffav-saved-item {
-    position: relative;
+.ffav-menu-system .ffav-saved-item.bulk-mode {
     padding-left: 35px;
+    position: relative;
 }
 
-.ffav-menu-system .ffav-bulk-delete-mode .ffav-checkbox {
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
     position: absolute;
-    left: 8px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
     width: 18px;
     height: 18px;
     cursor: pointer;
 }
 
-.ffav-menu-system .ffav-bulk-delete-mode .ffav-actions {
-    display: none;
-}
-
-.ffav-menu-system .ffav-bulk-delete-counter {
-    background-color: #4a76a8;
-    color: white;
-    border-radius: 10px;
-    padding: 2px 8px;
-    font-size: 12px;
-    margin-left: 10px;
-}
-
 /* Mobile styles for bulk delete */
 @media (max-width: 768px) {
     .ffav-menu-system .ffav-bulk-actions {
-        flex-wrap: wrap;
-        gap: 5px;
+        padding: 6px 8px;
     }
     
-    .ffav-menu-system .ffav-bulk-actions button {
-        flex: 1;
-        min-width: 80px;
+    .ffav-menu-system .ffav-bulk-counter {
         font-size: 12px;
-        padding: 8px 5px;
     }
     
-    .ffav-menu-system .ffav-bulk-delete-mode .ffav-checkbox {
-        width: 20px;
-        height: 20px;
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
     }
 }`;
 document.head.appendChild(style);
@@ -605,8 +650,6 @@ const menuStateStorage = {
 };
 
 let disableDuplicateCheck = false;
-let bulkDeleteMode = false;
-let selectedItems = new Set();
 
 function toggleDuplicateCheck(disable = true) {
     disableDuplicateCheck = disable;
@@ -754,16 +797,11 @@ function renderSavedItems(searchTerm = '', filters = {}) {
         
         let itemHTML;
         
-        // Add checkbox for bulk delete mode
-        const checkboxHTML = bulkDeleteMode ? 
-            `<input type="checkbox" class="ffav-checkbox" data-id="${item.id}">` : '';
-        
         if (item.type === 'post') {
             const excerptHTML = item.excerpt ? `<div class="ffav-excerpt">${item.excerpt}</div>` : '';
             const displayTitle = item.threadTitle ? `${item.title} in ${item.threadTitle}` : item.title;
             
             itemHTML = `
-                ${checkboxHTML}
                 <img src="${item.avatar || 'https://img.forumfree.net/style_images/default_avatar.png'}" class="ffav-avatar" alt="Avatar">
                 <div class="ffav-content">
                     <a href="${item.url}" class="ffav-title" target="_self">${displayTitle}</a>
@@ -780,7 +818,6 @@ function renderSavedItems(searchTerm = '', filters = {}) {
             const displayTitle = item.sectionName ? `${item.title} in ${item.sectionName}` : item.title;
             
             itemHTML = `
-                ${checkboxHTML}
                 <div class="ffav-avatar-placeholder"><i class="fa fa-comments"></i></div>
                 <div class="ffav-content">
                     <a href="${item.url}" class="ffav-title" target="_self">${displayTitle}</a>
@@ -794,7 +831,6 @@ function renderSavedItems(searchTerm = '', filters = {}) {
             `;
         } else {
             itemHTML = `
-                ${checkboxHTML}
                 <div class="ffav-content">
                     <a href="${item.url}" class="ffav-title" target="_self">${item.title}</a>
                     <div class="ffav-date">${item.date}</div>
@@ -810,7 +846,6 @@ function renderSavedItems(searchTerm = '', filters = {}) {
         savedItems.appendChild(listItem);
     });
 
-    // After adding all items to the list
     document.querySelectorAll('.ffav-edit-btn').forEach(btn => {
         btn.addEventListener('click', e => {
             const id = parseInt(e.target.closest('.ffav-edit-btn').dataset.id);
@@ -838,44 +873,6 @@ function renderSavedItems(searchTerm = '', filters = {}) {
             }
         });
     });
-    
-    // Add event listeners for checkboxes in bulk delete mode
-    if (bulkDeleteMode) {
-        document.querySelectorAll('.ffav-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const itemId = parseInt(this.dataset.id);
-                
-                if (this.checked) {
-                    selectedItems.add(itemId);
-                } else {
-                    selectedItems.delete(itemId);
-                }
-                
-                updateBulkDeleteCounter();
-            });
-            
-            // Restore checked state for previously selected items
-            if (selectedItems.has(parseInt(checkbox.dataset.id))) {
-                checkbox.checked = true;
-            }
-        });
-        
-        // Make the entire item clickable to toggle checkbox
-        document.querySelectorAll('.ffav-saved-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                // Don't toggle if clicking on a link or the checkbox itself
-                if (e.target.tagName === 'A' || e.target.tagName === 'INPUT') {
-                    return;
-                }
-                
-                const checkbox = this.querySelector('.ffav-checkbox');
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    checkbox.dispatchEvent(new Event('change'));
-                }
-            });
-        });
-    }
 }
 
 function createFavoritesMenu() {
@@ -886,6 +883,23 @@ function createFavoritesMenu() {
     const menuHTML = `
          <div id="ffav-favoritesMenu">
         <div id="ffav-menuContainer">
+            <div id="ffav-bulk-actions" class="ffav-bulk-actions" style="display: none;">
+                <div class="ffav-bulk-actions-left">
+                    <label class="ffav-bulk-select-all">
+                        <input type="checkbox" id="ffav-select-all">
+                        <span>Seleziona tutti</span>
+                    </label>
+                    <span class="ffav-bulk-counter">0 selezionati</span>
+                </div>
+                <div class="ffav-bulk-actions-right">
+                    <button class="ffav-bulk-delete-btn" id="ffav-bulk-delete-btn" disabled>
+                        <i class="fa fa-trash"></i> Elimina
+                    </button>
+                    <button class="ffav-bulk-cancel-btn" id="ffav-bulk-cancel-btn">
+                        <i class="fa fa-times"></i> Annulla
+                    </button>
+                </div>
+            </div>
             <ul id="ffav-savedItems"></ul>
             <div id="ffav-searchContainer">
                 <input type="text" id="ffav-searchInput" placeholder="Cerca nei segnalibri...">
@@ -896,17 +910,13 @@ function createFavoritesMenu() {
                     <button class="ffav-filter-btn" data-filter="page">Link</button>
                 </div>
             </div>
-            <div class="ffav-bulk-actions" style="display: none;">
-                <button id="ffav-selectAllBtn">Seleziona tutti</button>
-                <span class="ffav-bulk-delete-counter">0 selezionati</span>
-                <button id="ffav-bulkDeleteBtn">Elimina selezionati</button>
-                <button id="ffav-cancelSelectionBtn">Annulla</button>
-            </div>
             <div id="ffav-menuButtons">
                 <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo link</button>
                 <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
                 <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
-                <button class="ffav-menu-btn" id="ffav-bulkDeleteModeBtn"><i class="fa fa-trash"></i> Elimina più elementi</button>
+                <button class="ffav-menu-btn ffav-bulk-mode-btn" id="ffav-bulk-mode-btn">
+                    <i class="fa fa-check-square-o"></i> Selezione multipla
+                </button>
             </div>
         </div>
         <button id="ffav-favButton">
@@ -951,6 +961,108 @@ function createFavoritesMenu() {
     const linkUrl = document.getElementById('ffav-linkUrl');
     const searchInput = document.getElementById('ffav-searchInput');
     const filterButtons = document.querySelectorAll('.ffav-filter-btn');
+    
+    // Bulk delete elements
+    const bulkModeBtn = document.getElementById('ffav-bulk-mode-btn');
+    const bulkActions = document.getElementById('ffav-bulk-actions');
+    const selectAllCheckbox = document.getElementById('ffav-select-all');
+    const bulkDeleteBtn = document.getElementById('ffav-bulk-delete-btn');
+    const bulkCancelBtn = document.getElementById('ffav-bulk-cancel-btn');
+    const bulkCounter = document.querySelector('.ffav-bulk-counter');
+    
+    let isBulkMode = false;
+    let selectedItems = [];
+    
+    // Bulk mode toggle
+    bulkModeBtn.addEventListener('click', () => {
+        toggleBulkMode(!isBulkMode);
+    });
+    
+    // Select all checkbox
+    selectAllCheckbox.addEventListener('change', () => {
+        const isChecked = selectAllCheckbox.checked;
+        const checkboxes = document.querySelectorAll('.ffav-item-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = isChecked;
+        });
+        
+        if (isChecked) {
+            selectedItems = Array.from(checkboxes).map(checkbox => parseInt(checkbox.dataset.id));
+        } else {
+            selectedItems = [];
+        }
+        
+        updateBulkCounter();
+        updateBulkDeleteButton();
+    });
+    
+    // Bulk delete button
+    bulkDeleteBtn.addEventListener('click', () => {
+        if (selectedItems.length === 0) return;
+        
+        if (confirm(`Sei sicuro di voler eliminare ${selectedItems.length} elementi dai segnalibri?`)) {
+            const favorites = favoritesStorage.get();
+            const updatedFavorites = favorites.filter(item => !selectedItems.includes(item.id));
+            
+            favoritesStorage.set(updatedFavorites);
+            showNotification(`${selectedItems.length} elementi eliminati`, 'success');
+            
+            toggleBulkMode(false);
+            renderSavedItems(searchInput.value.trim(), currentFilters);
+        }
+    });
+    
+    // Bulk cancel button
+    bulkCancelBtn.addEventListener('click', () => {
+        toggleBulkMode(false);
+    });
+    
+    // Toggle bulk mode function
+    function toggleBulkMode(enable) {
+        isBulkMode = enable;
+        
+        if (enable) {
+            bulkActions.style.display = 'flex';
+            bulkModeBtn.style.display = 'none';
+            selectedItems = [];
+            updateBulkCounter();
+            updateBulkDeleteButton();
+        } else {
+            bulkActions.style.display = 'none';
+            bulkModeBtn.style.display = 'flex';
+            selectAllCheckbox.checked = false;
+        }
+        
+        renderSavedItems(searchInput.value.trim(), currentFilters);
+    }
+    
+    // Update bulk counter
+    function updateBulkCounter() {
+        bulkCounter.textContent = `${selectedItems.length} selezionati`;
+    }
+    
+    // Update bulk delete button state
+    function updateBulkDeleteButton() {
+        bulkDeleteBtn.disabled = selectedItems.length === 0;
+    }
+    
+    // Handle item checkbox click
+    function handleItemCheckboxClick(e) {
+        const id = parseInt(e.target.dataset.id);
+        
+        if (e.target.checked) {
+            if (!selectedItems.includes(id)) {
+                selectedItems.push(id);
+            }
+        } else {
+            selectedItems = selectedItems.filter(itemId => itemId !== id);
+            selectAllCheckbox.checked = false;
+        }
+        
+        updateBulkCounter();
+        updateBulkDeleteButton();
+    }
    
     const currentFilters = { type: 'all' };
     
@@ -1425,12 +1537,4 @@ function init() {
 document.readyState === 'loading' 
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
-
-// Add this function to update the bulk delete counter
-function updateBulkDeleteCounter() {
-    const counter = document.querySelector('.ffav-bulk-delete-counter');
-    if (counter) {
-        counter.textContent = `${selectedItems.size} selezionati`;
-    }
-}
 
