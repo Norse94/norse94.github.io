@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Confronto: Bvs10 vs Bronco 3</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+    .highlight {
+      background-color: #ffeb3b;
+    }
+    #btnHighlight {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Confronto Interattivo: Bvs10 vs Bronco 3</h1>
+  <button id="btnHighlight">Evidenzia Differenze</button>
+  <table id="comparisonTable">
+    <thead>
+      <tr>
+        <th>Caratteristica</th>
+        <th>Bvs10</th>
+        <th>Bronco 3</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Motore</td>
+        <td>Diesel 6 cilindri</td>
+        <td>Diesel 8 cilindri</td>
+      </tr>
+      <tr>
+        <td>Potenza</td>
+        <td>300 CV</td>
+        <td>350 CV</td>
+      </tr>
+      <tr>
+        <td>Peso</td>
+        <td>12 tonnellate</td>
+        <td>14 tonnellate</td>
+      </tr>
+      <tr>
+        <td>Dimensioni (L x W x H)</td>
+        <td>8m x 3m x 3.5m</td>
+        <td>9m x 3.2m x 3.8m</td>
+      </tr>
+      <tr>
+        <td>Capacità</td>
+        <td>10 persone</td>
+        <td>12 persone</td>
+      </tr>
+      <tr>
+        <td>Equipaggiamento</td>
+        <td>Trazione integrale, sospensioni avanzate</td>
+        <td>Telai rinforzato, sistema di comunicazione avanzato</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script>
+    const btnHighlight = document.getElementById('btnHighlight');
+    const table = document.getElementById('comparisonTable');
+    
+    btnHighlight.addEventListener('click', () => {
+      // Itera sulle righe del corpo della tabella
+      const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+      for (let row of rows) {
+        // Le celle della seconda e terza colonna (Bvs10 e Bronco 3)
+        const cell1 = row.cells[1];
+        const cell2 = row.cells[2];
+        // Rimuovi eventuali evidenziazioni precedenti
+        cell1.classList.remove('highlight');
+        cell2.classList.remove('highlight');
+        // Se il contenuto è diverso, evidenzia
+        if (cell1.textContent.trim() !== cell2.textContent.trim()) {
+          cell1.classList.add('highlight');
+          cell2.classList.add('highlight');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
