@@ -545,8 +545,6 @@ span#ffav-saveThreadBtn {
     }`;
 document.head.appendChild(style);
 
-
-
 const favoritesStorage = {
     get: function() {
         const favorites = localStorage.getItem('forumFavorites');
@@ -702,6 +700,16 @@ function showNotification(message, type = 'normal', isLimitWarning = false) {
     setTimeout(() => notif.remove(), isLimitWarning ? 5000 : 3000);
 }
 
+// Add this function outside of any other function, as a global function
+function updateSelectedCount() {
+    const multiDeleteCount = document.getElementById('ffav-multi-delete-count');
+    if (multiDeleteCount) {
+        multiDeleteCount.textContent = `${selectedItems.size} elementi selezionati`;
+    }
+}
+
+// Then in your createFavoritesMenu function, remove the nested updateSelectedCount function
+// and just call the global one
 function renderSavedItems(searchTerm = '', filters = {}) {
     const savedItems = document.getElementById('ffav-savedItems');
     if (!savedItems) return;
