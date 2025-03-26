@@ -410,46 +410,109 @@ span#ffav-saveThreadBtn {
             padding: 8px 15px;
             font-size: 14px;
         }
-/* Aggiungere questa media query alla fine del CSS esistente */
-@media (max-width: 480px) {
-    .ffav-menu-system .ffav-menu-btn {
-        font-size: 14px;
-        padding: 6px 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-    }
-    
-    .ffav-menu-system .ffav-menu-btn i {
-        font-size: 14px;
-    }
-    
-    .ffav-menu-system #ffav-menuButtons {
-        gap: 4px;
-    }
-    
-    .ffav-menu-system .ffav-saved-item .ffav-title {
-        font-size: 14px;
-    }
-    
-    .ffav-menu-system .ffav-saved-item .ffav-date {
-        font-size: 12px;
-    }
-    
-    .ffav-menu-system .ffav-saved-item {
-        padding: 6px 8px;
-    }
-    
-    .ffav-menu-system .ffav-saved-item .ffav-avatar {
-        width: 24px;
-        height: 24px;
-    }
+/* Multi-delete feature styles */
+.ffav-menu-system .ffav-multi-delete-mode .ffav-saved-item {
+    position: relative;
+    padding-left: 40px;
 }
-    }  
+
+.ffav-menu-system .ffav-multi-delete-mode .ffav-saved-item .ffav-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.ffav-menu-system #ffav-multi-delete-controls {
+    display: none;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #eee;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ffav-menu-system #ffav-multi-delete-controls.active {
+    display: flex;
+}
+
+.ffav-menu-system #ffav-multi-delete-count {
+    font-size: 14px;
+    color: #555;
+}
+
+.ffav-menu-system #ffav-multi-delete-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.ffav-menu-system #ffav-select-all-btn,
+.ffav-menu-system #ffav-delete-selected-btn,
+.ffav-menu-system #ffav-cancel-multi-delete-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+}
+
+.ffav-menu-system #ffav-select-all-btn {
+    background-color: #f1f1f1;
+    color: #333;
+}
+
+.ffav-menu-system #ffav-delete-selected-btn {
+    background-color: #bc3232;
+    color: white;
+}
+
+.ffav-menu-system #ffav-cancel-multi-delete-btn {
+    background-color: #f1f1f1;
+    color: #333;
+}
+
+.ffav-menu-system #ffav-multi-delete-btn {
+    background-color: #4f4d46;
+    flex: 1;
+}
+
+/* Mobile adjustments for multi-delete */
+.ffav-menu-system .ffav-multi-delete-mode .ffav-saved-item {
+    padding-left: 35px;
+}
+
+.ffav-menu-system .ffav-multi-delete-mode .ffav-saved-item .ffav-checkbox {
+    width: 18px;
+    height: 18px;
+    left: 8px;
+}
+
+.ffav-menu-system #ffav-multi-delete-controls {
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ffav-menu-system #ffav-multi-delete-actions {
+    width: 100%;
+    justify-content: space-between;
+}
+
+.ffav-menu-system #ffav-select-all-btn,
+.ffav-menu-system #ffav-delete-selected-btn,
+.ffav-menu-system #ffav-cancel-multi-delete-btn {
+    padding: 8px;
+    font-size: 12px;
+    flex: 1;
+    text-align: center;
+}
+}  
 `;
 document.head.appendChild(style);
-
 
 const favoritesStorage = {
     get: function() {
@@ -753,10 +816,19 @@ function createFavoritesMenu() {
                     <button class="ffav-filter-btn" data-filter="page">Link</button>
                 </div>
             </div>
+            <div id="ffav-multi-delete-controls">
+                <div id="ffav-multi-delete-count">0 elementi selezionati</div>
+                <div id="ffav-multi-delete-actions">
+                    <button id="ffav-select-all-btn">Seleziona tutti</button>
+                    <button id="ffav-delete-selected-btn">Elimina</button>
+                    <button id="ffav-cancel-multi-delete-btn">Annulla</button>
+                </div>
+            </div>
             <div id="ffav-menuButtons">
                 <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo link</button>
                 <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
                 <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
+                <button class="ffav-menu-btn" id="ffav-multi-delete-btn"><i class="fa fa-trash"></i> Elimina più elementi</button>
             </div>
         </div>
         <button id="ffav-favButton">
@@ -794,6 +866,12 @@ function createFavoritesMenu() {
     const addManualBtn = document.getElementById('ffav-addManualBtn');
     const exportBtn = document.getElementById('ffav-exportBtn');
     const importBtn = document.getElementById('ffav-importBtn');
+    const multiDeleteBtn = document.getElementById('ffav-multi-delete-btn');
+    const multiDeleteControls = document.getElementById('ffav-multi-delete-controls');
+    const multiDeleteCount = document.getElementById('ffav-multi-delete-count');
+    const selectAllBtn = document.getElementById('ffav-select-all-btn');
+    const deleteSelectedBtn = document.getElementById('ffav-delete-selected-btn');
+    const cancelMultiDeleteBtn = document.getElementById('ffav-cancel-multi-delete-btn');
     const modal = document.getElementById('ffav-favoritesModal');
     const cancelModal = document.getElementById('ffav-cancelModal');
     const saveLink = document.getElementById('ffav-saveLink');
@@ -801,7 +879,11 @@ function createFavoritesMenu() {
     const linkUrl = document.getElementById('ffav-linkUrl');
     const searchInput = document.getElementById('ffav-searchInput');
     const filterButtons = document.querySelectorAll('.ffav-filter-btn');
+    const savedItems = document.getElementById('ffav-savedItems');
    
+    let isMultiDeleteMode = false;
+    let selectedItems = new Set();
+    
     const currentFilters = { type: 'all' };
     
     filterButtons.forEach(btn => {
@@ -1275,3 +1357,4 @@ function init() {
 document.readyState === 'loading' 
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
+
