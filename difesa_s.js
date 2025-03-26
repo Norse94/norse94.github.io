@@ -810,6 +810,7 @@ function renderSavedItems(searchTerm = '', filters = {}) {
         savedItems.appendChild(listItem);
     });
 
+    // After adding all items to the list
     document.querySelectorAll('.ffav-edit-btn').forEach(btn => {
         btn.addEventListener('click', e => {
             const id = parseInt(e.target.closest('.ffav-edit-btn').dataset.id);
@@ -837,6 +838,44 @@ function renderSavedItems(searchTerm = '', filters = {}) {
             }
         });
     });
+    
+    // Add event listeners for checkboxes in bulk delete mode
+    if (bulkDeleteMode) {
+        document.querySelectorAll('.ffav-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const itemId = parseInt(this.dataset.id);
+                
+                if (this.checked) {
+                    selectedItems.add(itemId);
+                } else {
+                    selectedItems.delete(itemId);
+                }
+                
+                updateBulkDeleteCounter();
+            });
+            
+            // Restore checked state for previously selected items
+            if (selectedItems.has(parseInt(checkbox.dataset.id))) {
+                checkbox.checked = true;
+            }
+        });
+        
+        // Make the entire item clickable to toggle checkbox
+        document.querySelectorAll('.ffav-saved-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Don't toggle if clicking on a link or the checkbox itself
+                if (e.target.tagName === 'A' || e.target.tagName === 'INPUT') {
+                    return;
+                }
+                
+                const checkbox = this.querySelector('.ffav-checkbox');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+    }
 }
 
 function createFavoritesMenu() {
@@ -1386,4 +1425,12 @@ function init() {
 document.readyState === 'loading' 
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
+
+// Add this function to update the bulk delete counter
+function updateBulkDeleteCounter() {
+    const counter = document.querySelector('.ffav-bulk-delete-counter');
+    if (counter) {
+        counter.textContent = `${selectedItems.size} selezionati`;
+    }
+}
 
