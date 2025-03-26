@@ -446,145 +446,116 @@ span#ffav-saveThreadBtn {
         height: 24px;
     }
 }
-    /* Multi-select delete mode styles */
-    .ffav-menu-system .ffav-multi-delete-mode .ffav-saved-item {
-        padding-left: 40px;
-        position: relative;
+    }  
+/* Multi-select delete styles */
+.ffav-menu-system .ffav-multi-select-mode .ffav-saved-item {
+    position: relative;
+    padding-left: 40px;
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.ffav-menu-system #ffav-multi-select-controls {
+    display: none;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #eee;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ffav-menu-system #ffav-multi-select-controls.active {
+    display: flex;
+}
+
+.ffav-menu-system #ffav-multi-select-count {
+    font-size: 14px;
+    color: #555;
+}
+
+.ffav-menu-system #ffav-multi-select-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.ffav-menu-system .ffav-multi-select-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system #ffav-select-all-btn {
+    background-color: #f1f1f1;
+    color: #333;
+}
+
+.ffav-menu-system #ffav-delete-selected-btn {
+    background-color: #bc3232;
+    color: white;
+}
+
+.ffav-menu-system #ffav-cancel-multi-select-btn {
+    background-color: #f1f1f1;
+    color: #333;
+}
+
+.ffav-menu-system .ffav-multi-select-toggle {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-right: 10px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-multi-select-toggle:hover {
+    background-color: #3a5b88;
+}
+
+/* Mobile styles for multi-select */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-multi-select-mode .ffav-saved-item {
+        padding-left: 35px;
     }
     
-    .ffav-menu-system .ffav-checkbox-container {
-        position: absolute;
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 18px;
+        height: 18px;
         left: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: none;
     }
     
-    .ffav-menu-system .ffav-multi-delete-mode .ffav-checkbox-container {
-        display: block;
+    .ffav-menu-system #ffav-multi-select-controls {
+        flex-direction: column;
+        gap: 10px;
     }
     
-    .ffav-menu-system .ffav-checkbox {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        border: 2px solid #ddd;
-        background-color: white;
-        cursor: pointer;
-        position: relative;
-        transition: all 0.2s ease;
-    }
-    
-    .ffav-menu-system .ffav-checkbox:checked {
-        background-color: #bc3232;
-        border-color: #bc3232;
-    }
-    
-    .ffav-menu-system .ffav-checkbox:checked::after {
-        content: '';
-        position: absolute;
-        top: 5px;
-        left: 5px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: white;
-    }
-    
-    .ffav-menu-system #ffav-multiDeleteControls {
-        display: none;
-        padding: 10px;
-        background-color: #f5f5f5;
-        border-top: 1px solid #eee;
+    .ffav-menu-system #ffav-multi-select-actions {
         width: 100%;
-        box-sizing: border-box;
         justify-content: space-between;
-        align-items: center;
     }
     
-    .ffav-menu-system .ffav-multi-delete-mode #ffav-multiDeleteControls {
-        display: flex;
-    }
-    
-    .ffav-menu-system #ffav-deleteSelectedBtn {
-        background-color: #bc3232;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-        transition: all 0.2s;
-    }
-    
-    .ffav-menu-system #ffav-deleteSelectedBtn:hover {
-        background-color: #a02020;
-    }
-    
-    .ffav-menu-system #ffav-cancelMultiDeleteBtn {
-        background-color: #888;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-        transition: all 0.2s;
-    }
-    
-    .ffav-menu-system #ffav-cancelMultiDeleteBtn:hover {
-        background-color: #666;
-    }
-    
-    .ffav-menu-system #ffav-selectAllBtn {
-        background: none;
-        border: none;
-        color: #4a76a8;
-        cursor: pointer;
-        font-size: 13px;
-        padding: 0;
-        text-decoration: underline;
-    }
-    
-    .ffav-menu-system #ffav-selectAllBtn:hover {
-        color: #3a5b88;
-    }
-    
-    .ffav-menu-system #ffav-multiDeleteBtn {
-        background-color: #f1f1f1;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
+    .ffav-menu-system .ffav-multi-select-btn {
+        flex: 1;
         font-size: 12px;
-        color: #555;
-        transition: all 0.2s;
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 5px;
+        padding: 8px 5px;
     }
-    
-    .ffav-menu-system #ffav-multiDeleteBtn:hover {
-        background-color: #e0e0e0;
-    }
-    
-    .ffav-menu-system #ffav-multiDeleteBtn i {
-        font-size: 14px;
-    }
-    
-    .ffav-menu-system .ffav-multi-delete-mode .ffav-actions {
-        display: none;
-    }
-    
-    .ffav-menu-system .ffav-selection-count {
-        font-size: 13px;
-        color: #555;
-    }
-        }  
-`;
+}`;
 document.head.appendChild(style);
 
 const favoritesStorage = {
@@ -742,14 +713,6 @@ function showNotification(message, type = 'normal', isLimitWarning = false) {
     setTimeout(() => notif.remove(), isLimitWarning ? 5000 : 3000);
 }
 
-function updateSelectionCount() {
-    const selectedCount = document.querySelectorAll('.ffav-checkbox:checked').length;
-    const selectionCountElement = document.querySelector('.ffav-selection-count');
-    if (selectionCountElement) {
-        selectionCountElement.textContent = `${selectedCount} elementi selezionati`;
-    }
-}
-
 function renderSavedItems(searchTerm = '', filters = {}) {
     const savedItems = document.getElementById('ffav-savedItems');
     if (!savedItems) return;
@@ -798,17 +761,6 @@ function renderSavedItems(searchTerm = '', filters = {}) {
     filteredFavorites.forEach(item => {
         const listItem = document.createElement('li');
         listItem.className = 'ffav-saved-item';
-        listItem.dataset.id = item.id;
-        
-        // Add checkbox container for multi-delete
-        const checkboxContainer = document.createElement('div');
-        checkboxContainer.className = 'ffav-checkbox-container';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'ffav-checkbox';
-        checkbox.dataset.id = item.id;
-        checkboxContainer.appendChild(checkbox);
-        listItem.appendChild(checkboxContainer);
         
         let itemHTML;
         
@@ -857,7 +809,7 @@ function renderSavedItems(searchTerm = '', filters = {}) {
             `;
         }
         
-        listItem.innerHTML += itemHTML;
+        listItem.innerHTML = itemHTML;
         savedItems.appendChild(listItem);
     });
 
@@ -906,19 +858,19 @@ function createFavoritesMenu() {
                     <button class="ffav-filter-btn" data-filter="post">Post</button>
                     <button class="ffav-filter-btn" data-filter="thread">Discussioni</button>
                     <button class="ffav-filter-btn" data-filter="page">Link</button>
-                    <button id="ffav-multiDeleteBtn"><i class="fa fa-trash"></i> Multi</button>
                 </div>
             </div>
-            <div id="ffav-multiDeleteControls">
-                <div class="ffav-selection-count">0 elementi selezionati</div>
-                <button id="ffav-selectAllBtn">Seleziona tutti</button>
-                <div>
-                    <button id="ffav-cancelMultiDeleteBtn">Annulla</button>
-                    <button id="ffav-deleteSelectedBtn">Elimina</button>
+            <div id="ffav-multi-select-controls">
+                <div id="ffav-multi-select-count">0 elementi selezionati</div>
+                <div id="ffav-multi-select-actions">
+                    <button id="ffav-select-all-btn" class="ffav-multi-select-btn">Seleziona tutti</button>
+                    <button id="ffav-delete-selected-btn" class="ffav-multi-select-btn">Elimina selezionati</button>
+                    <button id="ffav-cancel-multi-select-btn" class="ffav-multi-select-btn">Annulla</button>
                 </div>
             </div>
             <div id="ffav-menuButtons">
                 <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo link</button>
+                <button class="ffav-multi-select-toggle" id="ffav-multi-select-toggle"><i class="fa fa-check-square-o"></i> Selezione multipla</button>
                 <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
                 <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
             </div>
@@ -965,12 +917,6 @@ function createFavoritesMenu() {
     const linkUrl = document.getElementById('ffav-linkUrl');
     const searchInput = document.getElementById('ffav-searchInput');
     const filterButtons = document.querySelectorAll('.ffav-filter-btn');
-    
-    // Add multi-delete functionality
-    const multiDeleteBtn = document.getElementById('ffav-multiDeleteBtn');
-    const cancelMultiDeleteBtn = document.getElementById('ffav-cancelMultiDeleteBtn');
-    const deleteSelectedBtn = document.getElementById('ffav-deleteSelectedBtn');
-    const selectAllBtn = document.getElementById('ffav-selectAllBtn');
    
     const currentFilters = { type: 'all' };
     
@@ -1446,15 +1392,8 @@ document.readyState === 'loading'
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
 
-
-function updateSelectionCount() {
-    const selectedCount = document.querySelectorAll('.ffav-checkbox:checked').length;
-    const selectionCountElement = document.querySelector('.ffav-selection-count');
-    if (selectionCountElement) {
-        selectionCountElement.textContent = `${selectedCount} elementi selezionati`;
-    }
-}
-
+## Part 2: JavaScript for Multi-Select Delete Feature
+```javascript
 function createFavoritesMenu() {
     const systemContainer = document.createElement('div');
     systemContainer.className = 'ffav-menu-system';
@@ -1471,19 +1410,19 @@ function createFavoritesMenu() {
                     <button class="ffav-filter-btn" data-filter="post">Post</button>
                     <button class="ffav-filter-btn" data-filter="thread">Discussioni</button>
                     <button class="ffav-filter-btn" data-filter="page">Link</button>
-                    <button id="ffav-multiDeleteBtn"><i class="fa fa-trash"></i> Multi</button>
                 </div>
             </div>
-            <div id="ffav-multiDeleteControls">
-                <div class="ffav-selection-count">0 elementi selezionati</div>
-                <button id="ffav-selectAllBtn">Seleziona tutti</button>
-                <div>
-                    <button id="ffav-cancelMultiDeleteBtn">Annulla</button>
-                    <button id="ffav-deleteSelectedBtn">Elimina</button>
+            <div id="ffav-multi-select-controls">
+                <div id="ffav-multi-select-count">0 elementi selezionati</div>
+                <div id="ffav-multi-select-actions">
+                    <button id="ffav-select-all-btn" class="ffav-multi-select-btn">Seleziona tutti</button>
+                    <button id="ffav-delete-selected-btn" class="ffav-multi-select-btn">Elimina selezionati</button>
+                    <button id="ffav-cancel-multi-select-btn" class="ffav-multi-select-btn">Annulla</button>
                 </div>
             </div>
             <div id="ffav-menuButtons">
                 <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo link</button>
+                <button class="ffav-multi-select-toggle" id="ffav-multi-select-toggle"><i class="fa fa-check-square-o"></i> Selezione multipla</button>
                 <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
                 <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
             </div>
@@ -1530,12 +1469,6 @@ function createFavoritesMenu() {
     const linkUrl = document.getElementById('ffav-linkUrl');
     const searchInput = document.getElementById('ffav-searchInput');
     const filterButtons = document.querySelectorAll('.ffav-filter-btn');
-    
-    // Add multi-delete functionality
-    const multiDeleteBtn = document.getElementById('ffav-multiDeleteBtn');
-    const cancelMultiDeleteBtn = document.getElementById('ffav-cancelMultiDeleteBtn');
-    const deleteSelectedBtn = document.getElementById('ffav-deleteSelectedBtn');
-    const selectAllBtn = document.getElementById('ffav-selectAllBtn');
    
     const currentFilters = { type: 'all' };
     
@@ -2011,214 +1944,3 @@ document.readyState === 'loading'
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
 
-
-function updateSelectionCount() {
-    const selectedCount = document.querySelectorAll('.ffav-checkbox:checked').length;
-    const selectionCountElement = document.querySelector('.ffav-selection-count');
-    if (selectionCountElement) {
-        selectionCountElement.textContent = `${selectedCount} elementi selezionati`;
-    }
-}
-
-function createFavoritesMenu() {
-    const systemContainer = document.createElement('div');
-    systemContainer.className = 'ffav-menu-system';
-    document.body.appendChild(systemContainer);
-    
-    const menuHTML = `
-         <div id="ffav-favoritesMenu">
-        <div id="ffav-menuContainer">
-            <ul id="ffav-savedItems"></ul>
-            <div id="ffav-searchContainer">
-                <input type="text" id="ffav-searchInput" placeholder="Cerca nei segnalibri...">
-                <div id="ffav-filterOptions">
-                    <button class="ffav-filter-btn active" data-filter="all">Tutti</button>
-                    <button class="ffav-filter-btn" data-filter="post">Post</button>
-                    <button class="ffav-filter-btn" data-filter="thread">Discussioni</button>
-                    <button class="ffav-filter-btn" data-filter="page">Link</button>
-                    <button id="ffav-multiDeleteBtn"><i class="fa fa-trash"></i> Multi</button>
-                </div>
-            </div>
-            <div id="ffav-multiDeleteControls">
-                <div class="ffav-selection-count">0 elementi selezionati</div>
-                <button id="ffav-selectAllBtn">Seleziona tutti</button>
-                <div>
-                    <button id="ffav-cancelMultiDeleteBtn">Annulla</button>
-                    <button id="ffav-deleteSelectedBtn">Elimina</button>
-                </div>
-            </div>
-            <div id="ffav-menuButtons">
-                <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo link</button>
-                <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
-                <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
-            </div>
-        </div>
-        <button id="ffav-favButton">
-            <i class="fa fa-bookmark"></i>
-        </button>
-    </div>
-    `;
-    
-    systemContainer.innerHTML = menuHTML;
-
-    const modalHTML = `
-        <div id="ffav-favoritesModal" class="ffav-modal">
-            <div class="ffav-modal-content">
-                <div class="ffav-modal-title">Aggiungi/Modifica</div>
-                <div class="ffav-form-group">
-                    <label for="ffav-linkTitle">Titolo</label>
-                    <input type="text" id="ffav-linkTitle" placeholder="Titolo del link">
-                </div>
-                <div class="ffav-form-group">
-                    <label for="ffav-linkUrl">URL</label>
-                    <input type="text" id="ffav-linkUrl" placeholder="URL completo">
-                </div>
-                <div class="ffav-modal-buttons">
-                    <button class="ffav-cancel" id="ffav-cancelModal">Annulla</button>
-                    <button class="ffav-save" id="ffav-saveLink">Salva</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    systemContainer.insertAdjacentHTML('beforeend', modalHTML);
-   
-    const favButton = document.getElementById('ffav-favButton');
-    const menuContainer = document.getElementById('ffav-menuContainer');
-    const addManualBtn = document.getElementById('ffav-addManualBtn');
-    const exportBtn = document.getElementById('ffav-exportBtn');
-    const importBtn = document.getElementById('ffav-importBtn');
-    const modal = document.getElementById('ffav-favoritesModal');
-    const cancelModal = document.getElementById('ffav-cancelModal');
-    const saveLink = document.getElementById('ffav-saveLink');
-    const linkTitle = document.getElementById('ffav-linkTitle');
-    const linkUrl = document.getElementById('ffav-linkUrl');
-    const searchInput = document.getElementById('ffav-searchInput');
-    const filterButtons = document.querySelectorAll('.ffav-filter-btn');
-    
-    // Add multi-delete functionality
-    const multiDeleteBtn = document.getElementById('ffav-multiDeleteBtn');
-    const cancelMultiDeleteBtn = document.getElementById('ffav-cancelMultiDeleteBtn');
-    const deleteSelectedBtn = document.getElementById('ffav-deleteSelectedBtn');
-    const selectAllBtn = document.getElementById('ffav-selectAllBtn');
-   
-    const currentFilters = { type: 'all' };
-    
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            filterButtons.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            currentFilters.type = this.dataset.filter;
-            renderSavedItems(searchInput.value.trim(), currentFilters);
-        });
-    });
-    
-    searchInput.addEventListener('input', e => {
-        renderSavedItems(e.target.value.trim(), currentFilters);
-    });
-    
-    favButton.addEventListener('click', () => {
-        if (menuContainer.style.display === 'flex') {
-            menuContainer.style.display = 'none';
-            menuStateStorage.set(false);
-        } else {
-            menuContainer.style.display = 'flex';
-            menuStateStorage.set(true);
-            searchInput.value = '';
-            filterButtons.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.filter === 'all') {
-                    btn.classList.add('active');
-                }
-            });
-            currentFilters.type = 'all';
-            renderSavedItems();
-        }
-    });
-    
-    if (menuStateStorage.get()) {
-        menuContainer.style.display = 'flex';
-        renderSavedItems();
-    }
-    
-    addManualBtn.addEventListener('click', () => {
-        editingItemId = null;
-        linkTitle.value = '';
-        linkUrl.value = '';
-        modal.style.display = 'flex';
-    });
-    
-    saveLink.addEventListener('click', () => {
-        const title = linkTitle.value.trim();
-        const url = linkUrl.value.trim();
-        
-        if (!title || !url) {
-            showNotification('Inserisci titolo e URL', 'error');
-            return;
-        }
-        
-        if (!editingItemId) {
-            const favorites = favoritesStorage.get();
-            if (isDuplicateItem({url: url, type: 'page'}, favorites)) {
-                showNotification('Questo link è già nei segnalibri', 'error');
-                return;
-            }
-            
-            if (favoritesStorage.isAtLimit()) {
-                showNotification('Hai raggiunto il limite di 100 elementi. Elimina qualcosa prima di aggiungere nuovi elementi.', 'error');
-                return;
-            }
-        }
-        
-        if (editingItemId) {
-            favoritesStorage.update(editingItemId, { title, url });
-            showNotification('Link aggiornato', 'success');
-        } else {
-            favoritesStorage.add({
-                title,
-                url,
-                type: 'page'
-            });
-            showNotification('Link aggiunto ai segnalibri', 'success');
-        }
-        
-        modal.style.display = 'none';
-        renderSavedItems();
-    });
-    
-    cancelModal.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-    
-    modal.addEventListener('click', e => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-    
-    exportBtn.addEventListener('click', () => {
-        const favorites = favoritesStorage.get();
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(favorites));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "segnalibri_forum.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        showNotification('Segnalibri esportati', 'success');
-    });
-    
-    importBtn.addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = event => {
-                    try {
-                        const favorites = JSON.parse(event.target.result);
-                        favoritesStorage.set(favorites);
-                        renderSavedItems();
