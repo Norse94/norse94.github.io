@@ -45,7 +45,6 @@ style.textContent = `
     /* Menu container - responsive */
     .ffav-menu-system #ffav-menuContainer {
         display: none;
-        width: 378px;
         max-width: 90vw;
         max-height: 80vh;
         background-color: white;
@@ -153,7 +152,7 @@ style.textContent = `
         gap: 6px;
         padding: 10px;
         border-top: 1px solid #eee;
-        width: 95%;
+        width: 100%;
         box-sizing: border-box;
     }
     
@@ -1342,13 +1341,6 @@ function handleDesktopPost(post, threadTitle) {
             threadTitle: threadTitle
         });
         
-        // Removing this code that opens the menu
-        // const menuContainer = document.getElementById('ffav-menuContainer');
-        // if (menuContainer && menuContainer.style.display !== 'flex') {
-        //     menuContainer.style.display = 'flex';
-        //     menuStateStorage.set(true);
-        // }
-        
         renderSavedItems();
         showNotification('Post salvato nei segnalibri', 'success');
     });
@@ -1408,13 +1400,6 @@ function handleMobilePost(post, threadTitle) {
                 excerpt: postContent,
                 threadTitle: threadTitle
             });
-            
-            // Remove this code to prevent menu from opening
-            // const menuContainer = document.getElementById('ffav-menuContainer');
-            // if (menuContainer && menuContainer.style.display !== 'flex') {
-            //     menuContainer.style.display = 'flex';
-            //     menuStateStorage.set(true);
-            // }
             
             renderSavedItems();
             showNotification('Post salvato nei segnalibri', 'success');
@@ -1486,13 +1471,6 @@ function addDesktopThreadButton() {
             url: threadUrl,
             type: 'thread'
         });
-        
-        // Remove these lines to prevent the menu from opening
-        // const menuContainer = document.getElementById('ffav-menuContainer');
-        // if (menuContainer && menuContainer.style.display !== 'flex') {
-        //     menuContainer.style.display = 'flex';
-        //     menuStateStorage.set(true);
-        // }
         
         renderSavedItems();
         showNotification('Discussione salvata nei segnalibri', 'success');
@@ -1567,7 +1545,7 @@ function handleResize() {
         menuContainer.style.maxWidth = '90vw';
         savedItems.style.maxHeight = 'calc(70vh - 60px)';
     } else {
-        menuContainer.style.maxWidth = '378px';
+        menuContainer.style.maxWidth = '400px';
         savedItems.style.maxHeight = 'calc(80vh - 70px)';
     }
 }
