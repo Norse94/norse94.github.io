@@ -604,6 +604,8 @@ const menuStateStorage = {
 };
 
 let disableDuplicateCheck = false;
+let editingItemId = null;
+let selectedItems = new Set(); // Add this global variable declaration
 
 function toggleDuplicateCheck(disable = true) {
     disableDuplicateCheck = disable;
@@ -681,8 +683,6 @@ function isExactUrlSaved(url, favorites) {
     if (disableDuplicateCheck) return false;
     return favorites.some(item => normalizeUrl(item.url) === normalizeUrl(url));
 }
-
-let editingItemId = null;
 
 function showNotification(message, type = 'normal', isLimitWarning = false) {
     const notif = document.createElement('div');
