@@ -172,6 +172,26 @@ style.textContent = `
         background-color: #4f4d46;
         flex: 1;
     }
+
+    .ffav-menu-system #ffav-moreBtn {
+        background-color: #4f4d46;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.2s;
+        flex: 1;
+    }
+    
+    .ffav-menu-system #ffav-moreBtn:hover {
+        background-color: #3a3936;
+    }
     /* Different colors for each button */
     .ffav-menu-system #ffav-addPageBtn {
         background-color: #4a76a8;
@@ -305,18 +325,6 @@ style.textContent = `
 .ffav-menu-system .ffav-saved-item.bulk-mode.selected::before {
     opacity: 1;
 }
-    
-    .ffav-menu-system #ffav-addManualBtn {
-        background-color: #4a76a8;
-    }
-    
-    .ffav-menu-system #ffav-exportBtn {
-        background-color: #4f4d46;
-    }
-    
-    .ffav-menu-system #ffav-importBtn {
-        background-color: #4f4d46;
-    }
     
     .ffav-menu-system .ffav-menu-btn {
         color: white;
@@ -724,9 +732,81 @@ span#ffav-saveThreadBtn {
         width: 16px;
         height: 16px;
     }
-}`;
-document.head.appendChild(style);
+}
+    /* Add styles for the more options modal */
+    .ffav-menu-system .ffav-more-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 10001; /* Increased z-index to ensure it appears above other elements */
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+    }
+    
+    .ffav-menu-system .ffav-more-modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 300px;
+        max-width: 90vw;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        position: relative; /* Added position relative */
+        z-index: 10002; /* Ensure content is above the overlay */
+    }
+    
+    .ffav-menu-system .ffav-more-modal-title {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: #333;
+        text-align: center;
+    }
+    
+    .ffav-menu-system .ffav-more-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .ffav-menu-system .ffav-more-option-btn {
+        background-color: #4a76a8;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    
+    .ffav-menu-system .ffav-more-option-btn:hover {
+        background-color: #3a5b88;
+    }
+    
+    .ffav-menu-system .ffav-more-close {
+        text-align: center;
+        margin-top: 15px;
+    }
+    
+    .ffav-menu-system .ffav-more-close-btn {
+        background-color: #f1f1f1;
+        color: #333;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }`;
 
+document.head.appendChild(style);
 
 const favoritesStorage = {
     get: function() {
@@ -1048,14 +1128,12 @@ function renderSavedItems(searchTerm = '', filters = {}) {
     });
 }
 
-// Add these global variables at the top of your script, before any functions
+
 let isBulkMode = false;
 let selectedItems = [];
 
-// Add the handleItemCheckboxClick function to the global scope
-// Update the handleItemCheckboxClick function
 function handleItemCheckboxClick(e) {
-    // Stop propagation to prevent the list item click handler from firing
+
     e.stopPropagation();
     
     const id = parseInt(e.target.dataset.id);
@@ -1076,81 +1154,195 @@ function handleItemCheckboxClick(e) {
     updateBulkDeleteButton();
 }
 
-// Add these utility functions to the global scope as well
 function updateBulkCounter() {
     const bulkCounter = document.querySelector('.ffav-bulk-counter');
     if (bulkCounter) {
         bulkCounter.textContent = `${selectedItems.length} selezionati`;
     }
 }
-
 function updateBulkDeleteButton() {
     const bulkDeleteBtn = document.getElementById('ffav-bulk-delete-btn');
     if (bulkDeleteBtn) {
         bulkDeleteBtn.disabled = selectedItems.length === 0;
     }
 }
-
-// Then in the createFavoritesMenu function, remove the handleItemCheckboxClick function
 function createFavoritesMenu() {
     const systemContainer = document.createElement('div');
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
-    // In the createFavoritesMenu function, replace the select all checkbox event listener with the button click handler
+    const menuHTML = `
+     <div id="ffav-favoritesMenu">
+        <div id="ffav-menuContainer">
+            <div id="ffav-bulk-actions" class="ffav-bulk-actions" style="display: none;">
+                <div class="ffav-bulk-actions-left">
+                    <button class="ffav-select-all-btn" id="ffav-select-all-btn">
+                        <i class="fa fa-check-square-o"></i> Seleziona tutti
+                    </button>
+                    <span class="ffav-bulk-counter">0 selezionati</span>
+                </div>
+                <div class="ffav-bulk-actions-right">
+                    <button class="ffav-bulk-delete-btn" id="ffav-bulk-delete-btn" disabled>
+                        <i class="fa fa-trash"></i> Elimina
+                    </button>
+                    <button class="ffav-bulk-cancel-btn" id="ffav-bulk-cancel-btn">
+                        <i class="fa fa-times"></i> Annulla
+                    </button>
+                </div>
+            </div>
+            <ul id="ffav-savedItems"></ul>
+            <div id="ffav-searchContainer">
+                <input type="text" id="ffav-searchInput" placeholder="Cerca nei segnalibri...">
+                <div id="ffav-filterOptions">
+                    <button class="ffav-filter-btn active" data-filter="all">Tutti</button>
+                    <button class="ffav-filter-btn" data-filter="post">Post</button>
+                    <button class="ffav-filter-btn" data-filter="thread">Discussioni</button>
+                    <button class="ffav-filter-btn" data-filter="page">Link</button>
+                </div>
+            </div>
+            <div id="ffav-menuButtons">
+                <button id="ffav-addManualBtn" class="ffav-menu-btn"><i class="fa fa-plus"></i> Aggiungi</button>
+                <button id="ffav-bulk-mode-btn" class="ffav-menu-btn"><i class="fa fa-check-square-o"></i> Selezione</button>
+                <button id="ffav-moreBtn" class="ffav-menu-btn"><i class="fa fa-ellipsis-h"></i> Altro</button>
+            </div>
+        </div>
+        <button id="ffav-favButton"><i class="fa fa-bookmark"></i></button>
+    </div>
+    <div id="ffav-favoritesModal" class="ffav-modal">
+        <div class="ffav-modal-content">
+            <div class="ffav-modal-title">Aggiungi ai segnalibri</div>
+            <div class="ffav-form-group">
+                <label for="ffav-linkTitle">Titolo</label>
+                <input type="text" id="ffav-linkTitle" placeholder="Titolo del link">
+            </div>
+            <div class="ffav-form-group">
+                <label for="ffav-linkUrl">URL</label>
+                <input type="text" id="ffav-linkUrl" placeholder="https://...">
+            </div>
+            <div class="ffav-modal-buttons">
+                <button class="ffav-cancel">Annulla</button>
+                <button class="ffav-save">Salva</button>
+            </div>
+        </div>
+    </div>
+    <div id="ffav-moreModal" class="ffav-more-modal">
+        <div class="ffav-more-modal-content">
+            <div class="ffav-more-modal-title">Altre opzioni</div>
+            <div class="ffav-more-options">
+                <button id="ffav-exportBtn" class="ffav-more-option-btn">
+                    <i class="fa fa-download"></i> Esporta segnalibri
+                </button>
+                <button id="ffav-importBtn" class="ffav-more-option-btn">
+                    <i class="fa fa-upload"></i> Importa segnalibri
+                </button>
+            </div>
+            <div class="ffav-more-close">
+                <button class="ffav-more-close-btn">Chiudi</button>
+            </div>
+        </div>
+    </div>`;
     
-   
-    // Replace with:
+    systemContainer.innerHTML = menuHTML;
+
+    // Get references to DOM elements after they've been created
+    const favButton = document.getElementById('ffav-favButton');
+    const menuContainer = document.getElementById('ffav-menuContainer');
     const bulkModeBtn = document.getElementById('ffav-bulk-mode-btn');
     const bulkActions = document.getElementById('ffav-bulk-actions');
     const selectAllBtn = document.getElementById('ffav-select-all-btn');
     const bulkDeleteBtn = document.getElementById('ffav-bulk-delete-btn');
     const bulkCancelBtn = document.getElementById('ffav-bulk-cancel-btn');
     const bulkCounter = document.querySelector('.ffav-bulk-counter');
+    const searchInput = document.getElementById('ffav-searchInput');
+    const filterButtons = document.querySelectorAll('.ffav-filter-btn');
+    const addManualBtn = document.getElementById('ffav-addManualBtn');
+    const moreBtn = document.getElementById('ffav-moreBtn');
+    const moreModal = document.getElementById('ffav-moreModal');
+    const moreCloseBtn = document.querySelector('.ffav-more-close-btn');
+    const exportBtn = document.getElementById('ffav-exportBtn');
+    const importBtn = document.getElementById('ffav-importBtn');
+    const modal = document.getElementById('ffav-favoritesModal');
+    const linkTitle = document.getElementById('ffav-linkTitle');
+    const linkUrl = document.getElementById('ffav-linkUrl');
+    const saveLink = modal.querySelector('.ffav-save');
+    const cancelModal = modal.querySelector('.ffav-cancel');
     
-    // Replace with:
-    // Select all button
-    selectAllBtn.addEventListener('click', () => {
-        const checkboxes = document.querySelectorAll('.ffav-item-checkbox');
-        const allSelected = selectedItems.length === checkboxes.length;
-        
-        // If all are selected, deselect all. Otherwise, select all.
-        if (allSelected) {
-            selectedItems = [];
-            document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
-                item.classList.remove('selected');
-            });
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-        } else {
-            selectedItems = Array.from(checkboxes).map(checkbox => parseInt(checkbox.dataset.id));
-            document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
-                item.classList.add('selected');
-            });
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-            });
-        }
-        
-        updateBulkCounter();
-        updateBulkDeleteButton();
-    });
+    // Make sure elements exist before adding event listeners
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.ffav-item-checkbox');
+            const allSelected = selectedItems.length === checkboxes.length;
+            
+            // If all are selected, deselect all. Otherwise, select all.
+            if (allSelected) {
+                selectedItems = [];
+                document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            } else {
+                selectedItems = Array.from(checkboxes).map(checkbox => parseInt(checkbox.dataset.id));
+                document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
+                    item.classList.add('selected');
+                });
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+            }
+            
+            updateBulkCounter();
+            updateBulkDeleteButton();
+        });
+    }
+    if (bulkModeBtn) {
+        bulkModeBtn.addEventListener('click', () => toggleBulkMode(true));
+    }
     
-    // Also update the toggleBulkMode function to remove references to selectAllCheckbox:
+    if (bulkCancelBtn) {
+        bulkCancelBtn.addEventListener('click', () => toggleBulkMode(false));
+    }    
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', () => {
+            if (selectedItems.length === 0) return;
+            
+            const favorites = favoritesStorage.get();
+            const deletePercentage = (selectedItems.length / favorites.length) * 100;
+            
+            // First confirmation
+            if (confirm(`Sei sicuro di voler eliminare ${selectedItems.length} elementi?`)) {
+                // Second confirmation if deleting more than 25% of saved items
+                if (deletePercentage > 25) {
+                    if (!confirm(`ATTENZIONE: Stai per eliminare più del 25% dei tuoi segnalibri (${Math.round(deletePercentage)}%). Sei davvero sicuro di voler procedere?`)) {
+                        return; // User canceled the second confirmation
+                    }
+                }                
+                const updatedFavorites = favorites.filter(item => !selectedItems.includes(item.id));
+                favoritesStorage.set(updatedFavorites);
+                toggleBulkMode(false);
+                renderSavedItems();
+                showNotification(`${selectedItems.length} elementi eliminati`, 'success');
+            }
+        });
+    }
     function toggleBulkMode(enable) {
         isBulkMode = enable;
         
         if (enable) {
-            bulkActions.style.display = 'flex';
-            bulkModeBtn.disabled = true;
-            bulkModeBtn.classList.add('disabled');
+            if (bulkActions) bulkActions.style.display = 'flex';
+            if (bulkModeBtn) {
+                bulkModeBtn.disabled = true;
+                bulkModeBtn.classList.add('disabled');
+            }
             selectedItems = [];
             updateBulkCounter();
             updateBulkDeleteButton();
         } else {
-            bulkActions.style.display = 'none';
-            bulkModeBtn.disabled = false;
-            bulkModeBtn.classList.remove('disabled');
+            if (bulkActions) bulkActions.style.display = 'none';
+            if (bulkModeBtn) {
+                bulkModeBtn.disabled = false;
+                bulkModeBtn.classList.remove('disabled');
+            }
             
             // Re-enable links when exiting bulk mode
             setTimeout(() => {
@@ -1159,179 +1351,162 @@ function createFavoritesMenu() {
                     link.style.pointerEvents = 'auto';
                 });
             }, 100);
-        }
-        
-        renderSavedItems(searchInput.value.trim(), currentFilters);
+        }        
+        renderSavedItems(searchInput ? searchInput.value.trim() : '', currentFilters);
     }
-    // Update bulk counter
-    function updateBulkCounter() {
-        bulkCounter.textContent = `${selectedItems.length} selezionati`;
-    }
-    
-    // Update bulk delete button state
-    function updateBulkDeleteButton() {
-        bulkDeleteBtn.disabled = selectedItems.length === 0;
-    }
-    
-    // Handle item checkbox click
-    function handleItemCheckboxClick(e) {
-        const id = parseInt(e.target.dataset.id);
-        
-        if (e.target.checked) {
-            if (!selectedItems.includes(id)) {
-                selectedItems.push(id);
-            }
-        } else {
-            selectedItems = selectedItems.filter(itemId => itemId !== id);
-            selectAllCheckbox.checked = false;
-        }
-        
-        updateBulkCounter();
-        updateBulkDeleteButton();
-    }
-   
     const currentFilters = { type: 'all' };
-    
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            filterButtons.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            currentFilters.type = this.dataset.filter;
-            renderSavedItems(searchInput.value.trim(), currentFilters);
-        });
-    });
-    
-    searchInput.addEventListener('input', e => {
-        renderSavedItems(e.target.value.trim(), currentFilters);
-    });
-    
-    favButton.addEventListener('click', () => {
-        if (menuContainer.style.display === 'flex') {
-            menuContainer.style.display = 'none';
-            menuStateStorage.set(false);
-        } else {
-            menuContainer.style.display = 'flex';
-            menuStateStorage.set(true);
-            searchInput.value = '';
-            filterButtons.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.filter === 'all') {
-                    btn.classList.add('active');
-                }
+    if (filterButtons && filterButtons.length > 0) {
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                filterButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentFilters.type = this.dataset.filter;
+                renderSavedItems(searchInput.value.trim(), currentFilters);
             });
-            currentFilters.type = 'all';
-            renderSavedItems();
-        }
-    });
-    
-    if (menuStateStorage.get()) {
+        });
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', e => {
+            renderSavedItems(e.target.value.trim(), currentFilters);
+        });
+    }
+    if (favButton) {
+        favButton.addEventListener('click', () => {
+            if (menuContainer.style.display === 'flex') {
+                menuContainer.style.display = 'none';
+                menuStateStorage.set(false);
+            } else {
+                menuContainer.style.display = 'flex';
+                menuStateStorage.set(true);
+                if (searchInput) searchInput.value = '';
+                if (filterButtons && filterButtons.length > 0) {
+                    filterButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.dataset.filter === 'all') {
+                            btn.classList.add('active');
+                        }
+                    });
+                }
+                currentFilters.type = 'all';
+                renderSavedItems();
+            }
+        });
+    }
+    if (menuStateStorage.get() && menuContainer) {
         menuContainer.style.display = 'flex';
         renderSavedItems();
     }
-    
-    addManualBtn.addEventListener('click', () => {
-        editingItemId = null;
-        linkTitle.value = '';
-        linkUrl.value = '';
-        modal.style.display = 'flex';
-    });
-    
-    saveLink.addEventListener('click', () => {
-        const title = linkTitle.value.trim();
-        const url = linkUrl.value.trim();
-        
-        if (!title || !url) {
-            showNotification('Inserisci titolo e URL', 'error');
-            return;
-        }
-        
-        if (!editingItemId) {
-            const favorites = favoritesStorage.get();
-            if (isDuplicateItem({url: url, type: 'page'}, favorites)) {
-                showNotification('Questo link è già nei segnalibri', 'error');
+    if (addManualBtn) {
+        addManualBtn.addEventListener('click', () => {
+            editingItemId = null;
+            if (linkTitle) linkTitle.value = '';
+            if (linkUrl) linkUrl.value = '';
+            if (modal) modal.style.display = 'flex';
+        });
+    }
+    if (saveLink) {
+        saveLink.addEventListener('click', () => {
+            if (!linkTitle || !linkUrl) return;
+            const title = linkTitle.value.trim();
+            const url = linkUrl.value.trim();
+            if (!title || !url) {
+                showNotification('Inserisci titolo e URL', 'error');
                 return;
+            }
+            if (!editingItemId) {
+                const favorites = favoritesStorage.get();
+                if (isDuplicateItem({url: url, type: 'page'}, favorites)) {
+                    showNotification('Questo link è già nei segnalibri', 'error');
+                    return;
+                }
+                
+                if (favoritesStorage.isAtLimit()) {
+                    showNotification('Hai raggiunto il limite di 100 elementi. Elimina qualcosa prima di aggiungere nuovi elementi.', 'error');
+                    return;
+                }
+            }
+            if (editingItemId) {
+                favoritesStorage.update(editingItemId, { title, url });
+                showNotification('Link aggiornato', 'success');
+            } else {
+                favoritesStorage.add({
+                    title,
+                    url,
+                    type: 'page'
+                });
+                showNotification('Link aggiunto ai segnalibri', 'success');
             }
             
-            if (favoritesStorage.isAtLimit()) {
-                showNotification('Hai raggiunto il limite di 100 elementi. Elimina qualcosa prima di aggiungere nuovi elementi.', 'error');
-                return;
+            if (modal) modal.style.display = 'none';
+            renderSavedItems();
+        });
+    }
+    if (cancelModal) {
+        cancelModal.addEventListener('click', () => {
+            if (modal) modal.style.display = 'none';
+        });
+    }
+    if (modal) {
+        modal.addEventListener('click', e => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
             }
-        }
-        
-        if (editingItemId) {
-            favoritesStorage.update(editingItemId, { title, url });
-            showNotification('Link aggiornato', 'success');
-        } else {
-            favoritesStorage.add({
-                title,
-                url,
-                type: 'page'
-            });
-            showNotification('Link aggiunto ai segnalibri', 'success');
-        }
-        
-        modal.style.display = 'none';
-        renderSavedItems();
-    });
-    
-    cancelModal.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-    
-    modal.addEventListener('click', e => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-    
-    exportBtn.addEventListener('click', () => {
-        const favorites = favoritesStorage.get();
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(favorites));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "segnalibri_forum.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        showNotification('Segnalibri esportati', 'success');
-    });
-    
-    importBtn.addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = event => {
-                    try {
-                        const favorites = JSON.parse(event.target.result);
-                        favoritesStorage.set(favorites);
-                        renderSavedItems();
-                        showNotification('Segnalibri importati con successo', 'success');
-                    } catch (error) {
-                        showNotification('Errore durante l\'importazione', 'error');
-                    }
-                };
-                reader.readAsText(file);
-            }
-        };
-        input.click();
-    });
+        });
+    }
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            const favorites = favoritesStorage.get();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(favorites));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "segnalibri_forum.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showNotification('Segnalibri esportati', 'success');
+            
+            // Close the more modal after exporting
+            if (moreModal) moreModal.style.display = 'none';
+        });
+    }
+    if (importBtn) {
+        importBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = event => {
+                        try {
+                            const favorites = JSON.parse(event.target.result);
+                            favoritesStorage.set(favorites);
+                            renderSavedItems();
+                            showNotification('Segnalibri importati con successo', 'success');
+                            
+                            // Close the more modal after importing
+                            if (moreModal) moreModal.style.display = 'none';
+                        } catch (error) {
+                            showNotification('Errore durante l\'importazione', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        });
+    }
 }
-
 function addSavePostButtons() {
     const posts = document.querySelectorAll('li[id^="ee"]');
     if (posts.length === 0) return;
-    
     let threadTitle = '';
     const titleElement = document.querySelector('.mtitle h1') || document.querySelector('.title strong');
     if (titleElement) {
         threadTitle = titleElement.textContent.trim();
     }
-    
     posts.forEach(post => {
         try {
             const isMobileStructure = post.querySelector('.details .group') !== null;
@@ -1341,36 +1516,30 @@ function addSavePostButtons() {
         }
     });
 }
-
 function handleDesktopPost(post, threadTitle) {
     const buttonContainer = post.querySelector('.mini_buttons.lt.Sub');
     if (!buttonContainer || buttonContainer.querySelector('.ffav-save-post-btn')) return;
-    
     const nickname = post.querySelector('.nick a').textContent;
     const postLink = post.querySelector('.lt.Sub a:nth-child(2)').getAttribute('href');
     const dateElement = post.querySelector('.when span:nth-child(2)');
     const date = dateElement ? dateElement.textContent.trim() : 'Data sconosciuta';
     const avatar = post.querySelector('.avatar img').getAttribute('src');
-    
     const contentTable = post.querySelector('.right.Item > table.color');
     let postContent = '';
     if (contentTable) {
         const contentClone = contentTable.cloneNode(true);
         const quoteElements = contentClone.querySelectorAll('.quote_top, .quote');
         quoteElements.forEach(element => element.remove());
-        
         postContent = contentClone.textContent.trim().replace(/\s+/g, ' ');
         const words = postContent.split(' ');
         if (words.length > 20) {
             postContent = words.slice(0, 20).join(' ') + '...';
         }
-    }
-    
+    }    
     const saveBtn = document.createElement('a');
     saveBtn.className = 'ffav-save-post-btn';
     saveBtn.href = 'javascript:void(0)';
     saveBtn.innerHTML = '<i class="fa fa-bookmark"></i> Aggiungi ai segnalibri';
-    
     saveBtn.addEventListener('click', function() {
         const postTitle = `${nickname}`;
         const fullPostUrl = new URL(postLink, window.location.origin).href;
@@ -1379,8 +1548,7 @@ function handleDesktopPost(post, threadTitle) {
         if (isDuplicateItem({type: 'post', url: fullPostUrl}, favorites)) {
             showNotification('Questo post è già nei segnalibri', 'error');
             return;
-        }
-        
+        }        
         favoritesStorage.add({
             title: postTitle,
             url: fullPostUrl,
@@ -1550,13 +1718,10 @@ function addMobileThreadButton() {
             .map(node => node.textContent.trim())
             .join('').trim();
     }
-    
     let threadUrl = window.location.href;
     if (threadUrl.includes('&st=')) threadUrl = threadUrl.split('&st=')[0];
-    
     const popShareElement = document.querySelector('.pop-share');
     if (!popShareElement) return;
-    
     const saveBtn = document.createElement('span');
     saveBtn.className = 'ffav-save-thread-btn-mobile';
     saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
@@ -1626,3 +1791,21 @@ function init() {
 document.readyState === 'loading' 
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
+
+        // Debugging code to check if elements exist
+    console.log('More button exists:', !!moreBtn);
+    console.log('More modal exists:', !!moreModal);
+    console.log('More close button exists:', !!moreCloseBtn);
+    
+    if (moreBtn) {
+        console.log('Adding click event to more button');
+        moreBtn.addEventListener('click', () => {
+            console.log('More button clicked');
+            if (moreModal) {
+                moreModal.style.display = 'flex';
+                console.log('More modal display set to flex');
+            } else {
+                console.log('More modal element not found');
+            }
+        });
+    }
