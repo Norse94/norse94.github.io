@@ -182,6 +182,60 @@ style.textContent = `
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Add these toggle switch styles to your CSS */
+.ffav-menu-system .ffav-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    margin-right: 8px;
+}
+
+.ffav-menu-system .ffav-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.ffav-menu-system .ffav-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.ffav-menu-system .ffav-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.ffav-menu-system .ffav-toggle-switch input:checked + .ffav-toggle-slider {
+    background-color: #4a76a8;
+}
+
+.ffav-menu-system .ffav-toggle-switch input:checked + .ffav-toggle-slider:before {
+    transform: translateX(20px);
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
     
     .ffav-menu-system #ffav-addManualBtn {
         background-color: #4a76a8;
@@ -415,40 +469,48 @@ span#ffav-saveThreadBtn {
             padding: 8px 15px;
             font-size: 14px;
         }
-/* Aggiungere questa media query alla fine del CSS esistente */
-@media (max-width: 480px) {
-    .ffav-menu-system .ffav-menu-btn {
-        font-size: 14px;
-        padding: 6px 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
+/* Add these styles for the item toggle switches */
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 50px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-toggle {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 16px;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-toggle .ffav-toggle-slider:before {
+    height: 12px;
+    width: 12px;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-toggle input:checked + .ffav-toggle-slider:before {
+    transform: translateX(14px);
+}
+
+/* Mobile styles for toggle switches */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-toggle-switch {
+        width: 36px;
+        height: 18px;
     }
     
-    .ffav-menu-system .ffav-menu-btn i {
-        font-size: 14px;
+    .ffav-menu-system .ffav-toggle-slider:before {
+        height: 14px;
+        width: 14px;
     }
     
-    .ffav-menu-system #ffav-menuButtons {
-        gap: 4px;
+    .ffav-menu-system .ffav-toggle-switch input:checked + .ffav-toggle-slider:before {
+        transform: translateX(18px);
     }
     
-    .ffav-menu-system .ffav-saved-item .ffav-title {
-        font-size: 14px;
-    }
-    
-    .ffav-menu-system .ffav-saved-item .ffav-date {
-        font-size: 12px;
-    }
-    
-    .ffav-menu-system .ffav-saved-item {
-        padding: 6px 8px;
-    }
-    
-    .ffav-menu-system .ffav-saved-item .ffav-avatar {
-        width: 24px;
-        height: 24px;
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 45px;
     }
 }
     }
@@ -807,9 +869,14 @@ function renderSavedItems(searchTerm = '', filters = {}) {
         
         let itemHTML = '';
         
+        // In the renderSavedItems function, modify the checkbox HTML:
         // Add checkbox for bulk mode
         if (isBulkMode) {
-            itemHTML += `<input type="checkbox" class="ffav-item-checkbox" data-id="${item.id}" ${selectedItems.includes(item.id) ? 'checked' : ''}>`;
+            itemHTML += `
+            <label class="ffav-toggle-switch ffav-item-toggle">
+                <input type="checkbox" class="ffav-item-checkbox" data-id="${item.id}" ${selectedItems.includes(item.id) ? 'checked' : ''}>
+                <span class="ffav-toggle-slider"></span>
+            </label>`;
         }
         
         if (item.type === 'post') {
@@ -955,27 +1022,31 @@ function createFavoritesMenu() {
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
     
+    // In the createFavoritesMenu function, replace the bulk-select-all label with this:
     const menuHTML = `
-         <div id="ffav-favoritesMenu">
-        <div id="ffav-menuContainer">
-            <div id="ffav-bulk-actions" class="ffav-bulk-actions" style="display: none;">
-                <div class="ffav-bulk-actions-left">
-                    <label class="ffav-bulk-select-all">
+     <div id="ffav-favoritesMenu">
+    <div id="ffav-menuContainer">
+        <div id="ffav-bulk-actions" class="ffav-bulk-actions" style="display: none;">
+            <div class="ffav-bulk-actions-left">
+                <label class="ffav-bulk-select-all">
+                    <label class="ffav-toggle-switch">
                         <input type="checkbox" id="ffav-select-all">
-                        <span>Seleziona tutti</span>
+                        <span class="ffav-toggle-slider"></span>
                     </label>
-                    <span class="ffav-bulk-counter">0 selezionati</span>
-                </div>
-                <div class="ffav-bulk-actions-right">
-                    <button class="ffav-bulk-delete-btn" id="ffav-bulk-delete-btn" disabled>
-                        <i class="fa fa-trash"></i> Elimina
-                    </button>
-                    <button class="ffav-bulk-cancel-btn" id="ffav-bulk-cancel-btn">
-                        <i class="fa fa-times"></i> Annulla
-                    </button>
-                </div>
+                    <span>Seleziona tutti</span>
+                </label>
+                <span class="ffav-bulk-counter">0 selezionati</span>
             </div>
-            <ul id="ffav-savedItems"></ul>
+            <div class="ffav-bulk-actions-right">
+                <button class="ffav-bulk-delete-btn" id="ffav-bulk-delete-btn" disabled>
+                    <i class="fa fa-trash"></i> Elimina
+                </button>
+                <button class="ffav-bulk-cancel-btn" id="ffav-bulk-cancel-btn">
+                    <i class="fa fa-times"></i> Annulla
+                </button>
+            </div>
+        </div>
+        <ul id="ffav-savedItems"></ul>
             <div id="ffav-searchContainer">
                 <input type="text" id="ffav-searchInput" placeholder="Cerca nei segnalibri...">
                 <div id="ffav-filterOptions">
