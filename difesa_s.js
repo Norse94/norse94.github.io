@@ -727,6 +727,7 @@ span#ffav-saveThreadBtn {
 }`;
 document.head.appendChild(style);
 
+
 const favoritesStorage = {
     get: function() {
         const favorites = localStorage.getItem('forumFavorites');
@@ -933,7 +934,7 @@ function renderSavedItems(searchTerm = '', filters = {}) {
                 // If all items are selected, check the "select all" checkbox
                 const allCheckboxes = document.querySelectorAll('.ffav-item-checkbox');
                 const allSelected = Array.from(allCheckboxes).every(cb => selectedItems.includes(parseInt(cb.dataset.id)));
-                document.getElementById('ffav-select-all').checked = allSelected;
+                // No need to update checkbox state since we're using a button now
             });
         }
         
@@ -1095,142 +1096,47 @@ function createFavoritesMenu() {
     const systemContainer = document.createElement('div');
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
-    // In the createFavoritesMenu function, replace the bulk-select-all label with a button
-    const menuHTML = `
-     <div id="ffav-favoritesMenu">
-    <div id="ffav-menuContainer">
-        <div id="ffav-bulk-actions" class="ffav-bulk-actions" style="display: none;">
-            <div class="ffav-bulk-actions-left">
-                <button class="ffav-select-all-btn" id="ffav-select-all-btn">
-                    <i class="fa fa-check-square-o"></i> Seleziona tutti
-                </button>
-                <span class="ffav-bulk-counter">0 selezionati</span>
-            </div>
-            <div class="ffav-bulk-actions-right">
-                <button class="ffav-bulk-delete-btn" id="ffav-bulk-delete-btn" disabled>
-                    <i class="fa fa-trash"></i> Elimina
-                </button>
-                <button class="ffav-bulk-cancel-btn" id="ffav-bulk-cancel-btn">
-                    <i class="fa fa-times"></i> Annulla
-                </button>
-            </div>
-        </div>
-        <ul id="ffav-savedItems"></ul>
-            <div id="ffav-searchContainer">
-                <input type="text" id="ffav-searchInput" placeholder="Cerca nei segnalibri...">
-                <div id="ffav-filterOptions">
-                    <button class="ffav-filter-btn active" data-filter="all">Tutti</button>
-                    <button class="ffav-filter-btn" data-filter="post">Post</button>
-                    <button class="ffav-filter-btn" data-filter="thread">Discussioni</button>
-                    <button class="ffav-filter-btn" data-filter="page">Link</button>
-                </div>
-            </div>
-            <div id="ffav-menuButtons">
-                <button class="ffav-menu-btn ffav-bulk-mode-btn" id="ffav-bulk-mode-btn"><i class="fa fa-check-square-o"></i> Seleziona</button>
-                <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo</button>
-                <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
-                <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
-                
-            </div>
-        </div>
-        <button id="ffav-favButton">
-            <i class="fa fa-bookmark"></i>
-        </button>
-    </div>
-    `;
+    // In the createFavoritesMenu function, replace the select all checkbox event listener with the button click handler
     
-    systemContainer.innerHTML = menuHTML;
-
-    const modalHTML = `
-        <div id="ffav-favoritesModal" class="ffav-modal">
-            <div class="ffav-modal-content">
-                <div class="ffav-modal-title">Aggiungi/Modifica</div>
-                <div class="ffav-form-group">
-                    <label for="ffav-linkTitle">Titolo</label>
-                    <input type="text" id="ffav-linkTitle" placeholder="Titolo del link">
-                </div>
-                <div class="ffav-form-group">
-                    <label for="ffav-linkUrl">URL</label>
-                    <input type="text" id="ffav-linkUrl" placeholder="URL completo">
-                </div>
-                <div class="ffav-modal-buttons">
-                    <button class="ffav-cancel" id="ffav-cancelModal">Annulla</button>
-                    <button class="ffav-save" id="ffav-saveLink">Salva</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    systemContainer.insertAdjacentHTML('beforeend', modalHTML);
    
-    const favButton = document.getElementById('ffav-favButton');
-    const menuContainer = document.getElementById('ffav-menuContainer');
-    const addManualBtn = document.getElementById('ffav-addManualBtn');
-    const exportBtn = document.getElementById('ffav-exportBtn');
-    const importBtn = document.getElementById('ffav-importBtn');
-    const modal = document.getElementById('ffav-favoritesModal');
-    const cancelModal = document.getElementById('ffav-cancelModal');
-    const saveLink = document.getElementById('ffav-saveLink');
-    const linkTitle = document.getElementById('ffav-linkTitle');
-    const linkUrl = document.getElementById('ffav-linkUrl');
-    const searchInput = document.getElementById('ffav-searchInput');
-    const filterButtons = document.querySelectorAll('.ffav-filter-btn');
-    
-    // Bulk delete elements
+    // Replace with:
     const bulkModeBtn = document.getElementById('ffav-bulk-mode-btn');
     const bulkActions = document.getElementById('ffav-bulk-actions');
-    const selectAllCheckbox = document.getElementById('ffav-select-all');
+    const selectAllBtn = document.getElementById('ffav-select-all-btn');
     const bulkDeleteBtn = document.getElementById('ffav-bulk-delete-btn');
     const bulkCancelBtn = document.getElementById('ffav-bulk-cancel-btn');
     const bulkCounter = document.querySelector('.ffav-bulk-counter');
     
-    // Bulk mode toggle
-    bulkModeBtn.addEventListener('click', () => {
-        toggleBulkMode(!isBulkMode);
-    });
-    
-    // Select all checkbox
-    selectAllCheckbox.addEventListener('change', () => {
-        const isChecked = selectAllCheckbox.checked;
+    // Replace with:
+    // Select all button
+    selectAllBtn.addEventListener('click', () => {
         const checkboxes = document.querySelectorAll('.ffav-item-checkbox');
+        const allSelected = selectedItems.length === checkboxes.length;
         
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = isChecked;
-        });
-        
-        if (isChecked) {
-            selectedItems = Array.from(checkboxes).map(checkbox => parseInt(checkbox.dataset.id));
-        } else {
+        // If all are selected, deselect all. Otherwise, select all.
+        if (allSelected) {
             selectedItems = [];
+            document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
+                item.classList.remove('selected');
+            });
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        } else {
+            selectedItems = Array.from(checkboxes).map(checkbox => parseInt(checkbox.dataset.id));
+            document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
+                item.classList.add('selected');
+            });
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
         }
         
         updateBulkCounter();
         updateBulkDeleteButton();
     });
     
-    // Bulk delete button
-    bulkDeleteBtn.addEventListener('click', () => {
-        if (selectedItems.length === 0) return;
-        
-        if (confirm(`Sei sicuro di voler eliminare ${selectedItems.length} elementi dai segnalibri?`)) {
-            const favorites = favoritesStorage.get();
-            const updatedFavorites = favorites.filter(item => !selectedItems.includes(item.id));
-            
-            favoritesStorage.set(updatedFavorites);
-            showNotification(`${selectedItems.length} elementi eliminati`, 'success');
-            
-            toggleBulkMode(false);
-            renderSavedItems(searchInput.value.trim(), currentFilters);
-        }
-    });
-    
-    // Bulk cancel button
-    bulkCancelBtn.addEventListener('click', () => {
-        toggleBulkMode(false);
-    });
-    
-    // Toggle bulk mode function
-    // Update the toggleBulkMode function to handle link functionality
+    // Also update the toggleBulkMode function to remove references to selectAllCheckbox:
     function toggleBulkMode(enable) {
         isBulkMode = enable;
         
@@ -1245,7 +1151,6 @@ function createFavoritesMenu() {
             bulkActions.style.display = 'none';
             bulkModeBtn.disabled = false;
             bulkModeBtn.classList.remove('disabled');
-            selectAllCheckbox.checked = false;
             
             // Re-enable links when exiting bulk mode
             setTimeout(() => {
@@ -1258,7 +1163,6 @@ function createFavoritesMenu() {
         
         renderSavedItems(searchInput.value.trim(), currentFilters);
     }
-    
     // Update bulk counter
     function updateBulkCounter() {
         bulkCounter.textContent = `${selectedItems.length} selezionati`;
