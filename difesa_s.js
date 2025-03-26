@@ -605,6 +605,8 @@ const menuStateStorage = {
 };
 
 let disableDuplicateCheck = false;
+let bulkDeleteMode = false;
+let selectedItems = new Set();
 
 function toggleDuplicateCheck(disable = true) {
     disableDuplicateCheck = disable;
