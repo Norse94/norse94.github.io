@@ -178,6 +178,12 @@ style.textContent = `
         flex: 1;
     }
     
+    /* Add this to your CSS styles section */
+.ffav-menu-system .ffav-bulk-mode-btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+    
     .ffav-menu-system #ffav-addManualBtn {
         background-color: #4a76a8;
     }
@@ -981,12 +987,11 @@ function createFavoritesMenu() {
                 </div>
             </div>
             <div id="ffav-menuButtons">
-                <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo link</button>
+                <button class="ffav-menu-btn ffav-bulk-mode-btn" id="ffav-bulk-mode-btn"><i class="fa fa-check-square-o"></i></button>
+                <button class="ffav-menu-btn" id="ffav-addManualBtn"><i class="fa fa-plus-circle"></i> Nuovo</button>
                 <button class="ffav-menu-btn" id="ffav-exportBtn"><i class="fa fa-download"></i> Esporta</button>
                 <button class="ffav-menu-btn" id="ffav-importBtn"><i class="fa fa-upload"></i> Importa</button>
-                <button class="ffav-menu-btn ffav-bulk-mode-btn" id="ffav-bulk-mode-btn">
-                    <i class="fa fa-check-square-o"></i> Selezione multipla
-                </button>
+                
             </div>
         </div>
         <button id="ffav-favButton">
@@ -1091,13 +1096,17 @@ function createFavoritesMenu() {
         
         if (enable) {
             bulkActions.style.display = 'flex';
-            bulkModeBtn.style.display = 'none';
+            // Instead of hiding the button, just disable it
+            bulkModeBtn.disabled = true;
+            bulkModeBtn.classList.add('disabled');
             selectedItems = [];
             updateBulkCounter();
             updateBulkDeleteButton();
         } else {
             bulkActions.style.display = 'none';
-            bulkModeBtn.style.display = 'flex';
+            // Re-enable the button when exiting bulk mode
+            bulkModeBtn.disabled = false;
+            bulkModeBtn.classList.remove('disabled');
             selectAllCheckbox.checked = false;
         }
         
@@ -1544,27 +1553,16 @@ function addMobileThreadButton() {
             url: threadUrl,
             type: 'thread'
         });
-        
-        // Remove these lines to prevent the menu from opening automatically
-        // const menuContainer = document.getElementById('ffav-menuContainer');
-        // if (menuContainer && menuContainer.style.display !== 'flex') {
-        //     menuContainer.style.display = 'flex';
-        //     menuStateStorage.set(true);
-        // }
-        
+ 
         renderSavedItems();
         showNotification('Discussione salvata nei segnalibri', 'success');
-    });
-    
+    });   
     popShareElement.parentNode.insertBefore(saveBtn, popShareElement);
 }
-
 function handleResize() {
     const menuContainer = document.getElementById('ffav-menuContainer');
     const savedItems = document.getElementById('ffav-savedItems');
-    
-    if (!menuContainer || !savedItems) return;
-    
+    if (!menuContainer || !savedItems) return;   
     if (window.innerWidth <= 768) {
         menuContainer.style.maxWidth = '90vw';
         savedItems.style.maxHeight = 'calc(70vh - 60px)';
@@ -1573,15 +1571,12 @@ function handleResize() {
         savedItems.style.maxHeight = 'calc(80vh - 70px)';
     }
 }
-
 function init() {
     createFavoritesMenu();
     addSavePostButtons();
     addSaveThreadButton();
-    
     window.addEventListener('resize', handleResize);
     handleResize();
-    
     const observer = new MutationObserver(mutations => {
         mutations.forEach(mutation => {
             if (mutation.addedNodes && mutation.addedNodes.length > 0) {
@@ -1593,14 +1588,12 @@ function init() {
                 }
             }
         });
-    });
-    
+    });   
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
 }
-
 document.readyState === 'loading' 
     ? document.addEventListener('DOMContentLoaded', init)
     : init();
