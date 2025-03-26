@@ -172,26 +172,6 @@ style.textContent = `
         background-color: #4f4d46;
         flex: 1;
     }
-
-    .ffav-menu-system #ffav-moreBtn {
-        background-color: #4f4d46;
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        transition: all 0.2s;
-        flex: 1;
-    }
-    
-    .ffav-menu-system #ffav-moreBtn:hover {
-        background-color: #3a3936;
-    }
     /* Different colors for each button */
     .ffav-menu-system #ffav-addPageBtn {
         background-color: #4a76a8;
@@ -732,81 +712,9 @@ span#ffav-saveThreadBtn {
         width: 16px;
         height: 16px;
     }
-}
-    /* Add styles for the more options modal */
-    .ffav-menu-system .ffav-more-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.5);
-        z-index: 10001; /* Increased z-index to ensure it appears above other elements */
-        justify-content: center;
-        align-items: center;
-        font-family: Arial, sans-serif;
-    }
-    
-    .ffav-menu-system .ffav-more-modal-content {
-        background-color: white;
-        padding: 20px;
-        border-radius: 8px;
-        width: 300px;
-        max-width: 90vw;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        position: relative; /* Added position relative */
-        z-index: 10002; /* Ensure content is above the overlay */
-    }
-    
-    .ffav-menu-system .ffav-more-modal-title {
-        font-size: 18px;
-        margin-bottom: 15px;
-        color: #333;
-        text-align: center;
-    }
-    
-    .ffav-menu-system .ffav-more-options {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .ffav-menu-system .ffav-more-option-btn {
-        background-color: #4a76a8;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.2s;
-    }
-    
-    .ffav-menu-system .ffav-more-option-btn:hover {
-        background-color: #3a5b88;
-    }
-    
-    .ffav-menu-system .ffav-more-close {
-        text-align: center;
-        margin-top: 15px;
-    }
-    
-    .ffav-menu-system .ffav-more-close-btn {
-        background-color: #f1f1f1;
-        color: #333;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-    }`;
-
+}`;
 document.head.appendChild(style);
+
 
 const favoritesStorage = {
     get: function() {
@@ -1128,12 +1036,14 @@ function renderSavedItems(searchTerm = '', filters = {}) {
     });
 }
 
-
+// Add these global variables at the top of your script, before any functions
 let isBulkMode = false;
 let selectedItems = [];
 
+// Add the handleItemCheckboxClick function to the global scope
+// Update the handleItemCheckboxClick function
 function handleItemCheckboxClick(e) {
-
+    // Stop propagation to prevent the list item click handler from firing
     e.stopPropagation();
     
     const id = parseInt(e.target.dataset.id);
@@ -1154,22 +1064,28 @@ function handleItemCheckboxClick(e) {
     updateBulkDeleteButton();
 }
 
+// Add these utility functions to the global scope as well
 function updateBulkCounter() {
     const bulkCounter = document.querySelector('.ffav-bulk-counter');
     if (bulkCounter) {
         bulkCounter.textContent = `${selectedItems.length} selezionati`;
     }
 }
+
 function updateBulkDeleteButton() {
     const bulkDeleteBtn = document.getElementById('ffav-bulk-delete-btn');
     if (bulkDeleteBtn) {
         bulkDeleteBtn.disabled = selectedItems.length === 0;
     }
 }
+
+// Then in the createFavoritesMenu function, remove the handleItemCheckboxClick function
 function createFavoritesMenu() {
     const systemContainer = document.createElement('div');
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
+    
+    // Create the menu HTML structure
     const menuHTML = `
      <div id="ffav-favoritesMenu">
         <div id="ffav-menuContainer">
@@ -1202,7 +1118,8 @@ function createFavoritesMenu() {
             <div id="ffav-menuButtons">
                 <button id="ffav-addManualBtn" class="ffav-menu-btn"><i class="fa fa-plus"></i> Aggiungi</button>
                 <button id="ffav-bulk-mode-btn" class="ffav-menu-btn"><i class="fa fa-check-square-o"></i> Selezione</button>
-                <button id="ffav-moreBtn" class="ffav-menu-btn"><i class="fa fa-ellipsis-h"></i> Altro</button>
+                <button id="ffav-exportBtn" class="ffav-menu-btn"><i class="fa fa-download"></i> Esporta</button>
+                <button id="ffav-importBtn" class="ffav-menu-btn"><i class="fa fa-upload"></i> Importa</button>
             </div>
         </div>
         <button id="ffav-favButton"><i class="fa fa-bookmark"></i></button>
@@ -1223,27 +1140,11 @@ function createFavoritesMenu() {
                 <button class="ffav-save">Salva</button>
             </div>
         </div>
-    </div>
-    <div id="ffav-moreModal" class="ffav-more-modal">
-        <div class="ffav-more-modal-content">
-            <div class="ffav-more-modal-title">Altre opzioni</div>
-            <div class="ffav-more-options">
-                <button id="ffav-exportBtn" class="ffav-more-option-btn">
-                    <i class="fa fa-download"></i> Esporta segnalibri
-                </button>
-                <button id="ffav-importBtn" class="ffav-more-option-btn">
-                    <i class="fa fa-upload"></i> Importa segnalibri
-                </button>
-            </div>
-            <div class="ffav-more-close">
-                <button class="ffav-more-close-btn">Chiudi</button>
-            </div>
-        </div>
     </div>`;
     
     systemContainer.innerHTML = menuHTML;
-
-    // Get references to DOM elements AFTER they've been created
+    
+    // Get references to DOM elements after they've been created
     const favButton = document.getElementById('ffav-favButton');
     const menuContainer = document.getElementById('ffav-menuContainer');
     const bulkModeBtn = document.getElementById('ffav-bulk-mode-btn');
@@ -1255,9 +1156,6 @@ function createFavoritesMenu() {
     const searchInput = document.getElementById('ffav-searchInput');
     const filterButtons = document.querySelectorAll('.ffav-filter-btn');
     const addManualBtn = document.getElementById('ffav-addManualBtn');
-    const moreBtn = document.getElementById('ffav-moreBtn');
-    const moreModal = document.getElementById('ffav-moreModal');
-    const moreCloseBtn = document.querySelector('.ffav-more-close-btn');
     const exportBtn = document.getElementById('ffav-exportBtn');
     const importBtn = document.getElementById('ffav-importBtn');
     const modal = document.getElementById('ffav-favoritesModal');
@@ -1266,39 +1164,557 @@ function createFavoritesMenu() {
     const saveLink = modal.querySelector('.ffav-save');
     const cancelModal = modal.querySelector('.ffav-cancel');
     
-    // Add event listener for the "More" button
-    if (moreBtn) {
-        moreBtn.addEventListener('click', () => {
-            if (moreModal) {
-                moreModal.style.display = 'flex';
-                console.log('More modal opened');
+    // Make sure elements exist before adding event listeners
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.ffav-item-checkbox');
+            const allSelected = selectedItems.length === checkboxes.length;
+            
+            // If all are selected, deselect all. Otherwise, select all.
+            if (allSelected) {
+                selectedItems = [];
+                document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            } else {
+                selectedItems = Array.from(checkboxes).map(checkbox => parseInt(checkbox.dataset.id));
+                document.querySelectorAll('.ffav-saved-item.bulk-mode').forEach(item => {
+                    item.classList.add('selected');
+                });
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
             }
+            
+            updateBulkCounter();
+            updateBulkDeleteButton();
         });
-    } else {
-        console.error('More button not found');
     }
     
-    // Add event listener for the close button in the more modal
-    if (moreCloseBtn) {
-        moreCloseBtn.addEventListener('click', () => {
-            if (moreModal) {
-                moreModal.style.display = 'none';
-                console.log('More modal closed');
-            }
-        });
-    } else {
-        console.error('More close button not found');
+    // Make sure other elements exist before adding event listeners
+    if (bulkModeBtn) {
+        bulkModeBtn.addEventListener('click', () => toggleBulkMode(true));
     }
     
-    // Close more modal when clicking outside
-    if (moreModal) {
-        moreModal.addEventListener('click', e => {
-            if (e.target === moreModal) {
-                moreModal.style.display = 'none';
-                console.log('More modal closed by clicking outside');
+    if (bulkCancelBtn) {
+        bulkCancelBtn.addEventListener('click', () => toggleBulkMode(false));
+    }
+    
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', () => {
+            if (selectedItems.length === 0) return;
+            
+            const favorites = favoritesStorage.get();
+            const deletePercentage = (selectedItems.length / favorites.length) * 100;
+            
+            // First confirmation
+            if (confirm(`Sei sicuro di voler eliminare ${selectedItems.length} elementi?`)) {
+                // Second confirmation if deleting more than 25% of saved items
+                if (deletePercentage > 25) {
+                    if (!confirm(`ATTENZIONE: Stai per eliminare più del 25% dei tuoi segnalibri (${Math.round(deletePercentage)}%). Sei davvero sicuro di voler procedere?`)) {
+                        return; // User canceled the second confirmation
+                    }
+                }
+                
+                const updatedFavorites = favorites.filter(item => !selectedItems.includes(item.id));
+                favoritesStorage.set(updatedFavorites);
+                toggleBulkMode(false);
+                renderSavedItems();
+                showNotification(`${selectedItems.length} elementi eliminati`, 'success');
             }
         });
-    } else {
-        console.error('More modal not found');
+    }
+    
+    // Define toggleBulkMode function
+    function toggleBulkMode(enable) {
+        isBulkMode = enable;
+        
+        if (enable) {
+            if (bulkActions) bulkActions.style.display = 'flex';
+            if (bulkModeBtn) {
+                bulkModeBtn.disabled = true;
+                bulkModeBtn.classList.add('disabled');
+            }
+            selectedItems = [];
+            updateBulkCounter();
+            updateBulkDeleteButton();
+        } else {
+            if (bulkActions) bulkActions.style.display = 'none';
+            if (bulkModeBtn) {
+                bulkModeBtn.disabled = false;
+                bulkModeBtn.classList.remove('disabled');
+            }
+            
+            // Re-enable links when exiting bulk mode
+            setTimeout(() => {
+                const links = document.querySelectorAll('.ffav-saved-item a');
+                links.forEach(link => {
+                    link.style.pointerEvents = 'auto';
+                });
+            }, 100);
+        }
+        
+        renderSavedItems(searchInput ? searchInput.value.trim() : '', currentFilters);
+    }
+    
+    const currentFilters = { type: 'all' };
+    
+    if (filterButtons && filterButtons.length > 0) {
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                filterButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentFilters.type = this.dataset.filter;
+                renderSavedItems(searchInput.value.trim(), currentFilters);
+            });
+        });
+    }
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', e => {
+            renderSavedItems(e.target.value.trim(), currentFilters);
+        });
+    }
+    
+    if (favButton) {
+        favButton.addEventListener('click', () => {
+            if (menuContainer.style.display === 'flex') {
+                menuContainer.style.display = 'none';
+                menuStateStorage.set(false);
+            } else {
+                menuContainer.style.display = 'flex';
+                menuStateStorage.set(true);
+                if (searchInput) searchInput.value = '';
+                if (filterButtons && filterButtons.length > 0) {
+                    filterButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.dataset.filter === 'all') {
+                            btn.classList.add('active');
+                        }
+                    });
+                }
+                currentFilters.type = 'all';
+                renderSavedItems();
+            }
+        });
+    }
+    
+    if (menuStateStorage.get() && menuContainer) {
+        menuContainer.style.display = 'flex';
+        renderSavedItems();
+    }
+    
+    if (addManualBtn) {
+        addManualBtn.addEventListener('click', () => {
+            editingItemId = null;
+            if (linkTitle) linkTitle.value = '';
+            if (linkUrl) linkUrl.value = '';
+            if (modal) modal.style.display = 'flex';
+        });
+    }
+    
+    if (saveLink) {
+        saveLink.addEventListener('click', () => {
+            if (!linkTitle || !linkUrl) return;
+            
+            const title = linkTitle.value.trim();
+            const url = linkUrl.value.trim();
+            
+            if (!title || !url) {
+                showNotification('Inserisci titolo e URL', 'error');
+                return;
+            }
+            
+            if (!editingItemId) {
+                const favorites = favoritesStorage.get();
+                if (isDuplicateItem({url: url, type: 'page'}, favorites)) {
+                    showNotification('Questo link è già nei segnalibri', 'error');
+                    return;
+                }
+                
+                if (favoritesStorage.isAtLimit()) {
+                    showNotification('Hai raggiunto il limite di 100 elementi. Elimina qualcosa prima di aggiungere nuovi elementi.', 'error');
+                    return;
+                }
+            }
+            
+            if (editingItemId) {
+                favoritesStorage.update(editingItemId, { title, url });
+                showNotification('Link aggiornato', 'success');
+            } else {
+                favoritesStorage.add({
+                    title,
+                    url,
+                    type: 'page'
+                });
+                showNotification('Link aggiunto ai segnalibri', 'success');
+            }
+            
+            if (modal) modal.style.display = 'none';
+            renderSavedItems();
+        });
+    }
+    
+    if (cancelModal) {
+        cancelModal.addEventListener('click', () => {
+            if (modal) modal.style.display = 'none';
+        });
+    }
+    
+    if (modal) {
+        modal.addEventListener('click', e => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+    
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            const favorites = favoritesStorage.get();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(favorites));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "segnalibri_forum.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showNotification('Segnalibri esportati', 'success');
+        });
+    }
+    
+    if (importBtn) {
+        importBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = event => {
+                        try {
+                            const favorites = JSON.parse(event.target.result);
+                            favoritesStorage.set(favorites);
+                            renderSavedItems();
+                            showNotification('Segnalibri importati con successo', 'success');
+                        } catch (error) {
+                            showNotification('Errore durante l\'importazione', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        });
     }
 }
+
+function addSavePostButtons() {
+    const posts = document.querySelectorAll('li[id^="ee"]');
+    if (posts.length === 0) return;
+    
+    let threadTitle = '';
+    const titleElement = document.querySelector('.mtitle h1') || document.querySelector('.title strong');
+    if (titleElement) {
+        threadTitle = titleElement.textContent.trim();
+    }
+    
+    posts.forEach(post => {
+        try {
+            const isMobileStructure = post.querySelector('.details .group') !== null;
+            isMobileStructure ? handleMobilePost(post, threadTitle) : handleDesktopPost(post, threadTitle);
+        } catch (e) {
+            console.error('Errore durante l\'aggiunta del pulsante salva post:', e);
+        }
+    });
+}
+
+function handleDesktopPost(post, threadTitle) {
+    const buttonContainer = post.querySelector('.mini_buttons.lt.Sub');
+    if (!buttonContainer || buttonContainer.querySelector('.ffav-save-post-btn')) return;
+    
+    const nickname = post.querySelector('.nick a').textContent;
+    const postLink = post.querySelector('.lt.Sub a:nth-child(2)').getAttribute('href');
+    const dateElement = post.querySelector('.when span:nth-child(2)');
+    const date = dateElement ? dateElement.textContent.trim() : 'Data sconosciuta';
+    const avatar = post.querySelector('.avatar img').getAttribute('src');
+    
+    const contentTable = post.querySelector('.right.Item > table.color');
+    let postContent = '';
+    if (contentTable) {
+        const contentClone = contentTable.cloneNode(true);
+        const quoteElements = contentClone.querySelectorAll('.quote_top, .quote');
+        quoteElements.forEach(element => element.remove());
+        
+        postContent = contentClone.textContent.trim().replace(/\s+/g, ' ');
+        const words = postContent.split(' ');
+        if (words.length > 20) {
+            postContent = words.slice(0, 20).join(' ') + '...';
+        }
+    }
+    
+    const saveBtn = document.createElement('a');
+    saveBtn.className = 'ffav-save-post-btn';
+    saveBtn.href = 'javascript:void(0)';
+    saveBtn.innerHTML = '<i class="fa fa-bookmark"></i> Aggiungi ai segnalibri';
+    
+    saveBtn.addEventListener('click', function() {
+        const postTitle = `${nickname}`;
+        const fullPostUrl = new URL(postLink, window.location.origin).href;
+        
+        const favorites = favoritesStorage.get();
+        if (isDuplicateItem({type: 'post', url: fullPostUrl}, favorites)) {
+            showNotification('Questo post è già nei segnalibri', 'error');
+            return;
+        }
+        
+        favoritesStorage.add({
+            title: postTitle,
+            url: fullPostUrl,
+            type: 'post',
+            avatar: avatar,
+            author: nickname,
+            date: date,
+            excerpt: postContent,
+            threadTitle: threadTitle
+        });
+        
+        renderSavedItems();
+        showNotification('Post salvato nei segnalibri', 'success');
+    });
+    
+    buttonContainer.insertBefore(saveBtn, buttonContainer.firstChild);
+}
+
+function handleMobilePost(post, threadTitle) {
+    if (post.querySelector('.ffav-save-post-btn-mobile')) return;
+    
+    try {
+        const nickname = post.querySelector('.details .nick').textContent.trim();
+        const avatar = post.querySelector('.details .avatar img').getAttribute('src');
+        const linkElement = post.querySelector('.option a');
+        const postLink = linkElement ? linkElement.getAttribute('href') : window.location.href;
+        const dateElement = post.querySelector('.option .timeago');
+        const date = dateElement ? dateElement.getAttribute('title') : 'Data sconosciuta';
+
+        const contentTable = post.querySelector('table.color');
+        let postContent = '';
+        if (contentTable) {
+            postContent = contentTable.textContent.trim().replace(/\s+/g, ' ');
+            const words = postContent.split(' ');
+            if (words.length > 20) {
+                postContent = words.slice(0, 20).join(' ') + '...';
+            }
+        }
+
+        const saveBtn = document.createElement('a');
+        saveBtn.className = 'ffav-save-post-btn-mobile';
+        saveBtn.href = 'javascript:void(0)';
+        saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
+        saveBtn.style.marginRight = '5px';
+        saveBtn.style.color = '#4a76a8';
+        saveBtn.style.cursor = 'pointer';
+
+        saveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const postTitle = `${nickname}`;
+            const fullPostUrl = new URL(postLink, window.location.origin).href;
+
+            const favorites = favoritesStorage.get();
+            if (isDuplicateItem({type: 'post', url: fullPostUrl}, favorites)) {
+                showNotification('Questo post è già nei segnalibri', 'error');
+                return;
+            }
+
+            favoritesStorage.add({
+                title: postTitle,
+                url: fullPostUrl,
+                type: 'post',
+                avatar: avatar,
+                author: nickname,
+                date: date,
+                excerpt: postContent,
+                threadTitle: threadTitle
+            });
+            
+            renderSavedItems();
+            showNotification('Post salvato nei segnalibri', 'success');
+        });
+        
+        const groupElement = post.querySelector('.details .group');
+        if (groupElement) {
+            groupElement.parentNode.insertBefore(saveBtn, groupElement);
+        }
+    } catch (e) {
+        console.error('Errore durante l\'aggiunta del pulsante salva post mobile:', e);
+    }
+}
+
+function addSaveThreadButton() {
+    if (!window.location.href.includes('?t=')) return;
+    
+    const isMobile = document.querySelector('.title strong') !== null;
+    isMobile ? addMobileThreadButton() : addDesktopThreadButton();
+}
+
+function addDesktopThreadButton() {
+    let toolbar = document.querySelector('.buttons') || 
+                 document.querySelector('.right.Sub.buttons') || 
+                 document.querySelector('.right.Sub') || 
+                 document.querySelector('.forum_tools');
+    
+    if (!toolbar || document.getElementById('ffav-saveThreadBtn')) return;
+    
+    let threadTitle = '';
+    let threadDescription = '';
+    let sectionName = '';
+
+    const titleElement = document.querySelector('.mtitle h1');
+    if (titleElement) {
+        threadTitle = titleElement.textContent.trim();
+    }
+    
+    const descElement = document.querySelector('.mtitle h2.mdesc');
+    if (descElement) {
+        threadDescription = descElement.textContent.trim();
+    }
+
+    const sectionLink = document.querySelector('.nav li:nth-child(2) a');
+    if (sectionLink) {
+        sectionName = sectionLink.textContent.trim();
+    }
+
+    let threadUrl = window.location.href;
+    if (threadUrl.includes('&st=')) {
+        threadUrl = threadUrl.split('&st=')[0];
+    }
+
+    const saveBtn = document.createElement('span');
+    saveBtn.id = 'ffav-saveThreadBtn';
+    saveBtn.innerHTML = '<i class="fa fa-bookmark"></i> Salva Discussione';
+
+    saveBtn.addEventListener('click', function() {
+        const favorites = favoritesStorage.get();
+        if (isDuplicateItem({url: threadUrl, type: 'thread'}, favorites)) {
+            showNotification('Questa discussione è già nei segnalibri', 'error');
+            return;
+        }
+        
+        favoritesStorage.add({
+            title: threadTitle,
+            description: threadDescription,
+            sectionName: sectionName,
+            url: threadUrl,
+            type: 'thread'
+        });
+        
+        renderSavedItems();
+        showNotification('Discussione salvata nei segnalibri', 'success');
+    });
+    
+    toolbar.insertBefore(saveBtn, toolbar.firstChild);
+}
+
+function addMobileThreadButton() {
+    if (document.querySelector('.ffav-save-thread-btn-mobile')) return;
+
+    let threadTitle = '';
+    let threadDescription = '';
+    let sectionName = '';
+
+    const titleElement = document.querySelector('.title strong');
+    if (titleElement) threadTitle = titleElement.textContent.trim();
+    
+    const descElement = document.querySelector('.title .desc');
+    if (descElement) threadDescription = descElement.textContent.trim().replace(/^,\s*/, '');
+    
+    const sectionElement = document.querySelector('.title .section-title');
+    if (sectionElement) {
+        sectionName = Array.from(sectionElement.childNodes)
+            .filter(node => node.nodeType === Node.TEXT_NODE)
+            .map(node => node.textContent.trim())
+            .join('').trim();
+    }
+    
+    let threadUrl = window.location.href;
+    if (threadUrl.includes('&st=')) threadUrl = threadUrl.split('&st=')[0];
+    
+    const popShareElement = document.querySelector('.pop-share');
+    if (!popShareElement) return;
+    
+    const saveBtn = document.createElement('span');
+    saveBtn.className = 'ffav-save-thread-btn-mobile';
+    saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
+    saveBtn.style.marginRight = '10px';
+    saveBtn.style.color = '#646464';
+    saveBtn.style.cursor = 'pointer';
+    saveBtn.style.fontSize = '1.6em';
+    
+    saveBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const favorites = favoritesStorage.get();
+        if (isDuplicateItem({url: threadUrl, type: 'thread'}, favorites)) {
+            showNotification('Questa discussione è già nei segnalibri', 'error');
+            return;
+        }
+
+        favoritesStorage.add({
+            title: threadTitle,
+            description: threadDescription,
+            sectionName: sectionName,
+            url: threadUrl,
+            type: 'thread'
+        });
+ 
+        renderSavedItems();
+        showNotification('Discussione salvata nei segnalibri', 'success');
+    });   
+    popShareElement.parentNode.insertBefore(saveBtn, popShareElement);
+}
+function handleResize() {
+    const menuContainer = document.getElementById('ffav-menuContainer');
+    const savedItems = document.getElementById('ffav-savedItems');
+    if (!menuContainer || !savedItems) return;   
+    if (window.innerWidth <= 768) {
+        menuContainer.style.maxWidth = '90vw';
+        savedItems.style.maxHeight = 'calc(70vh - 60px)';
+    } else {
+        menuContainer.style.maxWidth = '400px';
+        savedItems.style.maxHeight = 'calc(80vh - 70px)';
+    }
+}
+function init() {
+    createFavoritesMenu();
+    addSavePostButtons();
+    addSaveThreadButton();
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1 && node.matches('li[id^="ee"]')) {
+                        addSavePostButtons();
+                        break;
+                    }
+                }
+            }
+        });
+    });   
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+}
+document.readyState === 'loading' 
+    ? document.addEventListener('DOMContentLoaded', init)
+    : init();
