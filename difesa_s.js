@@ -150,7 +150,7 @@ style.textContent = `
     .ffav-menu-system #ffav-menuButtons {
         display: flex;
         justify-content: space-between;
-        gap: 6px;
+        gap: 12px;
         padding: 10px;
         border-top: 1px solid #eee;
         width: 100%;
@@ -163,15 +163,11 @@ style.textContent = `
         flex: 1;
     }
     
-    .ffav-menu-system #ffav-exportBtn {
+    .ffav-menu-system #ffav-moreOptionsBtn {
         background-color: #4f4d46;
         flex: 1;
     }
     
-    .ffav-menu-system #ffav-importBtn {
-        background-color: #4f4d46;
-        flex: 1;
-    }
     /* Different colors for each button */
     .ffav-menu-system #ffav-addPageBtn {
         background-color: #4a76a8;
@@ -712,9 +708,1325 @@ span#ffav-saveThreadBtn {
         width: 16px;
         height: 16px;
     }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-select-all input {
+    margin-right: 4px;
+}
+
+.ffav-menu-system .ffav-bulk-counter {
+    font-size: 13px;
+    color: #666;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn {
+    background-color: #bc3232;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:hover {
+    background-color: #a02020;
+}
+
+.ffav-menu-system .ffav-bulk-delete-btn:disabled {
+    background-color: #d8d8d8;
+    cursor: not-allowed;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.ffav-menu-system .ffav-bulk-mode-btn:hover {
+    background-color: #3a5b88;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode {
+    padding-left: 35px;
+    position: relative;
+}
+
+.ffav-menu-system .ffav-saved-item.bulk-mode .ffav-item-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.ffav-menu-system .ffav-item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile styles for bulk delete */
+@media (max-width: 768px) {
+    .ffav-menu-system .ffav-bulk-actions {
+        padding: 6px 8px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-counter {
+        font-size: 12px;
+    }
+    
+    .ffav-menu-system .ffav-bulk-delete-btn,
+    .ffav-menu-system .ffav-bulk-cancel-btn,
+    .ffav-menu-system .ffav-bulk-mode-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .ffav-menu-system .ffav-saved-item.bulk-mode {
+        padding-left: 30px;
+    }
+    
+    .ffav-menu-system .ffav-item-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+    }
+
+/* Bulk delete styles */
+.ffav-menu-system .ffav-bulk-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f8f8;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffav-menu-system .ffav-bulk-actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.ffav-menu-system .ffav-bulk-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.ffav-menu-system .ffav-bulk-select-all {
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
 }`;
 document.head.appendChild(style);
-
 
 const favoritesStorage = {
     get: function() {
@@ -1118,8 +2430,7 @@ function createFavoritesMenu() {
             <div id="ffav-menuButtons">
                 <button id="ffav-addManualBtn" class="ffav-menu-btn"><i class="fa fa-plus"></i> Aggiungi</button>
                 <button id="ffav-bulk-mode-btn" class="ffav-menu-btn"><i class="fa fa-check-square-o"></i> Selezione</button>
-                <button id="ffav-exportBtn" class="ffav-menu-btn"><i class="fa fa-download"></i> Esporta</button>
-                <button id="ffav-importBtn" class="ffav-menu-btn"><i class="fa fa-upload"></i> Importa</button>
+                <button id="ffav-moreOptionsBtn" class="ffav-menu-btn"><i class="fa fa-ellipsis-h"></i> Altro</button>
             </div>
         </div>
         <button id="ffav-favButton"><i class="fa fa-bookmark"></i></button>
@@ -1140,6 +2451,18 @@ function createFavoritesMenu() {
                 <button class="ffav-save">Salva</button>
             </div>
         </div>
+    </div>
+    <div id="ffav-moreOptionsModal" class="ffav-more-options-modal">
+        <div class="ffav-more-options-content">
+            <div class="ffav-more-options-title">Opzioni aggiuntive</div>
+            <div class="ffav-more-options-buttons">
+                <button id="ffav-exportBtn" class="ffav-more-option-btn"><i class="fa fa-download"></i> Esporta segnalibri</button>
+                <button id="ffav-importBtn" class="ffav-more-option-btn"><i class="fa fa-upload"></i> Importa segnalibri</button>
+            </div>
+            <div class="ffav-more-options-close">
+                <button id="ffav-closeMoreOptionsBtn">Chiudi</button>
+            </div>
+        </div>
     </div>`;
     
     systemContainer.innerHTML = menuHTML;
@@ -1156,6 +2479,9 @@ function createFavoritesMenu() {
     const searchInput = document.getElementById('ffav-searchInput');
     const filterButtons = document.querySelectorAll('.ffav-filter-btn');
     const addManualBtn = document.getElementById('ffav-addManualBtn');
+    const moreOptionsBtn = document.getElementById('ffav-moreOptionsBtn');
+    const moreOptionsModal = document.getElementById('ffav-moreOptionsModal');
+    const closeMoreOptionsBtn = document.getElementById('ffav-closeMoreOptionsBtn');
     const exportBtn = document.getElementById('ffav-exportBtn');
     const importBtn = document.getElementById('ffav-importBtn');
     const modal = document.getElementById('ffav-favoritesModal');
@@ -1384,6 +2710,11 @@ function createFavoritesMenu() {
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
             showNotification('Segnalibri esportati', 'success');
+            
+            // Close the more options modal after exporting
+            if (moreOptionsModal) {
+                moreOptionsModal.style.display = 'none';
+            }
         });
     }
     
@@ -1402,6 +2733,11 @@ function createFavoritesMenu() {
                             favoritesStorage.set(favorites);
                             renderSavedItems();
                             showNotification('Segnalibri importati con successo', 'success');
+                            
+                            // Close the more options modal after importing
+                            if (moreOptionsModal) {
+                                moreOptionsModal.style.display = 'none';
+                            }
                         } catch (error) {
                             showNotification('Errore durante l\'importazione', 'error');
                         }
@@ -1656,17 +2992,14 @@ function addMobileThreadButton() {
     saveBtn.style.color = '#646464';
     saveBtn.style.cursor = 'pointer';
     saveBtn.style.fontSize = '1.6em';
-    
     saveBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-
         const favorites = favoritesStorage.get();
         if (isDuplicateItem({url: threadUrl, type: 'thread'}, favorites)) {
             showNotification('Questa discussione è già nei segnalibri', 'error');
             return;
         }
-
         favoritesStorage.add({
             title: threadTitle,
             description: threadDescription,
