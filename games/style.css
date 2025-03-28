@@ -1,0 +1,359 @@
+/* Stile generale */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f5f5f5;
+    padding: 20px;
+    transition: background-color 2s ease;
+}
+
+body.invaded {
+    background-color: #0a0a1a;
+    color: #33ff33;
+}
+
+.forum-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    position: relative;
+    transition: all 1s ease;
+}
+
+.forum-container.invaded {
+    background-color: #111;
+    box-shadow: 0 2px 20px rgba(0, 255, 0, 0.3);
+}
+
+/* Header del forum */
+.forum-header {
+    background-color: #4a76a8;
+    color: white;
+    padding: 15px 20px;
+    transition: all 1s ease;
+}
+
+.forum-header.invaded {
+    background-color: #0a2a0a;
+    animation: glitch 2s infinite;
+}
+
+.forum-title {
+    margin-bottom: 5px;
+    transition: all 0.5s ease;
+}
+
+.forum-title.invaded {
+    color: #33ff33;
+    text-shadow: 0 0 5px #33ff33;
+    letter-spacing: 2px;
+}
+
+.forum-stats {
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+/* Pannello di controllo */
+.control-panel {
+    padding: 10px;
+    background-color: #eee;
+    text-align: center;
+    transition: all 0.5s ease;
+}
+
+.control-panel.invaded {
+    background-color: #222;
+}
+
+.control-panel button {
+    padding: 8px 15px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+#start-invasion {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#reset-invasion {
+    background-color: #f44336;
+    color: white;
+}
+
+.control-panel button:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+/* Contenuto del forum */
+.forum-content {
+    padding: 20px;
+    transition: all 0.5s ease;
+}
+
+.forum-content.invaded {
+    background-color: #111;
+}
+
+.forum-post {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.5s ease;
+    position: relative;
+}
+
+.forum-post.invaded {
+    border-color: #33ff33;
+    box-shadow: 0 0 10px rgba(51, 255, 51, 0.3);
+    transform: perspective(500px) rotateX(2deg);
+}
+
+.forum-post.glitching {
+    animation: glitch 0.3s infinite;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: #f9f9f9;
+    transition: all 0.5s ease;
+}
+
+.post-header.invaded {
+    background-color: #1a1a1a;
+}
+
+.post-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ddd;
+    margin-right: 10px;
+    transition: all 0.5s ease;
+}
+
+.post-avatar.invaded {
+    background-color: #33ff33;
+    box-shadow: 0 0 10px #33ff33;
+}
+
+.post-info {
+    flex-grow: 1;
+}
+
+.post-author {
+    font-weight: bold;
+    transition: all 0.5s ease;
+}
+
+.post-author.invaded {
+    color: #33ff33;
+}
+
+.post-date {
+    font-size: 0.8em;
+    color: #777;
+    transition: all 0.5s ease;
+}
+
+.post-date.invaded {
+    color: #5a5;
+}
+
+.post-content {
+    padding: 15px;
+    background-color: white;
+    transition: all 0.5s ease;
+}
+
+.post-content.invaded {
+    background-color: #0a0a0a;
+    color: #33ff33;
+}
+
+.post-content p {
+    line-height: 1.5;
+    transition: all 0.5s ease;
+}
+
+.post-content.invaded p {
+    font-family: 'Courier New', monospace;
+}
+
+.post-footer {
+    padding: 10px;
+    background-color: #f9f9f9;
+    font-size: 0.8em;
+    color: #777;
+    transition: all 0.5s ease;
+}
+
+.post-footer.invaded {
+    background-color: #1a1a1a;
+    color: #5a5;
+}
+
+/* Contenitore degli alieni */
+.alien-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+    overflow: hidden;
+}
+
+/* Stile degli alieni */
+.alien {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-color: transparent;
+    pointer-events: none;
+    z-index: 101;
+    transition: transform 0.2s ease;
+}
+
+.alien::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #33ff33;
+    clip-path: polygon(
+        50% 0%, 
+        80% 30%, 
+        100% 50%, 
+        80% 70%, 
+        50% 100%, 
+        20% 70%, 
+        0% 50%, 
+        20% 30%
+    );
+    animation: pulse 2s infinite alternate;
+}
+
+.alien::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    left: 25%;
+    width: 50%;
+    height: 50%;
+    background-color: black;
+    border-radius: 50%;
+    box-shadow: 0 0 5px #33ff33;
+}
+
+.alien.large {
+    width: 50px;
+    height: 50px;
+}
+
+.alien.small {
+    width: 20px;
+    height: 20px;
+}
+
+/* Animazioni */
+@keyframes pulse {
+    0% {
+        opacity: 0.7;
+        box-shadow: 0 0 5px #33ff33;
+    }
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 15px #33ff33;
+    }
+}
+
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+    }
+    20% {
+        transform: translate(-2px, 2px);
+    }
+    40% {
+        transform: translate(-2px, -2px);
+    }
+    60% {
+        transform: translate(2px, 2px);
+    }
+    80% {
+        transform: translate(2px, -2px);
+    }
+    100% {
+        transform: translate(0);
+    }
+}
+
+/* Effetto testo alieno */
+.alien-text {
+    font-family: 'Courier New', monospace;
+    color: #33ff33;
+    text-shadow: 0 0 5px #33ff33;
+}
+
+/* Effetto schermo rotto */
+.screen-crack {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M30,40 L45,55 L60,35 L75,50 L90,30" stroke="%2333ff33" stroke-width="1" fill="none"/><path d="M10,30 L25,45 L40,25 L55,40 L70,20" stroke="%2333ff33" stroke-width="1" fill="none"/></svg>');
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+    transition: opacity 0.5s ease;
+}
+
+.screen-crack.active {
+    opacity: 0.3;
+}
+
+/* Effetto messaggio alieno */
+.alien-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #33ff33;
+    padding: 20px;
+    border: 2px solid #33ff33;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    box-shadow: 0 0 20px #33ff33;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.alien-message.active {
+    opacity: 1;
+}
