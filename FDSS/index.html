@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forum Discussioni Salvate</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="fdss-container" class="fdss-container">
+        <div class="fdss-header">
+            <h1 class="fdss-title">Discussioni Salvate</h1>
+            <button id="fdss-close" class="fdss-close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="fdss-tabs">
+            <button id="fdss-tab-discussions" class="fdss-tab fdss-active">Discussioni</button>
+            <button id="fdss-tab-posts" class="fdss-tab">Post</button>
+        </div>
+        <div id="fdss-discussions" class="fdss-content fdss-active">
+            <div class="fdss-empty-message">Nessuna discussione salvata</div>
+            <ul class="fdss-list" id="fdss-discussions-list"></ul>
+        </div>
+        <div id="fdss-posts" class="fdss-content">
+            <div class="fdss-empty-message">Nessun post salvato</div>
+            <ul class="fdss-list" id="fdss-posts-list"></ul>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
