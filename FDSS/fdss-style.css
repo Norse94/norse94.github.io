@@ -1,0 +1,538 @@
+/* FDSS - Forum Discussion Save System - Stylesheet */
+
+/* Prefisso fdss- per tutte le classi come richiesto */
+
+/* Stile del pulsante fisso in basso a sinistra */
+.fdss-floating-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #ff5722;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.fdss-floating-button:hover {
+    transform: scale(1.1);
+    background-color: #e64a19;
+}
+
+/* Container principale dell'interfaccia */
+.fdss-container {
+    position: fixed;
+    bottom: 80px;
+    left: 20px;
+    width: 350px;
+    max-height: 80vh;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 9998;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Header dell'interfaccia */
+.fdss-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.fdss-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.fdss-close-btn {
+    cursor: pointer;
+    color: #757575;
+    font-size: 20px;
+    transition: color 0.2s ease;
+}
+
+.fdss-close-btn:hover {
+    color: #333;
+}
+
+/* Barra di ricerca e filtri */
+.fdss-search-bar {
+    padding: 10px 15px;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.fdss-search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.fdss-filters {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.fdss-filter-btn {
+    padding: 5px 10px;
+    background-color: #eee;
+    border: none;
+    border-radius: 15px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s ease;
+}
+
+.fdss-filter-btn.fdss-active {
+    background-color: #ff5722;
+    color: white;
+}
+
+/* Contenuto principale */
+.fdss-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* Lista degli elementi salvati */
+.fdss-items-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.fdss-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.fdss-item:hover {
+    background-color: #f9f9f9;
+}
+
+.fdss-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.fdss-item-title {
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.fdss-item-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.fdss-action-btn {
+    color: #757575;
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.fdss-action-btn:hover {
+    color: #333;
+}
+
+.fdss-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: #757575;
+}
+
+.fdss-item-source {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.fdss-item-date {
+    white-space: nowrap;
+}
+
+.fdss-item-content {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.4;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.fdss-item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.fdss-tag {
+    padding: 3px 8px;
+    background-color: #e0e0e0;
+    border-radius: 12px;
+    font-size: 11px;
+    color: #555;
+}
+
+/* Footer con pulsanti di azione */
+.fdss-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #e0e0e0;
+}
+
+.fdss-add-btn {
+    padding: 8px 15px;
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.fdss-add-btn:hover {
+    background-color: #e64a19;
+}
+
+.fdss-select-mode-btn {
+    padding: 8px 15px;
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.fdss-select-mode-btn.fdss-active {
+    background-color: #2196F3;
+    color: white;
+    border-color: #2196F3;
+}
+
+/* Modalità selezione multipla */
+.fdss-selection-mode .fdss-item {
+    padding-left: 40px;
+}
+
+.fdss-checkbox {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+}
+
+.fdss-selection-mode .fdss-checkbox {
+    display: block;
+}
+
+.fdss-selection-mode .fdss-item-actions {
+    display: none;
+}
+
+.fdss-delete-selected {
+    display: none;
+    padding: 8px 15px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.fdss-delete-selected:hover {
+    background-color: #d32f2f;
+}
+
+.fdss-selection-mode .fdss-delete-selected {
+    display: block;
+}
+
+.fdss-selection-mode .fdss-add-btn {
+    display: none;
+}
+
+/* Modal per aggiungere/modificare elementi */
+.fdss-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.fdss-modal-content {
+    width: 90%;
+    max-width: 500px;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.fdss-modal-header {
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fdss-modal-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.fdss-modal-close {
+    cursor: pointer;
+    color: #757575;
+    font-size: 20px;
+    transition: color 0.2s ease;
+}
+
+.fdss-modal-close:hover {
+    color: #333;
+}
+
+.fdss-modal-body {
+    padding: 15px;
+}
+
+.fdss-form-group {
+    margin-bottom: 15px;
+}
+
+.fdss-form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.fdss-form-input,
+.fdss-form-textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.fdss-form-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.fdss-tags-input {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-height: 40px;
+}
+
+.fdss-tag-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background-color: #e0e0e0;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.fdss-tag-remove {
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.fdss-tag-input {
+    flex: 1;
+    min-width: 60px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    padding: 5px 0;
+}
+
+.fdss-modal-footer {
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.fdss-modal-btn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.fdss-cancel-btn {
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.fdss-cancel-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.fdss-save-btn {
+    background-color: #ff5722;
+    color: white;
+    border: none;
+}
+
+.fdss-save-btn:hover {
+    background-color: #e64a19;
+}
+
+/* Pulsanti per salvare post e discussione */
+#fdss-salvadiscbtn {
+    cursor: pointer;
+    color: #333;
+    transition: color 0.2s ease;
+}
+
+#fdss-salvadiscbtn:hover {
+    color: #ff5722;
+}
+
+.fdss-savadiscbtnmobile {
+    cursor: pointer;
+    color: #333;
+    transition: color 0.2s ease;
+}
+
+.fdss-savadiscbtnmobile:hover {
+    color: #ff5722;
+}
+
+#fdss-salvapostbtn {
+    cursor: pointer;
+    color: #333;
+    transition: color 0.2s ease;
+}
+
+#fdss-salvapostbtn:hover {
+    color: #ff5722;
+}
+
+#fdss-salvapostbtnmobile {
+    cursor: pointer;
+    color: #333;
+    transition: color 0.2s ease;
+}
+
+#fdss-salvapostbtnmobile:hover {
+    color: #ff5722;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .fdss-container {
+        width: 90%;
+        left: 5%;
+        right: 5%;
+        bottom: 70px;
+    }
+    
+    .fdss-floating-button {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .fdss-item-header {
+        flex-direction: column;
+    }
+    
+    .fdss-item-actions {
+        margin-top: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .fdss-container {
+        width: 95%;
+        left: 2.5%;
+        right: 2.5%;
+        max-height: 75vh;
+    }
+    
+    .fdss-floating-button {
+        width: 40px;
+        height: 40px;
+        bottom: 15px;
+        left: 15px;
+    }
+    
+    .fdss-footer {
+        padding: 10px;
+    }
+    
+    .fdss-add-btn, 
+    .fdss-select-mode-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+}
