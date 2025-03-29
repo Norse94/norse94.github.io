@@ -170,39 +170,121 @@
                 this.debugMode = !this.debugMode;
                 this.debugPanel.style.display = this.debugMode ? 'flex' : 'none';
                 this.debug('Debug mode ' + (this.debugMode ? 'attivato' : 'disattivato'), 'info');
+                
+                // Se il debug è attivato, esegui un test del sistema di debug
+                if (this.debugMode) {
+                    this.testDebugSystem();
+                }
             });
             document.body.appendChild(toggleBtn);
+            
+            // Aggiungi pulsante di test per il debug
+            const testBtn = document.createElement('div');
+            testBtn.className = 'fdss-debug-test';
+            testBtn.innerHTML = '<i class="fas fa-vial"></i>';
+            testBtn.title = 'Test sistema di debug';
+            testBtn.style.position = 'fixed';
+            testBtn.style.bottom = '20px';
+            testBtn.style.right = '70px';
+            testBtn.style.width = '40px';
+            testBtn.style.height = '40px';
+            testBtn.style.backgroundColor = '#673ab7';
+            testBtn.style.color = 'white';
+            testBtn.style.borderRadius = '50%';
+            testBtn.style.display = 'flex';
+            testBtn.style.justifyContent = 'center';
+            testBtn.style.alignItems = 'center';
+            testBtn.style.cursor = 'pointer';
+            testBtn.style.zIndex = '9999';
+            testBtn.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.3)';
+            testBtn.addEventListener('click', () => {
+                this.testDebugSystem();
+            });
+            document.body.appendChild(testBtn);
         },
         
         // Inizializzazione
         init: function() {
             try {
+                this.debug('Avvio inizializzazione FDSS...', 'info');
+                this.debug('Versione corrente: ' + this.version, 'info');
+                
+                this.debug('Inizializzazione pannello di debug...', 'info');
                 this.initDebugPanel();
-                this.debug('Inizializzazione FDSS v' + this.version, 'info');
+                this.debug('Pannello di debug inizializzato', 'success');
                 
                 this.debug('Caricamento CSS...', 'info');
                 this.loadCSS();
+                this.debug('CSS caricato correttamente', 'success');
                 
                 this.debug('Caricamento Font Awesome...', 'info');
                 this.loadFontAwesome();
+                this.debug('Font Awesome caricato correttamente', 'success');
                 
                 this.debug('Creazione interfaccia utente...', 'info');
                 this.createUI();
+                this.debug('Interfaccia utente creata correttamente', 'success');
                 
                 this.debug('Caricamento elementi salvati...', 'info');
                 this.loadItems();
+                this.debug('Elementi salvati caricati: ' + this.items.length, 'success');
                 
                 this.debug('Aggiunta event listeners...', 'info');
                 this.addEventListeners();
+                this.debug('Event listeners aggiunti correttamente', 'success');
                 
                 this.debug('Aggiunta pulsanti di salvataggio...', 'info');
                 this.addSaveButtons();
+                this.debug('Pulsanti di salvataggio aggiunti correttamente', 'success');
                 
                 this.debug('Inizializzazione completata con successo!', 'success');
             } catch (error) {
                 this.debug('Errore durante l\'inizializzazione: ' + error.message, 'error');
+                this.debug('Stack trace: ' + error.stack, 'error');
                 console.error('FDSS Initialization Error:', error);
             }
+        },
+        
+        // Funzione di test per il sistema di debug
+        testDebugSystem: function() {
+            this.debug('Avvio test del sistema di debug', 'info');
+            
+            // Test dei diversi tipi di messaggi
+            this.debug('Questo è un messaggio di tipo info', 'info');
+            this.debug('Questo è un messaggio di tipo warning', 'warn');
+            this.debug('Questo è un messaggio di tipo error', 'error');
+            this.debug('Questo è un messaggio di tipo success', 'success');
+            
+            // Test con dati dinamici
+            this.debug('Numero di elementi salvati: ' + this.items.length, 'info');
+            this.debug('Versione FDSS: ' + this.version, 'info');
+            this.debug('Modalità debug attiva: ' + this.debugMode, 'info');
+            
+            // Test con oggetti
+            try {
+                const testObj = {
+                    name: 'Test Object',
+                    value: 123,
+                    nested: {
+                        prop: 'test'
+                    }
+                };
+                this.debug('Test con oggetto: ' + JSON.stringify(testObj), 'info');
+            } catch (e) {
+                this.debug('Errore nella serializzazione dell\'oggetto: ' + e.message, 'error');
+            }
+            
+            // Test con errori
+            try {
+                // Generiamo un errore di proposito
+                const testError = new Error('Questo è un errore di test');
+                throw testError;
+            } catch (error) {
+                this.debug('Catturato errore di test: ' + error.message, 'error');
+                this.debug('Stack trace: ' + error.stack, 'error');
+            }
+            
+            this.debug('Test del sistema di debug completato', 'success');
         },
         
         // Carica il CSS esterno
