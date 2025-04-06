@@ -1204,8 +1204,8 @@ function createFavoritesMenu() {
                 </div>
             </div>
             <div id="ffav-menuButtons">
-                <button id="ffav-addManualBtn" class="ffav-menu-btn">Aggiungi Link</button>
-                <button id="ffav-bulk-mode-btn" class="ffav-menu-btn">Selezione multipla</button>
+                <button id="ffav-addManualBtn" class="ffav-menu-btn">Aggiungi</button>
+                <button id="ffav-bulk-mode-btn" class="ffav-menu-btn">Seleziona</button>
                 <button id="ffav-exportBtn" class="ffav-menu-btn">Esporta</button>
                 <button id="ffav-importBtn" class="ffav-menu-btn">Importa</button>
             </div>
