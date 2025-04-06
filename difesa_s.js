@@ -676,6 +676,7 @@ span#ffav-saveThreadBtn {
 .ffav-menu-system .ffav-bulk-actions-left {
     display: flex;
     align-items: center;
+    column-gap: 12px;
 }
 
 .ffav-menu-system .ffav-bulk-actions-right {
