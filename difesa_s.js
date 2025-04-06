@@ -1744,7 +1744,7 @@ function addMobileThreadButton() {
         renderSavedItems();
         showNotification('Discussione salvata nei segnalibri', 'success');
     });   
-    popShareElement.parentNode.appendChild(saveBtn, popShareElement);
+    popShareElement.parentNode.appendChild(saveBtn);
 }
 function handleResize() {
     const menuContainer = document.getElementById('ffav-menuContainer');
