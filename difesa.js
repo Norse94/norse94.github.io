@@ -1783,7 +1783,6 @@ function init() {
         const menuToggleBtn = document.createElement('button');
         menuToggleBtn.className = 'ffav-menu-toggle-btn';
         menuToggleBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
-        menuToggleBtn.style.marginRight = '12px';
         menuToggleBtn.style.marginTop = '1px';
         menuToggleBtn.style.cursor = 'pointer';
         menuToggleBtn.style.display = 'inline-block';
