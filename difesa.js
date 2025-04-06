@@ -509,6 +509,7 @@ style.textContent = `
             color: #4a76a8;
             font-size: 1.2em;
             transition: color 0.2s;
+            vertical-align: middle;
         }
         
         .ffav-menu-toggle-btn:hover {
@@ -792,7 +793,6 @@ span#ffav-saveThreadBtn {
     }
 }`;
 document.head.appendChild(style);
-
 
 const favoritesStorage = {
     get: function() {
@@ -1782,20 +1782,30 @@ function init() {
         menuToggleBtn.style.marginLeft = '10px';
         menuToggleBtn.style.cursor = 'pointer';
         menuToggleBtn.style.display = 'inline-block';
+        menuToggleBtn.style.color = '#4a76a8'; // Aggiungi colore
+        menuToggleBtn.style.fontSize = '1.2em'; // Aggiungi dimensione
         
         menuToggleBtn.addEventListener('click', function() {
             const menuContainer = document.getElementById('ffav-menuContainer');
+            const favButton = document.getElementById('ffav-favButton');
             if (menuContainer.style.display === 'flex') {
                 menuContainer.style.display = 'none';
                 menuStateStorage.set(false);
+                favButton.classList.remove('active');
             } else {
                 menuContainer.style.display = 'flex';
                 menuStateStorage.set(true);
+                favButton.classList.add('active');
                 renderSavedItems();
             }
         });
         
-        sideRightButton.parentNode.insertBefore(menuToggleBtn, sideRightButton.nextSibling);
+        // Modifica il posizionamento per essere più robusto
+        if (sideRightButton.nextSibling) {
+            sideRightButton.parentNode.insertBefore(menuToggleBtn, sideRightButton.nextSibling);
+        } else {
+            sideRightButton.parentNode.appendChild(menuToggleBtn);
+        }
     }
     
     window.addEventListener('resize', handleResize);
