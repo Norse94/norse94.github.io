@@ -5,7 +5,7 @@ style.textContent = `
         position: fixed;
         bottom: 20px;
         left: 20px;
-        z-index: 9999;
+        z-index: 899;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -1765,7 +1765,7 @@ function addMobileThreadButton() {
         renderSavedItems();
         showNotification('Discussione salvata nei segnalibri', 'success');
     });   
-    popShareElement.parentNode.appendChilde(saveBtn);
+    popShareElement.parentNode.appendChilde(saveBtn, popShareElement);
 }
 function handleResize() {
     const menuContainer = document.getElementById('ffav-menuContainer');
