@@ -505,6 +505,15 @@ style.textContent = `
     /* Save post button style */
     .ffav-menu-system .ffav-save-post-btn {
         margin-right: 10px;
+        .ffav-menu-toggle-btn {
+            color: #4a76a8;
+            font-size: 1.2em;
+            transition: color 0.2s;
+        }
+        
+        .ffav-menu-toggle-btn:hover {
+            color: #3a5b88;
+        }
         color: #4a76a8;
         cursor: pointer;
     }
@@ -783,6 +792,7 @@ span#ffav-saveThreadBtn {
     }
 }`;
 document.head.appendChild(style);
+
 
 const favoritesStorage = {
     get: function() {
