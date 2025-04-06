@@ -1768,13 +1768,14 @@ function handleResize() {
         savedItems.style.maxHeight = 'calc(80vh - 70px)';
     }
 }
+
 function init() {
     createFavoritesMenu();
     addSavePostButtons();
     addSaveThreadButton();
     
     // Aggiungi questo codice per il pulsante vicino a side_right_button
-    const sideRightButton = document.querySelector('.side_right_button');
+    const sideRightButton = document.getElementById('side_right_button');
     if (sideRightButton) {
         const menuToggleBtn = document.createElement('div');
         menuToggleBtn.className = 'ffav-menu-toggle-btn';
@@ -1782,8 +1783,8 @@ function init() {
         menuToggleBtn.style.marginLeft = '10px';
         menuToggleBtn.style.cursor = 'pointer';
         menuToggleBtn.style.display = 'inline-block';
-        menuToggleBtn.style.color = '#4a76a8'; // Aggiungi colore
-        menuToggleBtn.style.fontSize = '1.2em'; // Aggiungi dimensione
+        menuToggleBtn.style.color = '#4a76a8';
+        menuToggleBtn.style.fontSize = '1.2em';
         
         menuToggleBtn.addEventListener('click', function() {
             const menuContainer = document.getElementById('ffav-menuContainer');
