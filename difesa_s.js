@@ -590,12 +590,12 @@ span#ffav-saveThreadBtn {
         }
         
         .ffav-menu-system #ffav-favButton {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
         }
         
         .ffav-menu-system #ffav-favButton i {
-            font-size: 24px;
+            font-size: 20px;
         }
         
         .ffav-menu-system #ffav-menuContainer {
@@ -1685,7 +1685,7 @@ function addDesktopThreadButton() {
 
     const saveBtn = document.createElement('span');
     saveBtn.id = 'ffav-saveThreadBtn';
-    saveBtn.innerHTML = '<i class="fa fa-bookmark"></i> Salva Discussione';
+    saveBtn.innerHTML = '<i class="fa fa-bookmark"></i> Salva Disc.';
 
     saveBtn.addEventListener('click', function() {
         const favorites = favoritesStorage.get();
