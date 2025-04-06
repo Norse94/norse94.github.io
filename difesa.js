@@ -1726,7 +1726,7 @@ function addMobileThreadButton() {
     const popShareElement = document.querySelector('.pop-share');
     if (!popShareElement) return;
     
-    const saveBtn = document.createElement('button');
+    const saveBtn = document.createElement('div');
     saveBtn.className = 'ffav-save-thread-btn-mobile';
     saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
     saveBtn.style.position = 'relative';
