@@ -1726,10 +1726,11 @@ function addMobileThreadButton() {
     const popShareElement = document.querySelector('.pop-share');
     if (!popShareElement) return;
     
-    const saveBtn = document.createElement('span');
+    const saveBtn = document.createElement('button');
     saveBtn.className = 'ffav-save-thread-btn-mobile';
     saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
-    saveBtn.style.marginRight = '10px';
+    saveBtn.style.position = 'relative';
+    saveBtn.style.top = '3px';
     saveBtn.style.color = '#646464';
     saveBtn.style.cursor = 'pointer';
     saveBtn.style.fontSize = '1.6em';

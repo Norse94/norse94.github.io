@@ -505,6 +505,16 @@ style.textContent = `
     /* Save post button style */
     .ffav-menu-system .ffav-save-post-btn {
         margin-right: 10px;
+        .ffav-menu-toggle-btn {
+            color: #4a76a8;
+            font-size: 1.2em;
+            transition: color 0.2s;
+            vertical-align: middle;
+        }
+        
+        .ffav-menu-toggle-btn:hover {
+            color: #3a5b88;
+        }
         color: #4a76a8;
         cursor: pointer;
     }
@@ -564,13 +574,14 @@ span#ffav-saveThreadBtn {
     /* Mobile styles */
     @media (max-width: 768px) {
         .ffav-menu-system #ffav-favoritesMenu {
-            bottom: 10px;
+            top: 50px;
             left: 10px;
         }
         
         .ffav-menu-system #ffav-favButton {
             width: 50px;
             height: 50px;
+            display: none;
         }
         
         .ffav-menu-system #ffav-favButton i {
@@ -1715,10 +1726,11 @@ function addMobileThreadButton() {
     const popShareElement = document.querySelector('.pop-share');
     if (!popShareElement) return;
     
-    const saveBtn = document.createElement('span');
+    const saveBtn = document.createElement('button');
     saveBtn.className = 'ffav-save-thread-btn-mobile';
     saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
-    saveBtn.style.marginRight = '10px';
+    saveBtn.style.position = 'relative';
+    saveBtn.style.top = '3px';
     saveBtn.style.color = '#646464';
     saveBtn.style.cursor = 'pointer';
     saveBtn.style.fontSize = '1.6em';
@@ -1744,7 +1756,7 @@ function addMobileThreadButton() {
         renderSavedItems();
         showNotification('Discussione salvata nei segnalibri', 'success');
     });   
-    popShareElement.parentNode.appendChild(saveBtn);
+    popShareElement.appendChild(saveBtn);
 }
 function handleResize() {
     const menuContainer = document.getElementById('ffav-menuContainer');
@@ -1758,10 +1770,48 @@ function handleResize() {
         savedItems.style.maxHeight = 'calc(80vh - 70px)';
     }
 }
+
 function init() {
     createFavoritesMenu();
     addSavePostButtons();
     addSaveThreadButton();
+    
+    // Aggiungi questo codice per il pulsante dopo nav-title
+    const navTitle = document.getElementById('nav-title');
+    if (navTitle) {
+        const listItem = document.createElement('li');
+        
+        const menuToggleBtn = document.createElement('button');
+        menuToggleBtn.className = 'ffav-menu-toggle-btn';
+        menuToggleBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
+        menuToggleBtn.style.marginTop = '1px';
+        menuToggleBtn.style.cursor = 'pointer';
+        menuToggleBtn.style.display = 'inline-block';
+        menuToggleBtn.style.color = '#ffffff';
+        menuToggleBtn.style.fontSize = '1.6em';
+        
+        menuToggleBtn.addEventListener('click', function() {
+            const menuContainer = document.getElementById('ffav-menuContainer');
+            const favButton = document.getElementById('ffav-favButton');
+            if (menuContainer.style.display === 'flex') {
+                menuContainer.style.display = 'none';
+                menuStateStorage.set(false);
+                favButton.classList.remove('active');
+            } else {
+                menuContainer.style.display = 'flex';
+                menuStateStorage.set(true);
+                favButton.classList.add('active');
+                renderSavedItems();
+            }
+        });
+        
+        // Aggiungi il pulsante all'elemento li
+        listItem.appendChild(menuToggleBtn);
+        
+        // Inserisci dopo nav-title
+        navTitle.parentNode.insertBefore(listItem, navTitle.nextSibling);
+    }
+    
     window.addEventListener('resize', handleResize);
     handleResize();
     const observer = new MutationObserver(mutations => {
