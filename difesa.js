@@ -1780,7 +1780,7 @@ function init() {
     if (navTitle) {
         const listItem = document.createElement('li');
         
-        const menuToggleBtn = document.createElement('div');
+        const menuToggleBtn = document.createElement('button');
         menuToggleBtn.className = 'ffav-menu-toggle-btn';
         menuToggleBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
         menuToggleBtn.style.marginRight = '12px';
