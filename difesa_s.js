@@ -162,6 +162,11 @@ style.textContent = `
         background-color: #4a76a8;
         flex: 1;
     }
+
+   .ffav-menu-system #ffav-bulk-mode-btn {
+   	flex: 1;
+        background: #4a76a8;
+    }
     
     .ffav-menu-system #ffav-exportBtn {
         background-color: #4f4d46;
