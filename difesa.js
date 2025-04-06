@@ -1778,16 +1778,16 @@ function init() {
     const navTitle = document.getElementById('nav-title');
     if (navTitle) {
         const listItem = document.createElement('li');
-        listItem.style.display = 'inline-block';
         
         const menuToggleBtn = document.createElement('div');
         menuToggleBtn.className = 'ffav-menu-toggle-btn';
         menuToggleBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
-        menuToggleBtn.style.marginLeft = '10px';
+        menuToggleBtn.style.marginRight = '12px';
+        menuToggleBtn.style.marginTop = '1px';
         menuToggleBtn.style.cursor = 'pointer';
         menuToggleBtn.style.display = 'inline-block';
-        menuToggleBtn.style.color = '#4a76a8';
-        menuToggleBtn.style.fontSize = '1.2em';
+        menuToggleBtn.style.color = '#ffffff';
+        menuToggleBtn.style.fontSize = '1.6em';
         
         menuToggleBtn.addEventListener('click', function() {
             const menuContainer = document.getElementById('ffav-menuContainer');
