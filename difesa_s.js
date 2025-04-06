@@ -1183,8 +1183,6 @@ function createFavoritesMenu() {
                         <i class="fa fa-check-square-o"></i> Seleziona tutti
                     </button>
                     <span class="ffav-bulk-counter">0 selezionati</span>
-                </div>
-                <div class="ffav-bulk-actions-right">
                     <button class="ffav-bulk-delete-btn" id="ffav-bulk-delete-btn" disabled>
                         <i class="fa fa-trash"></i> Elimina
                     </button>
