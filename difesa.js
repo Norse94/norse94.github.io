@@ -1730,7 +1730,8 @@ function addMobileThreadButton() {
     saveBtn.className = 'ffav-save-thread-btn-mobile';
     saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
     saveBtn.style.position = 'relative';
-    saveBtn.style.top = '3px';
+    saveBtn.style.left = '-31%';
+    saveBtn.style.top = '-28px';
     saveBtn.style.color = '#646464';
     saveBtn.style.cursor = 'pointer';
     saveBtn.style.fontSize = '1.6em';
