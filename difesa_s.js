@@ -181,28 +181,7 @@ style.textContent = `
     .ffav-menu-system #ffav-addPageBtn {
         background-color: #4a76a8;
         flex: 1;
-    }
-    
-    /* Stili per il pulsante "Altro" */
-    .ffav-menu-system #ffav-moreBtn {
-        background-color: #4f4d46;
-        flex: 1;
-    }
-    
-    /* Stili per il modale "Altro" */
-    .ffav-menu-system #ffav-moreModal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.5);
-        z-index: 10000;
-        justify-content: center;
-        align-items: center;
-        font-family: Arial, sans-serif;
-    }
+    }  
     
     .ffav-menu-system .ffav-more-modal-content {
         background-color: white;
@@ -423,7 +402,7 @@ style.textContent = `
         color: white;
         padding: 10px 20px;
         border-radius: 4px;
-        z-index: 10000;
+        z-index: 899;
         font-size: 14px;
         animation: ffav-fadeOut 3s forwards;
         box-shadow: 0 2px 10px rgba(0,0,0,0.2);
