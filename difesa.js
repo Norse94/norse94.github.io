@@ -1774,9 +1774,9 @@ function init() {
     addSavePostButtons();
     addSaveThreadButton();
     
-    // Aggiungi questo codice per il pulsante vicino a side_right_button
-    const sideRightButton = document.getElementById('side_right_button');
-    if (sideRightButton) {
+    // Aggiungi questo codice per il pulsante dopo nav-title
+    const navTitle = document.getElementById('nav-title');
+    if (navTitle) {
         const menuToggleBtn = document.createElement('div');
         menuToggleBtn.className = 'ffav-menu-toggle-btn';
         menuToggleBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
@@ -1801,12 +1801,8 @@ function init() {
             }
         });
         
-        // Modifica il posizionamento per essere più robusto
-        if (sideRightButton.nextSibling) {
-            sideRightButton.parentNode.insertBefore(menuToggleBtn, sideRightButton.nextSibling);
-        } else {
-            sideRightButton.parentNode.appendChild(menuToggleBtn);
-        }
+        // Inserisci dopo nav-title
+        navTitle.parentNode.insertBefore(menuToggleBtn, navTitle.nextSibling);
     }
     
     window.addEventListener('resize', handleResize);
