@@ -574,13 +574,14 @@ span#ffav-saveThreadBtn {
     /* Mobile styles */
     @media (max-width: 768px) {
         .ffav-menu-system #ffav-favoritesMenu {
-            bottom: 10px;
+            top: 50px;
             left: 10px;
         }
         
         .ffav-menu-system #ffav-favButton {
             width: 50px;
             height: 50px;
+            display: none;
         }
         
         .ffav-menu-system #ffav-favButton i {
