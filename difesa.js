@@ -1777,6 +1777,9 @@ function init() {
     // Aggiungi questo codice per il pulsante dopo nav-title
     const navTitle = document.getElementById('nav-title');
     if (navTitle) {
+        const listItem = document.createElement('li');
+        listItem.style.display = 'inline-block';
+        
         const menuToggleBtn = document.createElement('div');
         menuToggleBtn.className = 'ffav-menu-toggle-btn';
         menuToggleBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
@@ -1801,8 +1804,11 @@ function init() {
             }
         });
         
+        // Aggiungi il pulsante all'elemento li
+        listItem.appendChild(menuToggleBtn);
+        
         // Inserisci dopo nav-title
-        navTitle.parentNode.insertBefore(menuToggleBtn, navTitle.nextSibling);
+        navTitle.parentNode.insertBefore(listItem, navTitle.nextSibling);
     }
     
     window.addEventListener('resize', handleResize);
