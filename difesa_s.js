@@ -1164,15 +1164,17 @@ function createFavoritesMenu() {
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
     
-      // Add click handler to close menu when clicking outside
+ // Add click handler to close menu when clicking outside
     document.addEventListener('click', function(e) {
         const menuContainer = document.getElementById('ffav-menuContainer');
         const favButton = document.getElementById('ffav-favButton');
         const modal = document.getElementById('ffav-favoritesModal');
+        const menuToggleBtn = document.querySelector('.ffav-menu-toggle-btn');
         
         if (menuContainer && menuContainer.style.display === 'flex' && 
             !menuContainer.contains(e.target) && 
             e.target !== favButton &&
+            e.target !== menuToggleBtn &&
             !(modal && modal.contains(e.target))) {
             menuContainer.style.display = 'none';
             menuStateStorage.set(false);
