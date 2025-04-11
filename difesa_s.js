@@ -22,7 +22,7 @@ style.textContent = `
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        background-color: #4a76a8;
+        background-color: #425f93;
         color: white;
         border: none;
         cursor: pointer;
@@ -136,7 +136,7 @@ style.textContent = `
     .ffav-menu-system .ffav-saved-item .ffav-actions button {
         background: none;
         border: none;
-        color: #4a76a8;
+        color: #425f93;
         cursor: pointer;
         font-size: 11px;
         padding: 2px 5px;
@@ -159,13 +159,13 @@ style.textContent = `
     
     /* Rimuovo il grid-column per il pulsante full width */
     .ffav-menu-system #ffav-addManualBtn {
-        background-color: #4a76a8;
+        background-color: #425f93;
         flex: 1;
     }
 
    .ffav-menu-system #ffav-bulk-mode-btn {
    	flex: 1;
-        background: #4a76a8;
+        background: #425f93;
     }
     
     .ffav-menu-system #ffav-exportBtn {
@@ -179,7 +179,7 @@ style.textContent = `
     }
     /* Different colors for each button */
     .ffav-menu-system #ffav-addPageBtn {
-        background-color: #4a76a8;
+        background-color: #425f93;
         flex: 1;
     }  
     
@@ -207,7 +207,7 @@ style.textContent = `
     }
     
     .ffav-menu-system .ffav-more-option-btn {
-        background-color: #4a76a8;
+        background-color: #425f93;
         color: white;
         border: none;
         padding: 10px 15px;
@@ -292,7 +292,7 @@ style.textContent = `
 }
 
 .ffav-menu-system .ffav-toggle-switch input:checked + .ffav-toggle-slider {
-    background-color: #4a76a8;
+    background-color: #425f93;
 }
 
 .ffav-menu-system .ffav-toggle-switch input:checked + .ffav-toggle-slider:before {
@@ -312,7 +312,7 @@ style.textContent = `
 }
 
 .ffav-menu-system .ffav-select-all-btn {
-    background-color: #4a76a8;
+    background-color: #425f93;
     color: white;
     border: none;
     padding: 5px 10px;
@@ -342,11 +342,11 @@ style.textContent = `
 
 .ffav-menu-system .ffav-saved-item.bulk-mode.selected {
     background-color: rgba(74, 118, 168, 0.15);
-    border-left: 3px solid #4a76a8;
+    border-left: 3px solid #425f93;
 }
 
 .ffav-menu-system .ffav-saved-item.bulk-mode.selected .ffav-title {
-    color: #4a76a8;
+    color: #425f93;
     font-weight: bold;
 }
 
@@ -365,7 +365,7 @@ style.textContent = `
     height: 0;
     border-style: solid;
     border-width: 5px 0 5px 8px;
-    border-color: transparent transparent transparent #4a76a8;
+    border-color: transparent transparent transparent #425f93;
     opacity: 0;
     transition: opacity 0.2s;
 }
@@ -498,7 +498,7 @@ style.textContent = `
     }
     
     .ffav-menu-system .ffav-modal-buttons .ffav-save {
-        background-color: #4a76a8;
+        background-color: #425f93;
         color: white;
     }
     
@@ -506,7 +506,7 @@ style.textContent = `
     .ffav-menu-system .ffav-save-post-btn {
         margin-right: 10px;
         .ffav-menu-toggle-btn {
-            color: #4a76a8;
+            color: #425f93;
             font-size: 1.2em;
             transition: color 0.2s;
             vertical-align: middle;
@@ -515,7 +515,7 @@ style.textContent = `
         .ffav-menu-toggle-btn:hover {
             color: #3a5b88;
         }
-        color: #4a76a8;
+        color: #425f93;
         cursor: pointer;
     }
     
@@ -564,7 +564,7 @@ style.textContent = `
     }
     
     .ffav-menu-system .ffav-filter-btn.active {
-        background-color: #4a76a8;
+        background-color: #425f93;
         color: white;
     }
     
@@ -732,7 +732,7 @@ span#ffav-saveThreadBtn {
 }
 
 .ffav-menu-system .ffav-bulk-mode-btn {
-    background-color: #4a76a8;
+    background-color: #425f93;
     color: white;
     border: none;
     padding: 5px 10px;
@@ -1164,6 +1164,19 @@ function createFavoritesMenu() {
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
     
+     // Add click handler to close menu when clicking outside
+     document.addEventListener('click', function(e) {
+        const menuContainer = document.getElementById('ffav-menuContainer');
+        const favButton = document.getElementById('ffav-favButton');
+        
+        if (menuContainer && menuContainer.style.display === 'flex' && 
+            !menuContainer.contains(e.target) && 
+            e.target !== favButton) {
+            menuContainer.style.display = 'none';
+            menuStateStorage.set(false);
+        }
+    });
+
     // Create the menu HTML structure
     const menuHTML = `
      <div id="ffav-favoritesMenu">
@@ -1594,7 +1607,7 @@ function handleMobilePost(post, threadTitle) {
         saveBtn.href = 'javascript:void(0)';
         saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
         saveBtn.style.marginRight = '5px';
-        saveBtn.style.color = '#4a76a8';
+        saveBtn.style.color = '#425f93';
         saveBtn.style.cursor = 'pointer';
 
         saveBtn.addEventListener('click', function(e) {
@@ -1726,11 +1739,12 @@ function addMobileThreadButton() {
     const popShareElement = document.querySelector('.pop-share');
     if (!popShareElement) return;
     
-    const saveBtn = document.createElement('button');
+    const saveBtn = document.createElement('div');
     saveBtn.className = 'ffav-save-thread-btn-mobile';
     saveBtn.innerHTML = '<i class="fa fa-bookmark"></i>';
     saveBtn.style.position = 'relative';
-    saveBtn.style.top = '3px';
+    saveBtn.style.left = '-31%';
+    saveBtn.style.top = '-28px';
     saveBtn.style.color = '#646464';
     saveBtn.style.cursor = 'pointer';
     saveBtn.style.fontSize = '1.6em';
