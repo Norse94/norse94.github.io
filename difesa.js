@@ -1164,6 +1164,21 @@ function createFavoritesMenu() {
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
     
+      // Add click handler to close menu when clicking outside
+    document.addEventListener('click', function(e) {
+        const menuContainer = document.getElementById('ffav-menuContainer');
+        const favButton = document.getElementById('ffav-favButton');
+        const modal = document.getElementById('ffav-favoritesModal');
+        
+        if (menuContainer && menuContainer.style.display === 'flex' && 
+            !menuContainer.contains(e.target) && 
+            e.target !== favButton &&
+            !(modal && modal.contains(e.target))) {
+            menuContainer.style.display = 'none';
+            menuStateStorage.set(false);
+        }
+    });
+
     // Create the menu HTML structure
     const menuHTML = `
      <div id="ffav-favoritesMenu">
