@@ -1164,22 +1164,29 @@ function createFavoritesMenu() {
     systemContainer.className = 'ffav-menu-system';
     document.body.appendChild(systemContainer);
     
- // Add click handler to close menu when clicking outside
+    // Migliorato l'event listener per il click esterno
     document.addEventListener('click', function(e) {
         const menuContainer = document.getElementById('ffav-menuContainer');
         const favButton = document.getElementById('ffav-favButton');
         const modal = document.getElementById('ffav-favoritesModal');
         const menuToggleBtn = document.querySelector('.ffav-menu-toggle-btn');
         
+        // Verifica se l'elemento o uno dei suoi genitori è il pulsante toggle
+        const isOrContainsMenuToggle = (element) => {
+            if (!element) return false;
+            if (element === menuToggleBtn || element.classList?.contains('ffav-menu-toggle-btn')) return true;
+            return element.parentElement ? isOrContainsMenuToggle(element.parentElement) : false;
+        };
+        
         if (menuContainer && menuContainer.style.display === 'flex' && 
             !menuContainer.contains(e.target) && 
             e.target !== favButton &&
-            e.target !== menuToggleBtn &&
+            !isOrContainsMenuToggle(e.target) &&
             !(modal && modal.contains(e.target))) {
             menuContainer.style.display = 'none';
             menuStateStorage.set(false);
         }
-    });
+    }, { passive: true });
 
     // Create the menu HTML structure
     const menuHTML = `
