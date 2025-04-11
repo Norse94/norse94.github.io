@@ -26,8 +26,9 @@ async function recuperaSezioni() {
         }
         
         // Estrae gli ID e i nomi delle sezioni
+        // IMPORTANTE: L'ID è il valore principale da recuperare per ogni sezione
         const sezioni = data.sections.map(section => ({
-            id: section.id,
+            id: section.id, // QUESTO È L'ID DA RECUPERARE PER LA SINGOLA SEZIONE
             nome: section.name,
             descrizione: section.desc,
             gruppo: section.group
@@ -36,7 +37,7 @@ async function recuperaSezioni() {
         // Stampa i risultati
         console.log('ID delle sezioni recuperati:');
         sezioni.forEach(sezione => {
-            console.log(`ID: ${sezione.id}, Nome: ${sezione.nome}, Gruppo: ${sezione.gruppo}`);
+            console.log(`ID SEZIONE: ${sezione.id} <- QUESTO È L'ID DA RECUPERARE, Nome: ${sezione.nome}, Gruppo: ${sezione.gruppo}`);
         });
         
         // Restituisce l'array delle sezioni
@@ -51,6 +52,10 @@ async function recuperaSezioni() {
 // Funzione per esportare i dati in formato JSON
 function esportaSezioniJSON(sezioni) {
     try {
+        // Aggiunge un messaggio esplicativo prima di esportare
+        console.log('Esportazione degli ID delle sezioni in corso...');
+        console.log('IMPORTANTE: L\'ID è il valore principale da recuperare per ogni sezione');
+        
         // Crea una stringa JSON formattata
         const jsonData = JSON.stringify(sezioni, null, 2);
         
