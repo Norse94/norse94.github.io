@@ -49,6 +49,91 @@ async function recuperaSezioni() {
     }
 }
 
+// Funzione per chiamare l'API con l'ID della sezione
+async function chiamaApiConId(id) {
+    try {
+        // Costruisce l'URL dell'API con l'ID della sezione
+        const apiUrl = `https://difesa.forumfree.it/api.php?f=${id}&cookie=1`;
+        console.log(`Chiamata API con URL: ${apiUrl}`);
+        
+        // Effettua la richiesta API
+        const response = await fetch(apiUrl);
+        
+        // Verifica se la richiesta è andata a buon fine
+        if (!response.ok) {
+            throw new Error(`Errore nella richiesta API: ${response.status} ${response.statusText}`);
+        }
+        
+        // Converte la risposta in formato JSON
+        const data = await response.json();
+        return data;
+        
+    } catch (error) {
+        console.error(`Si è verificato un errore durante la chiamata API con ID ${id}:`, error.message);
+        throw error;
+    }
+}
+
+// Funzione per visualizzare i risultati della chiamata API
+function visualizzaRisultatiApi(data, sezioneId) {
+    // Crea un elemento modal per visualizzare i risultati
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.left = '0';
+    modal.style.top = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    modal.style.zIndex = '1000';
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.backgroundColor = 'white';
+    modalContent.style.padding = '20px';
+    modalContent.style.borderRadius = '5px';
+    modalContent.style.maxWidth = '80%';
+    modalContent.style.maxHeight = '80%';
+    modalContent.style.overflow = 'auto';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Chiudi';
+    closeBtn.className = 'btn';
+    closeBtn.style.backgroundColor = '#d9534f';
+    closeBtn.style.marginBottom = '15px';
+    closeBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    const title = document.createElement('h3');
+    title.textContent = `Risultati API per la sezione con ID: ${sezioneId}`;
+    
+    // Aggiungi l'URL completo dell'API
+    const urlInfo = document.createElement('div');
+    urlInfo.style.backgroundColor = '#e9ecef';
+    urlInfo.style.padding = '10px';
+    urlInfo.style.borderRadius = '4px';
+    urlInfo.style.marginBottom = '15px';
+    urlInfo.style.borderLeft = '4px solid #007bff';
+    urlInfo.innerHTML = `<strong>URL API utilizzato:</strong> <code>https://difesa.forumfree.it/api.php?f=${sezioneId}&cookie=1</code>`;
+    
+    const pre = document.createElement('pre');
+    pre.style.backgroundColor = '#f8f9fa';
+    pre.style.padding = '10px';
+    pre.style.borderRadius = '4px';
+    pre.style.overflow = 'auto';
+    pre.style.maxHeight = '400px';
+    pre.textContent = JSON.stringify(data, null, 2);
+    
+    modalContent.appendChild(closeBtn);
+    modalContent.appendChild(title);
+    modalContent.appendChild(urlInfo);
+    modalContent.appendChild(pre);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
 // Funzione per esportare i dati in formato JSON
 function esportaSezioniJSON(sezioni) {
     try {
