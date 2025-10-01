@@ -2,223 +2,217 @@
   {
     "acronym": "NATO",
     "full": "North Atlantic Treaty Organization",
+    "description": "Alleanza militare intergovernativa tra 31 paesi membri del Nord America e dell'Europa. Costituisce un sistema di difesa collettiva in cui gli Stati membri concordano la mutua difesa in risposta a un attacco da parte di qualsiasi entità esterna.",
     "category": "Organizzazioni",
-    "language": "EN",
+    "status": "Attivo",
+    "language": "Inglese",
     "year": 1949,
-    "status": "Attivo",
-    "nations": ["USA", "Canada", "UK", "Francia", "Germania", "Italia", "Spagna", "Altri 24 paesi"],
     "aliases": ["OTAN", "Patto Atlantico"],
-    "relatedTerms": ["AWACS", "C4ISR"],
-    "description": "L'Organizzazione del Trattato dell'Atlantico del Nord è un'alleanza militare intergovernativa fondata nel 1949. Comprende 31 Stati membri dell'Europa e del Nord America che si sono impegnati alla difesa collettiva secondo l'articolo 5 del trattato.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Flag_of_NATO.svg/1200px-Flag_of_NATO.svg.png",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/NATO_HQ_BRUSSEL_2017_%2838409524102%29.jpg/1200px-NATO_HQ_BRUSSEL_2017_%2838409524102%29.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/NATO_Summit_Wales_2014.jpg/1200px-NATO_Summit_Wales_2014.jpg"
-    ],
-    "video": "https://www.youtube.com/embed/FfJv9QYrlwg",
-    "links": [
-      {"text": "Sito ufficiale NATO", "url": "https://www.nato.int"},
-      {"text": "Storia della NATO", "url": "https://www.nato.int/cps/en/natohq/declassified_139339.htm"}
-    ],
+    "nations": ["USA", "Italia", "Francia", "Germania", "Regno Unito"],
+    "relatedTerms": ["ISAF", "KFOR", "Article 5"],
     "documents": [
-      {"name": "Trattato del Nord Atlantico.pdf", "url": "https://www.nato.int/cps/en/natolive/official_texts_17120.htm"}
+      {
+        "text": "Trattato del Nord Atlantico",
+        "url": "https://www.nato.int/cps/en/natohq/official_texts_17120.htm"
+      },
+      {
+        "text": "Manuale NATO 2024",
+        "url": "https://example.com/nato-manual.pdf"
+      }
+    ],
+    "links": [
+      {
+        "text": "Sito Ufficiale NATO",
+        "url": "https://www.nato.int"
+      },
+      {
+        "text": "NATO su Wikipedia",
+        "url": "https://it.wikipedia.org/wiki/NATO"
+      }
     ]
   },
   {
-    "acronym": "F-35",
-    "full": "Joint Strike Fighter Lightning II",
-    "category": "Aeronautica",
-    "language": "EN",
-    "year": 2015,
+    "acronym": "SIGINT",
+    "full": "Signals Intelligence",
+    "description": "Intelligence ottenuta dall'intercettazione e analisi di segnali elettronici, sia comunicazioni tra persone (COMINT) che da sistemi elettronici (ELINT). È una componente fondamentale della raccolta di informazioni militari moderne.",
+    "category": "Intelligence",
     "status": "Attivo",
-    "nations": ["USA", "UK", "Italia", "Paesi Bassi", "Australia", "Giappone", "Corea del Sud", "Israele", "Polonia"],
-    "aliases": ["Lightning II", "JSF"],
-    "relatedTerms": ["STEALTH", "F-22", "STOVL"],
-    "description": "Caccia multiruolo di quinta generazione sviluppato da Lockheed Martin nell'ambito del programma Joint Strike Fighter. Disponibile in tre varianti: F-35A (convenzionale), F-35B (STOVL) e F-35C (portaerei). Dotato di tecnologia stealth, sensori avanzati e capacità network-centric.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/F-35A_flight_%28cropped%29.jpg/1200px-F-35A_flight_%28cropped%29.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/F-35B_Lightning_II_conducts_vertical_landing_test.jpg/1200px-F-35B_Lightning_II_conducts_vertical_landing_test.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Italian_F-35A_Lightning_II.jpg/1200px-Italian_F-35A_Lightning_II.jpg"
-    ],
-    "video": "https://www.youtube.com/embed/bT8IKwtIqPc",
-    "links": [
-      {"text": "F-35 Official Site", "url": "https://www.lockheedmartin.com/en-us/products/f-35.html"}
-    ],
+    "language": "Inglese",
+    "year": 1940,
+    "aliases": ["Intelligence dei Segnali"],
+    "nations": ["USA", "Regno Unito", "Israele", "Russia", "Cina"],
+    "relatedTerms": ["COMINT", "ELINT", "HUMINT", "OSINT"],
     "documents": [
-      {"name": "F-35 Technical Overview.pdf", "url": "#"}
+      {
+        "text": "Guida SIGINT Classificata",
+        "url": "https://example.com/sigint-guide.pdf"
+      }
+    ],
+    "links": [
+      {
+        "text": "NSA - National Security Agency",
+        "url": "https://www.nsa.gov"
+      }
     ]
   },
   {
-    "acronym": "AWACS",
-    "full": "Airborne Warning And Control System",
-    "category": "Aeronautica",
-    "language": "EN",
-    "year": 1977,
+    "acronym": "ROE",
+    "full": "Rules of Engagement",
+    "description": "Direttive emesse dalle autorità militari che definiscono le circostanze e le limitazioni entro le quali le forze inizieranno o continueranno un combattimento con altre forze incontrate. Stabiliscono quando, dove, come e contro chi può essere usata la forza militare.",
+    "category": "Dottrina",
     "status": "Attivo",
-    "nations": ["USA", "NATO", "UK", "Francia", "Arabia Saudita", "Giappone"],
-    "aliases": ["E-3 Sentry"],
-    "relatedTerms": ["NATO", "C4ISR", "AEW"],
-    "description": "Sistema aviotrasportato di allerta precoce e controllo basato su piattaforma Boeing 707. Equipaggiato con un potente radar a scansione rotante montato sopra la fusoliera, è capace di rilevare aeromobili a centinaia di chilometri di distanza e coordinare operazioni aeree complesse.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Boeing_E-3A_Sentry_%28707-300%29%2C_NATO_AN1465968.jpg/1200px-Boeing_E-3A_Sentry_%28707-300%29%2C_NATO_AN1465968.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/E-3_Sentry_radar_dome.jpg/1200px-E-3_Sentry_radar_dome.jpg"
+    "language": "Inglese",
+    "year": 1954,
+    "aliases": ["Regole d'ingaggio", "Norme di comportamento"],
+    "nations": ["USA", "NATO", "Italia", "Francia"],
+    "relatedTerms": ["LOAC", "Geneva Convention", "IHL"],
+    "documents": [
+      {
+        "text": "NATO ROE Manual",
+        "url": "https://example.com/roe-manual.docx"
+      },
+      {
+        "text": "ROE Training Guide",
+        "url": "https://example.com/roe-training.pptx"
+      }
     ],
-    "video": "https://www.youtube.com/embed/UWZj1g7pN8Y",
     "links": [
-      {"text": "Boeing E-3 Sentry", "url": "https://en.wikipedia.org/wiki/Boeing_E-3_Sentry"}
+      {
+        "text": "International Humanitarian Law",
+        "url": "https://www.icrc.org/en/war-and-law"
+      }
     ]
   },
   {
-    "acronym": "AEGIS",
-    "full": "Advanced Electronic Guided Interceptor System",
-    "category": "Marina",
-    "language": "EN",
-    "year": 1983,
+    "acronym": "MEDEVAC",
+    "full": "Medical Evacuation",
+    "description": "Evacuazione tempestiva e organizzata di feriti dal campo di battaglia verso strutture mediche adeguate. Include evacuazione via terra, aria o mare utilizzando veicoli e personale medico specializzato.",
+    "category": "Logistica",
     "status": "Attivo",
-    "nations": ["USA", "Giappone", "Corea del Sud", "Australia", "Spagna", "Norvegia"],
-    "aliases": ["Sistema Aegis"],
-    "relatedTerms": ["SAM", "BMD", "SPY-1"],
-    "description": "Sistema integrato di combattimento navale che utilizza il radar SPY-1 a scansione elettronica e lanciatori verticali (VLS) per fornire difesa multilivello contro minacce aeree, di superficie e missilistiche. Può tracciare oltre 100 bersagli simultaneamente e ingaggiarne diversi contemporaneamente.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/USS_Cowpens_%28CG-63%29_underway_in_the_Pacific_Ocean_on_30_March_2015.JPG/1200px-USS_Cowpens_%28CG-63%29_underway_in_the_Pacific_Ocean_on_30_March_2015.JPG",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/AN-SPY-1_radar.jpg/1200px-AN-SPY-1_radar.jpg"
+    "language": "Inglese",
+    "year": 1950,
+    "aliases": ["Evacuazione sanitaria", "Casevac"],
+    "nations": ["USA", "Italia", "Germania", "Francia"],
+    "relatedTerms": ["CASEVAC", "Triage", "Combat Medic"],
+    "documents": [
+      {
+        "text": "Protocollo MEDEVAC",
+        "url": "https://example.com/medevac-protocol.pdf"
+      },
+      {
+        "text": "Procedure Operative Standard",
+        "url": "https://example.com/medevac-sop.xlsx"
+      }
     ],
-    "video": "https://www.youtube.com/embed/Wihi3NVb_uQ",
     "links": [
-      {"text": "Aegis Combat System", "url": "https://en.wikipedia.org/wiki/Aegis_Combat_System"}
+      {
+        "text": "Military Medicine",
+        "url": "https://example.com/military-medicine"
+      }
     ]
   },
   {
-    "acronym": "M1 Abrams",
-    "full": "M1 Abrams Main Battle Tank",
-    "category": "Esercito",
-    "language": "EN",
-    "year": 1980,
+    "acronym": "EW",
+    "full": "Electronic Warfare",
+    "description": "Azioni militari che sfruttano lo spettro elettromagnetico per controllare il dominio dell'informazione. Include attacchi elettronici, protezione elettronica e supporto alla guerra elettronica per degradare, neutralizzare o distruggere le capacità nemiche.",
+    "category": "Tecnologia",
     "status": "Attivo",
-    "nations": ["USA", "Egitto", "Kuwait", "Arabia Saudita", "Australia", "Iraq"],
-    "aliases": ["Abrams", "M1A2"],
-    "relatedTerms": ["MBT", "ATGM"],
-    "description": "Carro armato da battaglia principale americano di terza generazione. Armato con cannone M256 da 120mm, motore a turbina da 1500hp e blindatura composita avanzata. La versione M1A2 SEPv3 include sistemi elettronici all'avanguardia e protezione attiva Trophy.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/M1A2_Abrams_tank_in_training.jpg/1200px-M1A2_Abrams_tank_in_training.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Firepower_demonstration_at_Grafenwoehr%2C_Germany.jpg/1200px-Firepower_demonstration_at_Grafenwoehr%2C_Germany.jpg"
+    "language": "Inglese",
+    "year": 1939,
+    "aliases": ["Guerra Elettronica", "GE"],
+    "nations": ["USA", "Russia", "Cina", "Israele"],
+    "relatedTerms": ["SIGINT", "ECM", "ECCM", "Jamming"],
+    "documents": [
+      {
+        "text": "EW Doctrine",
+        "url": "https://example.com/ew-doctrine.pdf"
+      },
+      {
+        "text": "EW Equipment Manual",
+        "url": "https://example.com/ew-equipment.zip"
+      }
     ],
-    "video": "https://www.youtube.com/embed/G3LvhdR1ffc",
     "links": [
-      {"text": "M1 Abrams Wikipedia", "url": "https://en.wikipedia.org/wiki/M1_Abrams"}
+      {
+        "text": "Electronic Warfare Fundamentals",
+        "url": "https://example.com/ew-fundamentals"
+      }
     ]
   },
   {
-    "acronym": "AH-64 Apache",
-    "full": "Boeing AH-64 Apache",
-    "category": "Aeronautica",
-    "language": "EN",
-    "year": 1986,
+    "acronym": "CAS",
+    "full": "Close Air Support",
+    "description": "Supporto aereo alle forze di terra in contatto diretto con il nemico. Include attacchi aerei su obiettivi ostili in stretta vicinanza alle forze amiche, richiedendo integrazione dettagliata tra forze aeree e terrestri.",
+    "category": "Operazioni",
     "status": "Attivo",
-    "nations": ["USA", "UK", "Israele", "Egitto", "Arabia Saudita", "Giappone", "Corea del Sud", "India"],
-    "aliases": ["Apache", "AH-64E Guardian"],
-    "relatedTerms": ["ATGM", "Hellfire"],
-    "description": "Elicottero da attacco pesante biturbina. Armato con cannone M230 da 30mm, missili Hellfire e razzi Hydra. Il sistema di puntamento TADS/PNVS permette operazioni notturne e in ogni condizione meteo. La versione AH-64E include radar Longbow per ingaggio oltre l'orizzonte.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/AH-64D_Apache_Longbow.jpg/1200px-AH-64D_Apache_Longbow.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/AH-64_Apache_helicopter_in_flight.jpg/1200px-AH-64_Apache_helicopter_in_flight.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/AH-64_Apache_Helicopter_Fires.jpg/1200px-AH-64_Apache_Helicopter_Fires.jpg"
+    "language": "Inglese",
+    "year": 1918,
+    "aliases": ["Appoggio aereo ravvicinato"],
+    "nations": ["USA", "Russia", "Francia", "Regno Unito"],
+    "relatedTerms": ["JTAC", "FAC", "Air Interdiction"],
+    "documents": [
+      {
+        "text": "CAS Procedures Manual",
+        "url": "https://example.com/cas-procedures.pdf"
+      }
     ],
-    "video": "https://www.youtube.com/embed/vJhp90FBh5U",
     "links": [
-      {"text": "AH-64 Apache", "url": "https://en.wikipedia.org/wiki/Boeing_AH-64_Apache"}
+      {
+        "text": "Joint Terminal Attack Controller",
+        "url": "https://example.com/jtac"
+      }
     ]
   },
   {
-    "acronym": "Patriot",
-    "full": "MIM-104 Patriot",
-    "category": "Armamenti",
-    "language": "EN",
-    "year": 1981,
+    "acronym": "PSYOPS",
+    "full": "Psychological Operations",
+    "description": "Operazioni pianificate per trasmettere informazioni e indicazioni selezionate a pubblici stranieri per influenzare emozioni, motivazioni, ragionamento oggettivo e comportamento. Supporta gli obiettivi militari e politici nazionali.",
+    "category": "Operazioni",
     "status": "Attivo",
-    "nations": ["USA", "Germania", "Paesi Bassi", "Giappone", "Israele", "Arabia Saudita", "Kuwait", "Corea del Sud"],
-    "aliases": ["PAC-3", "Patriot System"],
-    "relatedTerms": ["SAM", "BMD", "THAAD"],
-    "description": "Sistema missilistico terra-aria a lungo raggio per difesa aerea e antimissile. Il PAC-3 (Patriot Advanced Capability) è ottimizzato per intercettare missili balistici tattici, cruise missile e aeromobili. Utilizza radar a scansione elettronica e missili hit-to-kill.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Patriot_missile_launch_b.jpg/1200px-Patriot_missile_launch_b.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Patriot_Launching_Station.jpg/1200px-Patriot_Launching_Station.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/An_MIM-104_Patriot_surface-to-air_missile_is_fired.jpg/1200px-An_MIM-104_Patriot_surface-to-air_missile_is_fired.jpg"
+    "language": "Inglese",
+    "year": 1945,
+    "aliases": ["Operazioni Psicologiche", "MISO"],
+    "nations": ["USA", "Regno Unito", "Israele"],
+    "relatedTerms": ["Information Warfare", "Propaganda", "MILDEC"],
+    "documents": [
+      {
+        "text": "PSYOPS Field Manual",
+        "url": "https://example.com/psyops-manual.pdf"
+      },
+      {
+        "text": "Case Studies",
+        "url": "https://example.com/psyops-cases.docx"
+      }
     ],
-    "video": "https://www.youtube.com/embed/zOLmdKDWYiE",
     "links": [
-      {"text": "MIM-104 Patriot", "url": "https://en.wikipedia.org/wiki/MIM-104_Patriot"}
+      {
+        "text": "Military Information Support Operations",
+        "url": "https://example.com/miso"
+      }
     ]
   },
   {
-    "acronym": "Javelin",
-    "full": "FGM-148 Javelin",
-    "category": "Armamenti",
-    "language": "EN",
-    "year": 1996,
+    "acronym": "QRF",
+    "full": "Quick Reaction Force",
+    "description": "Unità militare in stato di allerta pronta a rispondere rapidamente a situazioni di emergenza o minacce impreviste. Mantiene elevata prontezza operativa per interventi immediati in supporto ad altre unità.",
+    "category": "Unità",
     "status": "Attivo",
-    "nations": ["USA", "UK", "Francia", "Australia", "Ucraina", "Estonia", "Lituania"],
-    "aliases": ["FGM-148"],
-    "relatedTerms": ["ATGM", "MBT", "NLAW"],
-    "description": "Sistema missilistico anticarro portatile fire-and-forget di terza generazione. Utilizza guida IR a ricerca automatica del bersaglio con modalità top-attack per colpire la blindatura superiore dei carri. Raggio massimo 4km, può essere sparato da spazi confinati grazie al soft-launch.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Javelin-missile-4.jpg/1200px-Javelin-missile-4.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Javelin_Missile_Launch_MOD_45148951.jpg/1200px-Javelin_Missile_Launch_MOD_45148951.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Javelin_live_fire_exercise_2014.jpg/1200px-Javelin_live_fire_exercise_2014.jpg"
+    "language": "Inglese",
+    "year": 1960,
+    "aliases": ["Forza di Reazione Rapida", "FRR"],
+    "nations": ["USA", "NATO", "Italia", "Francia"],
+    "relatedTerms": ["IRF", "Reserve Force", "Standby Force"],
+    "documents": [
+      {
+        "text": "QRF Operations Guide",
+        "url": "https://example.com/qrf-guide.pdf"
+      }
     ],
-    "video": "https://www.youtube.com/embed/V4ogu9wSQJc",
     "links": [
-      {"text": "FGM-148 Javelin", "url": "https://en.wikipedia.org/wiki/FGM-148_Javelin"}
-    ]
-  },
-  {
-    "acronym": "HIMARS",
-    "full": "High Mobility Artillery Rocket System",
-    "category": "Armamenti",
-    "language": "EN",
-    "year": 2005,
-    "status": "Attivo",
-    "nations": ["USA", "Singapore", "UAE", "Giordania", "Romania", "Polonia", "Ucraina"],
-    "aliases": ["M142 HIMARS"],
-    "relatedTerms": ["MLRS", "GMLRS"],
-    "description": "Sistema lanciarazzi multiplo leggero su ruote. Può sparare 6 razzi guidati GMLRS (70km) o 1 missile ATACMS (300km). Montato su camion tattico FMTV, combina mobilità strategica (trasportabile via C-130) con potenza di fuoco di precisione. Tempi di shoot-and-scoot inferiori a 1 minuto.",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/HIMARS_-_missile_launched.jpg/1200px-HIMARS_-_missile_launched.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/M142_HIMARS_01.jpg/1200px-M142_HIMARS_01.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/HIMARS_Poland.jpg/1200px-HIMARS_Poland.jpg"
-    ],
-    "video": "https://www.youtube.com/embed/bQcy9hABWlk",
-    "links": [
-      {"text": "M142 HIMARS", "url": "https://en.wikipedia.org/wiki/M142_HIMARS"}
-    ]
-  },
-  {
-    "acronym": "F-22 Raptor",
-    "full": "Lockheed Martin F-22 Raptor",
-    "category": "Aeronautica",
-    "language": "EN",
-    "year": 2005,
-    "status": "Attivo",
-    "nations": ["USA"],
-    "aliases": ["Raptor"],
-    "relatedTerms": ["STEALTH", "F-35", "NGAD"],
-    "description": "Caccia da superiorità aerea stealth di quinta generazione. Primo velivolo operational al mondo con capacità supercruise (supersonico senza postbruciatore). Combina stealth, manovrabilità supersonico, avionica avanzata e sensori integrati. Produzione limitata a 187 esemplari (originalmente pianificati 750).",
-    "gallery": [
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Two_F-22_Raptor_in_flying.jpg/1200px-Two_F-22_Raptor_in_flying.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/F-22_Raptor_-_Belly_View.jpg/1200px-F-22_Raptor_-_Belly_View.jpg",
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/F-22_Raptor_fires_AIM-120_AMRAAM.jpg/1200px-F-22_Raptor_fires_AIM-120_AMRAAM.jpg"
-    ],
-    "video": "https://www.youtube.com/embed/q-QKq2YLeWY",
- "documents": [
-    {
-      "text": "Manuale NATO 2024",
-      "url": "https://example.com/nato-manual.pdf"
-    },
-    {"text": "Statuto", "url": "https://example.com/statute.docx"
-},
-],
-    "links": [
-      {"text": "F-22 Raptor", "url": "https://en.wikipedia.org/wiki/Lockheed_Martin_F-22_Raptor"}
+      {
+        "text": "Rapid Response Operations",
+        "url": "https://example.com/rapid-response"
+      }
     ]
   }
 ]
