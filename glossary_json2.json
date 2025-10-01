@@ -1,0 +1,471 @@
+[
+  {
+    "acronym": "NATO",
+    "full": "North Atlantic Treaty Organization",
+    "category": "Organizzazioni",
+    "language": "EN",
+    "year": 1949,
+    "status": "Attivo",
+    "nations": ["USA", "Canada", "UK", "Francia", "Germania", "Italia", "Spagna", "Altri 24 paesi"],
+    "aliases": ["OTAN", "Patto Atlantico"],
+    "relatedTerms": ["AWACS", "C4ISR"],
+    "description": "L'Organizzazione del Trattato dell'Atlantico del Nord è un'alleanza militare intergovernativa fondata nel 1949. Comprende 31 Stati membri dell'Europa e del Nord America che si sono impegnati alla difesa collettiva secondo l'articolo 5 del trattato.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Flag_of_NATO.svg/1200px-Flag_of_NATO.svg.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/NATO_HQ_BRUSSEL_2017_%2838409524102%29.jpg/1200px-NATO_HQ_BRUSSEL_2017_%2838409524102%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/NATO_Summit_Wales_2014.jpg/1200px-NATO_Summit_Wales_2014.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/FfJv9QYrlwg",
+    "links": [
+      {"text": "Sito ufficiale NATO", "url": "https://www.nato.int"},
+      {"text": "Storia della NATO", "url": "https://www.nato.int/cps/en/natohq/declassified_139339.htm"}
+    ],
+    "documents": [
+      {"name": "Trattato del Nord Atlantico.pdf", "url": "https://www.nato.int/cps/en/natolive/official_texts_17120.htm"}
+    ]
+  },
+  {
+    "acronym": "F-35",
+    "full": "Joint Strike Fighter Lightning II",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 2015,
+    "status": "Attivo",
+    "nations": ["USA", "UK", "Italia", "Paesi Bassi", "Australia", "Giappone", "Corea del Sud", "Israele", "Polonia"],
+    "aliases": ["Lightning II", "JSF"],
+    "relatedTerms": ["STEALTH", "F-22", "STOVL"],
+    "description": "Caccia multiruolo di quinta generazione sviluppato da Lockheed Martin nell'ambito del programma Joint Strike Fighter. Disponibile in tre varianti: F-35A (convenzionale), F-35B (STOVL) e F-35C (portaerei). Dotato di tecnologia stealth, sensori avanzati e capacità network-centric.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/F-35A_flight_%28cropped%29.jpg/1200px-F-35A_flight_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/F-35B_Lightning_II_conducts_vertical_landing_test.jpg/1200px-F-35B_Lightning_II_conducts_vertical_landing_test.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Italian_F-35A_Lightning_II.jpg/1200px-Italian_F-35A_Lightning_II.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/bT8IKwtIqPc",
+    "links": [
+      {"text": "F-35 Official Site", "url": "https://www.lockheedmartin.com/en-us/products/f-35.html"}
+    ],
+    "documents": [
+      {"name": "F-35 Technical Overview.pdf", "url": "#"}
+    ]
+  },
+  {
+    "acronym": "AWACS",
+    "full": "Airborne Warning And Control System",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 1977,
+    "status": "Attivo",
+    "nations": ["USA", "NATO", "UK", "Francia", "Arabia Saudita", "Giappone"],
+    "aliases": ["E-3 Sentry"],
+    "relatedTerms": ["NATO", "C4ISR", "AEW"],
+    "description": "Sistema aviotrasportato di allerta precoce e controllo basato su piattaforma Boeing 707. Equipaggiato con un potente radar a scansione rotante montato sopra la fusoliera, è capace di rilevare aeromobili a centinaia di chilometri di distanza e coordinare operazioni aeree complesse.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Boeing_E-3A_Sentry_%28707-300%29%2C_NATO_AN1465968.jpg/1200px-Boeing_E-3A_Sentry_%28707-300%29%2C_NATO_AN1465968.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/E-3_Sentry_radar_dome.jpg/1200px-E-3_Sentry_radar_dome.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/UWZj1g7pN8Y",
+    "links": [
+      {"text": "Boeing E-3 Sentry", "url": "https://en.wikipedia.org/wiki/Boeing_E-3_Sentry"}
+    ]
+  },
+  {
+    "acronym": "AEGIS",
+    "full": "Advanced Electronic Guided Interceptor System",
+    "category": "Marina",
+    "language": "EN",
+    "year": 1983,
+    "status": "Attivo",
+    "nations": ["USA", "Giappone", "Corea del Sud", "Australia", "Spagna", "Norvegia"],
+    "aliases": ["Sistema Aegis"],
+    "relatedTerms": ["SAM", "BMD", "SPY-1"],
+    "description": "Sistema integrato di combattimento navale che utilizza il radar SPY-1 a scansione elettronica e lanciatori verticali (VLS) per fornire difesa multilivello contro minacce aeree, di superficie e missilistiche. Può tracciare oltre 100 bersagli simultaneamente e ingaggiarne diversi contemporaneamente.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/USS_Cowpens_%28CG-63%29_underway_in_the_Pacific_Ocean_on_30_March_2015.JPG/1200px-USS_Cowpens_%28CG-63%29_underway_in_the_Pacific_Ocean_on_30_March_2015.JPG",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/AN-SPY-1_radar.jpg/1200px-AN-SPY-1_radar.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/US_Navy_110129-N-7676W-734_The_guided-missile_cruiser_USS_Shiloh_%28CG_67%29_launches_a_standard_missile_%28SM%29_2_during_a_live-fire_exercise.jpg/1200px-thumbnail.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/Wihi3NVb_uQ",
+    "links": [
+      {"text": "Aegis Combat System", "url": "https://en.wikipedia.org/wiki/Aegis_Combat_System"}
+    ]
+  },
+  {
+    "acronym": "M1 Abrams",
+    "full": "M1 Abrams Main Battle Tank",
+    "category": "Esercito",
+    "language": "EN",
+    "year": 1980,
+    "status": "Attivo",
+    "nations": ["USA", "Egitto", "Kuwait", "Arabia Saudita", "Australia", "Iraq"],
+    "aliases": ["Abrams", "M1A2"],
+    "relatedTerms": ["MBT", "ATGM"],
+    "description": "Carro armato da battaglia principale americano di terza generazione. Armato con cannone M256 da 120mm, motore a turbina da 1500hp e blindatura composita avanzata. La versione M1A2 SEPv3 include sistemi elettronici all'avanguardia e protezione attiva Trophy.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/M1A2_Abrams_tank_in_training.jpg/1200px-M1A2_Abrams_tank_in_training.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Mounted_Soldier_System_%28MSS%29.jpg/1200px-Mounted_Soldier_System_%28MSS%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Firepower_demonstration_at_Grafenwoehr%2C_Germany.jpg/1200px-Firepower_demonstration_at_Grafenwoehr%2C_Germany.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/G3LvhdR1ffc",
+    "links": [
+      {"text": "M1 Abrams Wikipedia", "url": "https://en.wikipedia.org/wiki/M1_Abrams"}
+    ]
+  },
+  {
+    "acronym": "MQ-9 Reaper",
+    "full": "General Atomics MQ-9 Reaper",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 2007,
+    "status": "Attivo",
+    "nations": ["USA", "Giappone"],
+    "aliases": ["Osprey", "Tiltrotor"],
+    "relatedTerms": ["STOVL", "VTOL"],
+    "description": "Convertiplano militare multiruolo che combina le capacità di decollo/atterraggio verticale di un elicottero con la velocità e l'autonomia di un aereo turboelica. Rotori basculanti da 38 piedi. Velocità massima 565 km/h, raggio d'azione 720 km. Trasporta 24 soldati o 9 tonnellate di carico.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/MV-22_mcas_Miramar_2014.JPG/1200px-MV-22_mcas_Miramar_2014.JPG",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/MV-22_Osprey_refueling_edit1.jpg/1200px-MV-22_Osprey_refueling_edit1.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/V-22_Osprey_tiltrotor_aircraft.jpg/1200px-V-22_Osprey_tiltrotor_aircraft.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/JwhuawRMzKk",
+    "links": [
+      {"text": "V-22 Osprey", "url": "https://en.wikipedia.org/wiki/Bell_Boeing_V-22_Osprey"}
+    ]
+  },
+  {
+    "acronym": "Tomahawk",
+    "full": "BGM-109 Tomahawk",
+    "category": "Armamenti",
+    "language": "EN",
+    "year": 1983,
+    "status": "Attivo",
+    "nations": ["USA", "UK"],
+    "aliases": ["TLAM", "Cruise Missile"],
+    "relatedTerms": ["SLCM", "VLS"],
+    "description": "Missile cruise subsonico a lungo raggio lanciabile da navi e sottomarini. Navigazione GPS/INS con TERCOM per volo a bassa quota. Versione Block V: raggio 1600+ km, testata da 450kg, capacità anti-nave e strike terrestre. Utilizzato in tutti i principali conflitti dal 1991.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Tomahawk_Block_IV_cruise_missile.jpg/1200px-Tomahawk_Block_IV_cruise_missile.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Tomahawk_launch_USS_Monterey_%28CG_61%29_2011.jpg/1200px-Tomahawk_launch_USS_Monterey_%28CG_61%29_2011.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Tomahawk_missile_launch.jpg/1200px-Tomahawk_missile_launch.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/sVFpKCHMToQ",
+    "links": [
+      {"text": "Tomahawk Missile", "url": "https://en.wikipedia.org/wiki/Tomahawk_(missile)"}
+    ]
+  },
+  {
+    "acronym": "A-10 Thunderbolt",
+    "full": "Fairchild Republic A-10 Thunderbolt II",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 1977,
+    "status": "Attivo",
+    "nations": ["USA"],
+    "aliases": ["Warthog", "Thunderbolt II"],
+    "relatedTerms": ["CAS", "GAU-8"],
+    "description": "Aereo da attacco al suolo monoposto progettato per Close Air Support. Armato con cannone rotativo GAU-8/A Avenger da 30mm (3900 colpi/min) capace di perforare carri armati. Corazzatura titanio attorno alla cabina. 11 punti d'aggancio per 7250kg di armamenti. Progettato per operare da basi avanzate.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/A-10_Thunderbolt_II_In-flight-2.jpg/1200px-A-10_Thunderbolt_II_In-flight-2.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/A-10_Thunderbolt_II_gun_firing.jpg/1200px-A-10_Thunderbolt_II_gun_firing.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/A-10_Thunderbolt_II_bottom_view.jpg/1200px-A-10_Thunderbolt_II_bottom_view.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/NvIJvPj_pjE",
+    "links": [
+      {"text": "A-10 Thunderbolt II", "url": "https://en.wikipedia.org/wiki/Fairchild_Republic_A-10_Thunderbolt_II"}
+    ]
+  },
+  {
+    "acronym": "Leopard 2",
+    "full": "Leopard 2 Main Battle Tank",
+    "category": "Esercito",
+    "language": "DE",
+    "year": 1979,
+    "status": "Attivo",
+    "nations": ["Germania", "Paesi Bassi", "Spagna", "Polonia", "Finlandia", "Svezia", "Grecia", "Turchia", "oltre 15 paesi"],
+    "aliases": ["Leo 2", "Leopard 2A7"],
+    "relatedTerms": ["MBT", "Challenger 2"],
+    "description": "Carro armato da battaglia tedesco di terza generazione. Armato con cannone Rheinmetall 120mm L/55, motore MTU MB 873 da 1500hp. Versione 2A7+: peso 67 tonnellate, blindatura modulare, sistemi APS Trophy. Considerato uno dei migliori MBT al mondo per bilanciamento protezione-mobilità-potenza di fuoco.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Leopard_2_A5_der_Bundeswehr.jpg/1200px-Leopard_2_A5_der_Bundeswehr.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Leopard_2A4_Austria_1.jpg/1200px-Leopard_2A4_Austria_1.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Leopard_2_A7%2B.jpg/1200px-Leopard_2_A7%2B.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/EGBVOH2A316",
+    "links": [
+      {"text": "Leopard 2", "url": "https://en.wikipedia.org/wiki/Leopard_2"}
+    ]
+  },
+  {
+    "acronym": "Rafale",
+    "full": "Dassault Rafale",
+    "category": "Aeronautica",
+    "language": "FR",
+    "year": 2001,
+    "status": "Attivo",
+    "nations": ["Francia", "Egitto", "India", "Qatar", "Grecia", "Croazia", "Indonesia"],
+    "aliases": ["Rafale", "Omnirole Fighter"],
+    "relatedTerms": ["AESA", "SPECTRA"],
+    "description": "Caccia multiruolo omnirole francese di quarta generazione+. Configurazione delta-canard, motori Snecma M88. Sistema SPECTRA per guerra elettronica, radar RBE2 AESA, capacità nucleare con missile ASMP-A. Varianti: Rafale C (monoposto), B (biposto), M (navale). Velocità Mach 1.8, raggio 1850km.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Dassault_Rafale_B_in_flight.jpg/1200px-Dassault_Rafale_B_in_flight.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Rafale_-_RIAT_2013.jpg/1200px-Rafale_-_RIAT_2013.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Rafale_M_on_catapult.jpg/1200px-Rafale_M_on_catapult.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/izS1S25Wf6M",
+    "links": [
+      {"text": "Dassault Rafale", "url": "https://en.wikipedia.org/wiki/Dassault_Rafale"}
+    ]
+  },
+  {
+    "acronym": "Iron Dome",
+    "full": "Iron Dome Air Defense System",
+    "category": "Armamenti",
+    "language": "EN",
+    "year": 2011,
+    "status": "Attivo",
+    "nations": ["Israele", "USA"],
+    "aliases": ["Kipat Barzel"],
+    "relatedTerms": ["SAM", "David's Sling", "Arrow"],
+    "description": "Sistema israeliano di difesa antimissile a corto raggio progettato per intercettare razzi, missili d'artiglieria e mortai con raggio 4-70km. Utilizza radar EL/M-2084 per tracciamento e missili Tamir con testata esplosiva. Tasso di intercettazione dichiarato oltre 90%. Tre livelli: radar, centro controllo, lanciatore mobile con 20 missili.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Iron_Dome_near_Sderot%2C_Israel.jpg/1200px-Iron_Dome_near_Sderot%2C_Israel.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Iron_Dome_Flickr_-_Israel_Defense_Forces.jpg/1200px-Iron_Dome_Flickr_-_Israel_Defense_Forces.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Iron_Dome_battery_at_Ashdod.jpg/1200px-Iron_Dome_battery_at_Ashdod.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/sCDFMScKC7w",
+    "links": [
+      {"text": "Iron Dome", "url": "https://en.wikipedia.org/wiki/Iron_Dome"}
+    ]
+  }
+]
+    "nations": ["USA", "UK", "Italia", "Francia", "Spagna", "Paesi Bassi"],
+    "aliases": ["Predator B", "Reaper"],
+    "relatedTerms": ["UAV", "UCAV", "ISR"],
+    "description": "Drone MALE (Medium Altitude Long Endurance) armato sviluppato da General Atomics. Può operare fino a 50.000 piedi per oltre 27 ore, trasportando missili Hellfire, bombe GBU e sensori avanzati per missioni ISR e strike di precisione.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/MQ-9_Reaper_in_flight_%282007%29.jpg/1200px-MQ-9_Reaper_in_flight_%282007%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/MQ-9_Reaper_taxis.jpg/1200px-MQ-9_Reaper_taxis.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/An_MQ-9_Reaper_remotely_piloted_aircraft_performs_aerial_maneuvers_over_Creech_Air_Force_Base%2C_Nev.%2C_June_13%2C_2014_140613-F-FT438-488.jpg/1200px-thumbnail.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/VCz_keLt5zE",
+    "links": [
+      {"text": "MQ-9 Reaper Info", "url": "https://en.wikipedia.org/wiki/General_Atomics_MQ-9_Reaper"}
+    ]
+  },
+  {
+    "acronym": "B-2 Spirit",
+    "full": "Northrop Grumman B-2 Spirit",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 1997,
+    "status": "Attivo",
+    "nations": ["USA"],
+    "aliases": ["Stealth Bomber", "Spirit"],
+    "relatedTerms": ["STEALTH", "B-21"],
+    "description": "Bombardiere strategico stealth americano con ala volante. Capace di penetrare le difese aeree più sofisticate grazie alla sua firma radar ridottissima. Può trasportare fino a 18 tonnellate di armamenti convenzionali o nucleari con un raggio d'azione intercontinentale.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/B-2_Spirit_original.jpg/1200px-B-2_Spirit_original.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/B-2_Spirit_USAF.jpg/1200px-B-2_Spirit_USAF.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/B-2_spirit_bombing.jpg/1200px-B-2_spirit_bombing.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/xml38BHAkHQ",
+    "links": [
+      {"text": "B-2 Spirit", "url": "https://en.wikipedia.org/wiki/Northrop_Grumman_B-2_Spirit"}
+    ]
+  },
+  {
+    "acronym": "AH-64 Apache",
+    "full": "Boeing AH-64 Apache",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 1986,
+    "status": "Attivo",
+    "nations": ["USA", "UK", "Israele", "Egitto", "Arabia Saudita", "Giappone", "Corea del Sud", "India"],
+    "aliases": ["Apache", "AH-64E Guardian"],
+    "relatedTerms": ["ATGM", "Hellfire"],
+    "description": "Elicottero da attacco pesante biturbina. Armato con cannone M230 da 30mm, missili Hellfire e razzi Hydra. Il sistema di puntamento TADS/PNVS permette operazioni notturne e in ogni condizione meteo. La versione AH-64E include radar Longbow per ingaggio oltre l'orizzonte.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/AH-64D_Apache_Longbow.jpg/1200px-AH-64D_Apache_Longbow.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/AH-64_Apache_helicopter_in_flight.jpg/1200px-AH-64_Apache_helicopter_in_flight.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/AH-64_Apache_Helicopter_Fires.jpg/1200px-AH-64_Apache_Helicopter_Fires.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/vJhp90FBh5U",
+    "links": [
+      {"text": "AH-64 Apache", "url": "https://en.wikipedia.org/wiki/Boeing_AH-64_Apache"}
+    ]
+  },
+  {
+    "acronym": "Patriot",
+    "full": "MIM-104 Patriot",
+    "category": "Armamenti",
+    "language": "EN",
+    "year": 1981,
+    "status": "Attivo",
+    "nations": ["USA", "Germania", "Paesi Bassi", "Giappone", "Israele", "Arabia Saudita", "Kuwait", "Corea del Sud"],
+    "aliases": ["PAC-3", "Patriot System"],
+    "relatedTerms": ["SAM", "BMD", "THAAD"],
+    "description": "Sistema missilistico terra-aria a lungo raggio per difesa aerea e antimissile. Il PAC-3 (Patriot Advanced Capability) è ottimizzato per intercettare missili balistici tattici, cruise missile e aeromobili. Utilizza radar a scansione elettronica e missili hit-to-kill.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Patriot_missile_launch_b.jpg/1200px-Patriot_missile_launch_b.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Patriot_Launching_Station.jpg/1200px-Patriot_Launching_Station.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/An_MIM-104_Patriot_surface-to-air_missile_is_fired.jpg/1200px-An_MIM-104_Patriot_surface-to-air_missile_is_fired.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/zOLmdKDWYiE",
+    "links": [
+      {"text": "MIM-104 Patriot", "url": "https://en.wikipedia.org/wiki/MIM-104_Patriot"}
+    ]
+  },
+  {
+    "acronym": "C-130 Hercules",
+    "full": "Lockheed C-130 Hercules",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 1956,
+    "status": "Attivo",
+    "nations": ["USA", "UK", "Francia", "Italia", "Australia", "Canada", "oltre 70 paesi"],
+    "aliases": ["Hercules", "C-130J Super Hercules"],
+    "relatedTerms": ["AMC", "STOL"],
+    "description": "Aereo da trasporto tattico quadrimotore turboelica. Progettato per operazioni da piste corte e non preparate. Utilizzato per trasporto truppe, rifornimento aereo, medevac, ricerca e soccorso, e missioni speciali. Oltre 2.500 unità costruite dal 1954.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/C-130_Hercules.jpg/1200px-C-130_Hercules.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/C-130J_Super_Hercules.jpg/1200px-C-130J_Super_Hercules.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Italian_Air_Force_C-130J.jpg/1200px-Italian_Air_Force_C-130J.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/RnYjK4eYFXE",
+    "links": [
+      {"text": "C-130 Hercules", "url": "https://en.wikipedia.org/wiki/Lockheed_C-130_Hercules"}
+    ]
+  },
+  {
+    "acronym": "Javelin",
+    "full": "FGM-148 Javelin",
+    "category": "Armamenti",
+    "language": "EN",
+    "year": 1996,
+    "status": "Attivo",
+    "nations": ["USA", "UK", "Francia", "Australia", "Ucraina", "Estonia", "Lituania"],
+    "aliases": ["FGM-148"],
+    "relatedTerms": ["ATGM", "MBT", "NLAW"],
+    "description": "Sistema missilistico anticarro portatile fire-and-forget di terza generazione. Utilizza guida IR a ricerca automatica del bersaglio con modalità top-attack per colpire la blindatura superiore dei carri. Raggio massimo 4km, può essere sparato da spazi confinati grazie al soft-launch.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Javelin-missile-4.jpg/1200px-Javelin-missile-4.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Javelin_Missile_Launch_MOD_45148951.jpg/1200px-Javelin_Missile_Launch_MOD_45148951.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Javelin_live_fire_exercise_2014.jpg/1200px-Javelin_live_fire_exercise_2014.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/V4ogu9wSQJc",
+    "links": [
+      {"text": "FGM-148 Javelin", "url": "https://en.wikipedia.org/wiki/FGM-148_Javelin"}
+    ]
+  },
+  {
+    "acronym": "HIMARS",
+    "full": "High Mobility Artillery Rocket System",
+    "category": "Armamenti",
+    "language": "EN",
+    "year": 2005,
+    "status": "Attivo",
+    "nations": ["USA", "Singapore", "UAE", "Giordania", "Romania", "Polonia", "Ucraina"],
+    "aliases": ["M142 HIMARS"],
+    "relatedTerms": ["MLRS", "GMLRS"],
+    "description": "Sistema lanciarazzi multiplo leggero su ruote. Può sparare 6 razzi guidati GMLRS (70km) o 1 missile ATACMS (300km). Montato su camion tattico FMTV, combina mobilità strategica (trasportabile via C-130) con potenza di fuoco di precisione. Tempi di shoot-and-scoot inferiori a 1 minuto.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/HIMARS_-_missile_launched.jpg/1200px-HIMARS_-_missile_launched.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/M142_HIMARS_01.jpg/1200px-M142_HIMARS_01.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/HIMARS_Poland.jpg/1200px-HIMARS_Poland.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/bQcy9hABWlk",
+    "links": [
+      {"text": "M142 HIMARS", "url": "https://en.wikipedia.org/wiki/M142_HIMARS"}
+    ]
+  },
+  {
+    "acronym": "Phalanx CIWS",
+    "full": "Phalanx Close-In Weapon System",
+    "category": "Marina",
+    "language": "EN",
+    "year": 1980,
+    "status": "Attivo",
+    "nations": ["USA", "UK", "Canada", "Australia", "Giappone", "Egitto", "Pakistan"],
+    "aliases": ["Phalanx", "R2-D2", "CIWS"],
+    "relatedTerms": ["CIWS", "AEGIS", "RAM"],
+    "description": "Sistema d'arma automatico point-defense per navi. Utilizza un cannone Gatling M61 Vulcan da 20mm (4500 colpi/minuto) con radar integrato per tracking e fire control. Progettato come ultima linea di difesa contro missili antinave e aeromobili. Autonomia completa: detect-to-engage in modalità completamente automatica.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Phalanx_CIWS_USS_Jason_Dunham.jpg/1200px-Phalanx_CIWS_USS_Jason_Dunham.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Phalanx_CIWS_test_fire_-_081107-N-9988F-214.jpg/1200px-Phalanx_CIWS_test_fire_-_081107-N-9988F-214.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Phalanx_CIWS_HMAS_Melbourne_Oct_2012.jpg/1200px-Phalanx_CIWS_HMAS_Melbourne_Oct_2012.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/Zsf38NYzo5Q",
+    "links": [
+      {"text": "Phalanx CIWS", "url": "https://en.wikipedia.org/wiki/Phalanx_CIWS"}
+    ]
+  },
+  {
+    "acronym": "F-22 Raptor",
+    "full": "Lockheed Martin F-22 Raptor",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 2005,
+    "status": "Attivo",
+    "nations": ["USA"],
+    "aliases": ["Raptor"],
+    "relatedTerms": ["STEALTH", "F-35", "NGAD"],
+    "description": "Caccia da superiorità aerea stealth di quinta generazione. Primo velivolo operational al mondo con capacità supercruise (supersonico senza postbruciatore). Combina stealth, manovrabilità supersonico, avionica avanzata e sensori integrati. Produzione limitata a 187 esemplari (originalmente pianificati 750).",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Two_F-22_Raptor_in_flying.jpg/1200px-Two_F-22_Raptor_in_flying.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/F-22_Raptor_-_Belly_View.jpg/1200px-F-22_Raptor_-_Belly_View.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/F-22_Raptor_fires_AIM-120_AMRAAM.jpg/1200px-F-22_Raptor_fires_AIM-120_AMRAAM.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/q-QKq2YLeWY",
+    "links": [
+      {"text": "F-22 Raptor", "url": "https://en.wikipedia.org/wiki/Lockheed_Martin_F-22_Raptor"}
+    ]
+  },
+  {
+    "acronym": "CVN",
+    "full": "Aircraft Carrier, Nuclear",
+    "category": "Marina",
+    "language": "EN",
+    "year": 1961,
+    "status": "Attivo",
+    "nations": ["USA", "Francia"],
+    "aliases": ["Portaerei nucleare", "Supercarrier"],
+    "relatedTerms": ["CATOBAR", "CVW", "AEGIS"],
+    "description": "Portaerei a propulsione nucleare. La classe Nimitz (USA) e Gerald R. Ford sono le più grandi navi da guerra mai costruite (oltre 100.000 tonnellate). Trasportano 75-90 aeromobili, equipaggio di 5000+ persone. Autonomia praticamente illimitata grazie ai reattori nucleari. Sistema CATOBAR per lancio e recupero.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/USS_Gerald_R._Ford_%28CVN-78%29_underway_on_8_April_2017.JPG/1200px-USS_Gerald_R._Ford_%28CVN-78%29_underway_on_8_April_2017.JPG",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/USS_Nimitz_in_Victoria_Canada_036.jpg/1200px-USS_Nimitz_in_Victoria_Canada_036.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/US_Navy_110125-N-4856G-125_An_F-A-18E_Super_Hornet_launches_from_the_flight_deck_aboard_the_Nimitz-class_aircraft_carrier_USS_Carl_Vinson.jpg/1200px-thumbnail.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/pTsaGv9Y-E8",
+    "links": [
+      {"text": "Aircraft Carrier", "url": "https://en.wikipedia.org/wiki/Aircraft_carrier"}
+    ]
+  },
+  {
+    "acronym": "THAAD",
+    "full": "Terminal High Altitude Area Defense",
+    "category": "Armamenti",
+    "language": "EN",
+    "year": 2008,
+    "status": "Attivo",
+    "nations": ["USA", "UAE", "Arabia Saudita", "Israele", "Corea del Sud"],
+    "aliases": ["Terminal High Altitude Area Defense"],
+    "relatedTerms": ["BMD", "Patriot", "AEGIS"],
+    "description": "Sistema antimissile balistico progettato per intercettare SRBM e MRBM nella fase terminale del volo (endo-atmosferico ed eso-atmosferico). Utilizza missili KKV (Kinetic Kill Vehicle) che distruggono il bersaglio per impatto cinetico. Radar AN/TPY-2 con portata superiore a 1000km.",
+    "gallery": [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/A_Terminal_High_Altitude_Area_Defense_%28THAAD%29_interceptor_is_launched.jpg/1200px-A_Terminal_High_Altitude_Area_Defense_%28THAAD%29_interceptor_is_launched.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/THAAD_missile_launch.jpg/1200px-THAAD_missile_launch.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/THAAD_Israel.jpg/1200px-THAAD_Israel.jpg"
+    ],
+    "video": "https://www.youtube.com/embed/LcgOvkdKNKM",
+    "links": [
+      {"text": "THAAD System", "url": "https://en.wikipedia.org/wiki/Terminal_High_Altitude_Area_Defense"}
+    ]
+  },
+  {
+    "acronym": "V-22 Osprey",
+    "full": "Bell Boeing V-22 Osprey",
+    "category": "Aeronautica",
+    "language": "EN",
+    "year": 2007,
+    "status": "Attivo",
+    
