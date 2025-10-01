@@ -214,9 +214,9 @@
       "text": "Manuale NATO 2024",
       "url": "https://example.com/nato-manual.pdf"
     },
-    {
-      "text": "Statuto",
-      "url": "https://example.com/statute.docx"
+    {"text": "Statuto", "url": "https://example.com/statute.docx"
+},
+],
     "links": [
       {"text": "F-22 Raptor", "url": "https://en.wikipedia.org/wiki/Lockheed_Martin_F-22_Raptor"}
     ]
