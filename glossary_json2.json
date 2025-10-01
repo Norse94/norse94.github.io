@@ -460,12 +460,5 @@
     "links": [
       {"text": "THAAD System", "url": "https://en.wikipedia.org/wiki/Terminal_High_Altitude_Area_Defense"}
     ]
-  },
-  {
-    "acronym": "V-22 Osprey",
-    "full": "Bell Boeing V-22 Osprey",
-    "category": "Aeronautica",
-    "language": "EN",
-    "year": 2007,
-    "status": "Attivo",
+  }
     
