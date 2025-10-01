@@ -209,6 +209,14 @@
       "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/F-22_Raptor_fires_AIM-120_AMRAAM.jpg/1200px-F-22_Raptor_fires_AIM-120_AMRAAM.jpg"
     ],
     "video": "https://www.youtube.com/embed/q-QKq2YLeWY",
+ "documents": [
+    {
+      "text": "Manuale NATO 2024",
+      "url": "https://example.com/nato-manual.pdf"
+    },
+    {
+      "text": "Statuto",
+      "url": "https://example.com/statute.docx"
     "links": [
       {"text": "F-22 Raptor", "url": "https://en.wikipedia.org/wiki/Lockheed_Martin_F-22_Raptor"}
     ]
