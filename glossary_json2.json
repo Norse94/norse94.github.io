@@ -10,6 +10,22 @@
     "aliases": ["OTAN", "Patto Atlantico"],
     "nations": ["USA", "Italia", "Francia", "Germania", "Regno Unito"],
     "relatedTerms": ["ISAF", "KFOR", "Article 5"],
+    "images": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Flag_of_NATO.svg/800px-Flag_of_NATO.svg.png",
+        "title": "Bandiera NATO"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/NATO_2002_Summit.jpg/800px-NATO_2002_Summit.jpg",
+        "title": "Summit NATO 2002"
+      }
+    ],
+    "videos": [
+      {
+        "url": "https://www.youtube.com/watch?v=FfJv9QYrlwg",
+        "title": "NATO Explained"
+      }
+    ],
     "documents": [
       {
         "text": "Trattato del Nord Atlantico",
