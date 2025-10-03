@@ -3,14 +3,30 @@
     "acronym": "NATO",
     "full": "North Atlantic Treaty Organization",
     "description": "Alleanza militare intergovernativa tra 31 paesi membri del Nord America e dell'Europa. Costituisce un sistema di difesa collettiva in cui gli Stati membri concordano la mutua difesa in risposta a un attacco da parte di qualsiasi entità esterna.",
-    "category": ["Organizzazioni", "Difesa"],
-"caseSensitive": true,
+    "category": [
+      "Organizzazioni",
+      "Difesa"
+    ],
+    "caseSensitive": true,
     "status": "Attivo",
     "language": "Inglese",
     "year": 1949,
-    "aliases": ["OTAN", "Patto Atlantico"],
-    "nations": ["USA", "Italia", "Francia", "Germania", "Regno Unito"],
-    "relatedTerms": ["ISAF", "KFOR", "Article 5"],
+    "aliases": [
+      "OTAN",
+      "Patto Atlantico"
+    ],
+    "nations": [
+      "USA",
+      "Italia",
+      "Francia",
+      "Germania",
+      "Regno Unito"
+    ],
+    "relatedTerms": [
+      "ISAF",
+      "KFOR",
+      "Article 5"
+    ],
     "images": [
       {
         "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Flag_of_NATO.svg/800px-Flag_of_NATO.svg.png",
@@ -46,19 +62,36 @@
         "text": "NATO su Wikipedia",
         "url": "https://it.wikipedia.org/wiki/NATO"
       }
-    ]
+    ],
+    "variant": 1
   },
   {
     "acronym": "SIGINT",
     "full": "Signals Intelligence",
     "description": "Intelligence ottenuta dall'intercettazione e analisi di segnali elettronici, sia comunicazioni tra persone (COMINT) che da sistemi elettronici (ELINT). È una componente fondamentale della raccolta di informazioni militari moderne.",
-    "category": ["Intelligence", "Tecnologia"],
+    "category": [
+      "Intelligence",
+      "Tecnologia"
+    ],
     "status": "Attivo",
     "language": "Inglese",
     "year": 1940,
-    "aliases": ["Intelligence dei Segnali"],
-    "nations": ["USA", "Regno Unito", "Israele", "Russia", "Cina"],
-    "relatedTerms": ["COMINT", "ELINT", "HUMINT", "OSINT"],
+    "aliases": [
+      "Intelligence dei Segnali"
+    ],
+    "nations": [
+      "USA",
+      "Regno Unito",
+      "Israele",
+      "Russia",
+      "Cina"
+    ],
+    "relatedTerms": [
+      "COMINT",
+      "ELINT",
+      "HUMINT",
+      "OSINT"
+    ],
     "documents": [
       {
         "text": "Guida SIGINT Classificata",
@@ -80,9 +113,21 @@
     "status": "Attivo",
     "language": "Inglese",
     "year": 1954,
-    "aliases": ["Regole d'ingaggio", "Norme di comportamento"],
-    "nations": ["USA", "NATO", "Italia", "Francia"],
-    "relatedTerms": ["LOAC", "Geneva Convention", "IHL"],
+    "aliases": [
+      "Regole d'ingaggio",
+      "Norme di comportamento"
+    ],
+    "nations": [
+      "USA",
+      "NATO",
+      "Italia",
+      "Francia"
+    ],
+    "relatedTerms": [
+      "LOAC",
+      "Geneva Convention",
+      "IHL"
+    ],
     "documents": [
       {
         "text": "NATO ROE Manual",
@@ -108,9 +153,21 @@
     "status": "Attivo",
     "language": "Inglese",
     "year": 1950,
-    "aliases": ["Evacuazione sanitaria", "Casevac"],
-    "nations": ["USA", "Italia", "Germania", "Francia"],
-    "relatedTerms": ["CASEVAC", "Triage", "Combat Medic"],
+    "aliases": [
+      "Evacuazione sanitaria",
+      "Casevac"
+    ],
+    "nations": [
+      "USA",
+      "Italia",
+      "Germania",
+      "Francia"
+    ],
+    "relatedTerms": [
+      "CASEVAC",
+      "Triage",
+      "Combat Medic"
+    ],
     "documents": [
       {
         "text": "Protocollo MEDEVAC",
@@ -132,13 +189,29 @@
     "acronym": "EW",
     "full": "Electronic Warfare",
     "description": "Azioni militari che sfruttano lo spettro elettromagnetico per controllare il dominio dell'informazione. Include attacchi elettronici, protezione elettronica e supporto alla guerra elettronica per degradare, neutralizzare o distruggere le capacità nemiche.",
-    "category": ["Tecnologia", "Operazioni"],
+    "category": [
+      "Tecnologia",
+      "Operazioni"
+    ],
     "status": "Attivo",
     "language": "Inglese",
     "year": 1939,
-    "aliases": ["Guerra Elettronica", "GE"],
-    "nations": ["USA", "Russia", "Cina", "Israele"],
-    "relatedTerms": ["SIGINT", "ECM", "ECCM", "Jamming"],
+    "aliases": [
+      "Guerra Elettronica",
+      "GE"
+    ],
+    "nations": [
+      "USA",
+      "Russia",
+      "Cina",
+      "Israele"
+    ],
+    "relatedTerms": [
+      "SIGINT",
+      "ECM",
+      "ECCM",
+      "Jamming"
+    ],
     "documents": [
       {
         "text": "EW Doctrine",
@@ -164,9 +237,20 @@
     "status": "Attivo",
     "language": "Inglese",
     "year": 1918,
-    "aliases": ["Appoggio aereo ravvicinato"],
-    "nations": ["USA", "Russia", "Francia", "Regno Unito"],
-    "relatedTerms": ["JTAC", "FAC", "Air Interdiction"],
+    "aliases": [
+      "Appoggio aereo ravvicinato"
+    ],
+    "nations": [
+      "USA",
+      "Russia",
+      "Francia",
+      "Regno Unito"
+    ],
+    "relatedTerms": [
+      "JTAC",
+      "FAC",
+      "Air Interdiction"
+    ],
     "documents": [
       {
         "text": "CAS Procedures Manual",
@@ -188,9 +272,20 @@
     "status": "Attivo",
     "language": "Inglese",
     "year": 1945,
-    "aliases": ["Operazioni Psicologiche", "MISO"],
-    "nations": ["USA", "Regno Unito", "Israele"],
-    "relatedTerms": ["Information Warfare", "Propaganda", "MILDEC"],
+    "aliases": [
+      "Operazioni Psicologiche",
+      "MISO"
+    ],
+    "nations": [
+      "USA",
+      "Regno Unito",
+      "Israele"
+    ],
+    "relatedTerms": [
+      "Information Warfare",
+      "Propaganda",
+      "MILDEC"
+    ],
     "documents": [
       {
         "text": "PSYOPS Field Manual",
@@ -216,9 +311,21 @@
     "status": "Attivo",
     "language": "Inglese",
     "year": 1960,
-    "aliases": ["Forza di Reazione Rapida", "FRR"],
-    "nations": ["USA", "NATO", "Italia", "Francia"],
-    "relatedTerms": ["IRF", "Reserve Force", "Standby Force"],
+    "aliases": [
+      "Forza di Reazione Rapida",
+      "FRR"
+    ],
+    "nations": [
+      "USA",
+      "NATO",
+      "Italia",
+      "Francia"
+    ],
+    "relatedTerms": [
+      "IRF",
+      "Reserve Force",
+      "Standby Force"
+    ],
     "documents": [
       {
         "text": "QRF Operations Guide",
@@ -231,5 +338,23 @@
         "url": "https://example.com/rapid-response"
       }
     ]
+  },
+  {
+    "acronym": "NATO",
+    "full": "North Association Tour Orchestra",
+    "description": "",
+    "category": [],
+    "status": "Attivo",
+    "language": "Italiano",
+    "year": 2025,
+    "caseSensitive": true,
+    "aliases": [],
+    "nations": [],
+    "relatedTerms": [],
+    "images": [],
+    "videos": [],
+    "documents": [],
+    "links": [],
+    "variant": 2
   }
 ]
