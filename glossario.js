@@ -1186,23 +1186,42 @@
   // ============================================
   async function loadGlossaryData() {
     try {
-      // Controlla se i dati sono già stati caricati da tooltip_glossario.js
+      // Se c'è già un caricamento in corso, aspetta quello
+      if (window.sharedGlossaryDataPromise) {
+        console.log('%c📚 GLOSSARIO: Aspetto caricamento in corso...', 'background: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
+        glossaryData = await window.sharedGlossaryDataPromise;
+        console.log('%c📚 GLOSSARIO: Uso dati appena caricati (cache condivisa) - Evito fetch duplicato!', 'background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
+        console.log(`   ↳ Termini disponibili: ${glossaryData.length}`);
+        return;
+      }
+
+      // Controlla se i dati sono già stati caricati
       if (window.sharedGlossaryData && window.sharedGlossaryData.length > 0) {
         console.log('%c📚 GLOSSARIO: Uso dati già caricati (cache condivisa) - Evito fetch duplicato!', 'background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
         console.log(`   ↳ Termini disponibili: ${window.sharedGlossaryData.length}`);
         glossaryData = window.sharedGlossaryData;
-      } else {
-        console.log('%c📚 GLOSSARIO: Carico dati da JSON (primo caricamento)', 'background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
-        console.log(`   ↳ URL: ${CONFIG.jsonUrl}`);
-        const response = await fetch(CONFIG.jsonUrl);
-        if (!response.ok) {
-          throw new Error('Errore nel caricamento del glossario');
-        }
-        glossaryData = await response.json();
-        // Condividi i dati per altri script
-        window.sharedGlossaryData = glossaryData;
-        console.log(`   ↳ Caricati ${glossaryData.length} termini - Salvati in cache condivisa`);
+        return;
       }
+
+      // Primo caricamento - crea la Promise condivisa
+      console.log('%c📚 GLOSSARIO: Carico dati da JSON (primo caricamento)', 'background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
+      console.log(`   ↳ URL: ${CONFIG.jsonUrl}`);
+
+      window.sharedGlossaryDataPromise = fetch(CONFIG.jsonUrl)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Errore nel caricamento del glossario');
+          }
+          return response.json();
+        })
+        .then(data => {
+          window.sharedGlossaryData = data;
+          window.sharedGlossaryDataPromise = null; // Pulisci la promise
+          console.log(`   ↳ Caricati ${data.length} termini - Salvati in cache condivisa`);
+          return data;
+        });
+
+      glossaryData = await window.sharedGlossaryDataPromise;
 
       glossaryData.sort((a, b) => a.acronym.localeCompare(b.acronym));
 
