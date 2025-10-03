@@ -1762,7 +1762,11 @@
 
     const relatedTerms = detailEl.querySelectorAll('.glossary-related-term');
     relatedTerms.forEach(term => {
-      term.onclick = () => selectItem(term.dataset.term);
+      term.onclick = () => {
+        selectItem(term.dataset.term);
+        // Scrolla il termine nella lista per renderlo visibile
+        scrollToSelectedItem(term.dataset.term);
+      };
     });
 
     // Setup galleria media
@@ -1785,6 +1789,27 @@
   // ============================================
   // UTILITÀ
   // ============================================
+  function scrollToSelectedItem(acronym, variant = '') {
+    setTimeout(() => {
+      const listEl = document.querySelector('.glossary-list');
+      if (!listEl) return;
+
+      // Cerca l'elemento attivo nella lista
+      const activeItem = Array.from(listEl.querySelectorAll('.glossary-item')).find(el => {
+        return el.dataset.acronym === acronym && el.dataset.variant === variant;
+      });
+
+      if (activeItem) {
+        // Scrolla l'elemento nella vista
+        activeItem.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest'
+        });
+      }
+    }, 100);
+  }
+
   function extractYouTubeId(url) {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
@@ -1987,6 +2012,7 @@
       openGlossary();
       setTimeout(() => {
         selectItem(term);
+        scrollToSelectedItem(term);
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('term');
         window.history.replaceState({}, '', newUrl.toString());
@@ -2001,6 +2027,7 @@
     }
     setTimeout(() => {
       selectItem(acronym, variant || '');
+      scrollToSelectedItem(acronym, variant || '');
     }, isOpen ? 0 : 300);
   };
 
@@ -2018,25 +2045,29 @@
   document.addEventListener('click', function(e) {
     const link = e.target.closest('a');
     if (!link) return;
-    
+
     try {
       const linkUrl = new URL(link.href);
       const currentUrl = new URL(window.location.href);
-      
-      if (linkUrl.origin === currentUrl.origin && 
+
+      if (linkUrl.origin === currentUrl.origin &&
           linkUrl.pathname === currentUrl.pathname &&
           linkUrl.searchParams.has('term')) {
-        
+
         e.preventDefault();
         const term = linkUrl.searchParams.get('term');
-        
+
         if (isOpen) {
           selectItem(term);
+          scrollToSelectedItem(term);
         } else {
           openGlossary();
-          setTimeout(() => selectItem(term), 100);
+          setTimeout(() => {
+            selectItem(term);
+            scrollToSelectedItem(term);
+          }, 100);
         }
-        
+
         window.history.pushState({}, '', link.href);
         setTimeout(() => {
           const newUrl = new URL(window.location.href);
