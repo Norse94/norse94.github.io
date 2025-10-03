@@ -289,6 +289,11 @@
         left: 16px !important;
         right: 16px !important;
       }
+
+      .glossary-tooltip-link {
+        width: 100% !important;
+        justify-content: center !important;
+      }
     }
   `;
 
