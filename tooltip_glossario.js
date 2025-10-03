@@ -273,16 +273,12 @@
 
     .glossary-tooltip-arrow.top {
       bottom: 100% !important;
-      left: 50% !important;
-      transform: translateX(-50%) !important;
       border-width: 0 8px 8px 8px !important;
       border-color: transparent transparent #425F93 transparent !important;
     }
 
     .glossary-tooltip-arrow.bottom {
       top: 100% !important;
-      left: 50% !important;
-      transform: translateX(-50%) !important;
       border-width: 8px 8px 0 8px !important;
       border-color: #425F93 transparent transparent transparent !important;
     }
@@ -674,7 +670,7 @@
   function positionTooltip(tooltip, target) {
     const rect = target.getBoundingClientRect();
     const tooltipRect = tooltip.getBoundingClientRect();
-    
+
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
@@ -695,10 +691,13 @@
       arrowClass = 'bottom';
     }
 
-    // Calcola posizione orizzontale
+    // Calcola posizione orizzontale del tooltip
     left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
 
-    // Assicurati che rimanga dentro il viewport
+    // Salva la posizione ideale del centro del termine (per la freccia)
+    const targetCenterX = rect.left + (rect.width / 2);
+
+    // Assicurati che il tooltip rimanga dentro il viewport
     if (left < 16) left = 16;
     if (left + tooltipRect.width > viewportWidth - 16) {
       left = viewportWidth - tooltipRect.width - 16;
@@ -710,6 +709,19 @@
     // Aggiungi freccia
     const arrow = document.createElement('div');
     arrow.className = `glossary-tooltip-arrow ${arrowClass}`;
+
+    // Calcola la posizione della freccia rispetto al tooltip
+    // La freccia deve puntare al centro del termine, non al centro del tooltip
+    const arrowLeft = targetCenterX - left;
+
+    // Assicurati che la freccia rimanga dentro il tooltip (con margini)
+    const minArrowLeft = 20; // margine minimo dal bordo sinistro
+    const maxArrowLeft = tooltipRect.width - 20; // margine minimo dal bordo destro
+    const finalArrowLeft = Math.max(minArrowLeft, Math.min(maxArrowLeft, arrowLeft));
+
+    arrow.style.left = `${finalArrowLeft}px`;
+    arrow.style.transform = 'translateX(-50%)';
+
     tooltip.appendChild(arrow);
   }
 
