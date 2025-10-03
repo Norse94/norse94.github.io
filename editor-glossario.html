@@ -406,6 +406,7 @@
     <div class="header">
       <h1>📚 Editor Glossario Militare</h1>
       <div class="header-buttons">
+        <button class="btn btn-danger" onclick="resetEditor()">🔄 Reset Editor</button>
         <button class="btn btn-secondary" onclick="exportSelected()" id="exportSelectedBtn" style="display: none;">📤 Esporta Selezionati</button>
         <button class="btn btn-secondary" onclick="importAndMerge()">🔀 Importa e Unisci</button>
         <button class="btn btn-secondary" onclick="importJSON()">📥 Importa JSON</button>
@@ -1056,6 +1057,55 @@
 
       // Reset input
       event.target.value = '';
+    }
+
+    // Reset completo dell'editor
+    function resetEditor() {
+      if (glossaryData.length > 0) {
+        // Prima conferma con opzione di esportare
+        const wantsExport = confirm('⚠️ ATTENZIONE: Stai per resettare l\'editor.\n\nVuoi esportare i dati prima di procedere?\n\nClicca OK per esportare, Annulla per procedere senza esportare.');
+        
+        if (wantsExport) {
+          // Esporta i dati
+          exportJSON();
+          // Dopo l'export, chiedi se vuole ancora procedere
+          if (!confirm('✅ Dati esportati!\n\nVuoi continuare con il reset dell\'editor?')) {
+            return;
+          }
+        }
+        
+        // Seconda conferma finale
+        if (!confirm('🔴 CONFERMA FINALE: Tutti i dati verranno eliminati definitivamente dall\'editor.\n\nProcedere con il reset?')) {
+          return;
+        }
+      }
+      
+      console.log('Reset editor in corso...');
+      
+      // Cancella tutto
+      glossaryData = [];
+      selectedTerms.clear();
+      currentTerm = null;
+      currentIndex = -1;
+      
+      // Cancella localStorage
+      localStorage.removeItem('glossaryData');
+      console.log('localStorage cancellato');
+      
+      // Aggiorna UI
+      renderTermList();
+      document.getElementById('editorContent').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📖</div>
+          <div class="empty-state-text">Editor resettato</div>
+          <p>Inizia creando un nuovo termine o importando un JSON</p>
+        </div>
+      `;
+      document.getElementById('editorTitle').textContent = 'Seleziona un termine';
+      document.getElementById('editorActions').style.display = 'none';
+      
+      console.log('Reset completato');
+      alert('✅ Editor resettato con successo!');
     }
 
     // Avviso prima di chiudere la pagina se ci sono dati non esportati
