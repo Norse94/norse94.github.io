@@ -159,6 +159,7 @@
     .glossary-tooltip-link {
       display: inline-flex !important;
       align-items: center !important;
+      justify-content: center !important;
       gap: 6px !important;
       color: #425F93 !important;
       text-decoration: none !important;
@@ -631,9 +632,11 @@
     }
 
     // Link al glossario completo
-    html += `<a href="#" class="glossary-tooltip-link" data-acronym="${term.acronym}" data-variant="${term.variant || ''}">
-      📚 Vedi dettagli completi
-    </a>`;
+    html += `<div style="display: flex; justify-content: center; margin-top: 12px;">
+      <a href="#" class="glossary-tooltip-link" data-acronym="${term.acronym}" data-variant="${term.variant || ''}">
+        📚 Vedi dettagli completi
+      </a>
+    </div>`;
 
     tooltip.innerHTML = html;
 
