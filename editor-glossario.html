@@ -399,6 +399,81 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Modal per nuovo termine */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 500px;
+      width: calc(100% - 40px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.show .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0 0 8px 0;
+    }
+
+    .modal-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .modal-body {
+      margin-bottom: 24px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .variant-badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #78350f;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: super;
+      font-size: 9px;
+    }
   </style>
 </head>
 <body>
@@ -448,6 +523,34 @@
 
   <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
   <input type="file" id="mergeFileInput" accept=".json" style="display: none;" onchange="handleFileMerge(event)">
+
+  <!-- Modal per nuovo termine -->
+  <div id="newTermModal" class="modal-overlay" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Crea Nuovo Termine</h2>
+        <p class="modal-subtitle">Inserisci l'acronimo e il significato esteso</p>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Acronimo / Termine *</label>
+          <input type="text" class="form-input" id="modalAcronym" placeholder="es. NATO">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Significato Esteso *</label>
+          <input type="text" class="form-input" id="modalFull" placeholder="es. North Atlantic Treaty Organization">
+        </div>
+        <div id="variantWarning" style="display: none; margin-top: 16px; padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+          <p style="margin: 0; font-size: 14px; color: #78350f; font-weight: 600;">⚠️ Questo acronimo esiste già con significato diverso</p>
+          <p style="margin: 8px 0 0 0; font-size: 13px; color: #92400e;">Verrà creato come variante numerata</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-small" onclick="closeNewTermModal()">Annulla</button>
+        <button class="btn btn-success btn-small" onclick="confirmNewTerm()">Crea Termine</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     let glossaryData = [];
@@ -499,7 +602,7 @@
       const listEl = document.getElementById('termList');
       const filtered = glossaryData.filter(term => {
         const search = filter.toLowerCase();
-        return term.acronym.toLowerCase().includes(search) || 
+        return term.acronym.toLowerCase().includes(search) ||
                term.full.toLowerCase().includes(search);
       });
 
@@ -511,11 +614,12 @@
       listEl.innerHTML = filtered.map((term, idx) => {
         const globalIdx = glossaryData.indexOf(term);
         const isSelected = selectedTerms.has(globalIdx);
+        const variantBadge = term.variant ? `<span class="variant-badge">${term.variant}</span>` : '';
         return `
           <div class="term-item ${globalIdx === currentIndex ? 'active' : ''}">
             <input type="checkbox" class="term-checkbox" ${isSelected ? 'checked' : ''} onclick="toggleTermSelection(${globalIdx}, event)">
             <div class="term-item-content" onclick="selectTerm(${globalIdx}, event)">
-              <div class="term-item-acronym">${term.acronym}</div>
+              <div class="term-item-acronym">${term.acronym}${variantBadge}</div>
               <div class="term-item-full">${term.full}</div>
             </div>
           </div>
@@ -573,9 +677,104 @@
     }
 
     function createNewTerm() {
+      // Apri il modal
+      const modal = document.getElementById('newTermModal');
+      const acronymInput = document.getElementById('modalAcronym');
+      const fullInput = document.getElementById('modalFull');
+      const variantWarning = document.getElementById('variantWarning');
+
+      // Reset campi
+      acronymInput.value = '';
+      fullInput.value = '';
+      variantWarning.style.display = 'none';
+
+      // Mostra modal
+      modal.style.display = 'flex';
+      setTimeout(() => modal.classList.add('show'), 10);
+
+      // Focus sul primo campo
+      setTimeout(() => acronymInput.focus(), 100);
+
+      // Listener per controllare varianti
+      acronymInput.oninput = checkForVariants;
+      fullInput.oninput = checkForVariants;
+    }
+
+    function checkForVariants() {
+      const acronym = document.getElementById('modalAcronym').value.trim();
+      const full = document.getElementById('modalFull').value.trim();
+      const variantWarning = document.getElementById('variantWarning');
+
+      if (!acronym || !full) {
+        variantWarning.style.display = 'none';
+        return;
+      }
+
+      // Cerca se esiste già questo acronimo con significato diverso
+      const existing = glossaryData.find(term =>
+        term.acronym.toLowerCase() === acronym.toLowerCase() &&
+        term.full.toLowerCase() !== full.toLowerCase()
+      );
+
+      if (existing) {
+        variantWarning.style.display = 'block';
+      } else {
+        variantWarning.style.display = 'none';
+      }
+    }
+
+    function closeNewTermModal() {
+      const modal = document.getElementById('newTermModal');
+      modal.classList.remove('show');
+      setTimeout(() => {
+        modal.style.display = 'none';
+      }, 300);
+    }
+
+    function confirmNewTerm() {
+      const acronym = document.getElementById('modalAcronym').value.trim();
+      const full = document.getElementById('modalFull').value.trim();
+
+      if (!acronym || !full) {
+        alert('⚠️ Inserisci sia l\'acronimo che il significato esteso');
+        return;
+      }
+
+      // Controlla se esiste già questo acronimo
+      const existingTerms = glossaryData.filter(term =>
+        term.acronym.toLowerCase() === acronym.toLowerCase()
+      );
+
+      let variant = null;
+
+      if (existingTerms.length > 0) {
+        // Controlla se il significato è identico
+        const exactMatch = existingTerms.find(term =>
+          term.full.toLowerCase() === full.toLowerCase()
+        );
+
+        if (exactMatch) {
+          alert('⚠️ Questo termine esiste già con lo stesso significato');
+          return;
+        }
+
+        // Trova il prossimo numero di variante
+        const maxVariant = Math.max(
+          ...existingTerms.map(t => t.variant || 1)
+        );
+        variant = maxVariant + 1;
+
+        // Se i termini esistenti non hanno variant, assegna 1 al primo
+        if (existingTerms.some(t => !t.variant)) {
+          existingTerms.forEach(t => {
+            if (!t.variant) t.variant = 1;
+          });
+        }
+      }
+
       const newTerm = {
-        acronym: "NUOVO",
-        full: "Nuovo Termine",
+        acronym: acronym,
+        full: full,
         description: "",
         category: [],
         status: "Attivo",
@@ -591,8 +790,14 @@
         links: []
       };
 
+      if (variant) {
+        newTerm.variant = variant;
+      }
+
       glossaryData.push(newTerm);
       triggerAutoSave();
+      closeNewTermModal();
+      renderTermList();
       selectTerm(glossaryData.length - 1);
     }
 
@@ -619,6 +824,7 @@
         <div class="form-group">
           <label class="form-label">Acronimo *</label>
           <input type="text" class="form-input" id="acronym" value="${currentTerm.acronym}" oninput="autoSaveField()">
+          ${currentTerm.variant ? `<span class="form-hint">Variante numero: ${currentTerm.variant}</span>` : ''}
         </div>
 
         <div class="form-group">
