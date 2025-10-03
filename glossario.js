@@ -2100,4 +2100,14 @@
     init();
   }
 
+  // Controlla anche quando la pagina riceve focus (per link copiati nella barra indirizzi)
+  let lastUrl = window.location.href;
+  setInterval(() => {
+    const currentUrl = window.location.href;
+    if (currentUrl !== lastUrl) {
+      lastUrl = currentUrl;
+      loadTermFromURL();
+    }
+  }, 500);
+
 })();
