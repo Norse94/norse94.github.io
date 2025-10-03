@@ -1652,9 +1652,9 @@
     }
 
     html += `<div class="glossary-share-buttons">`;
-    html += `<button class="glossary-share-btn copy-link" data-acronym="${item.acronym}">🔗 Copia link</button>`;
+    html += `<button class="glossary-share-btn copy-link" data-acronym="${item.acronym}" data-variant="${item.variant || ''}">🔗 Copia link</button>`;
     if (navigator.share) {
-      html += `<button class="glossary-share-btn web-share" data-acronym="${item.acronym}">📤 Condividi</button>`;
+      html += `<button class="glossary-share-btn web-share" data-acronym="${item.acronym}" data-variant="${item.variant || ''}">📤 Condividi</button>`;
     }
     html += `</div>`;
 
@@ -1752,12 +1752,12 @@
 
     const copyBtn = detailEl.querySelector('.glossary-share-btn.copy-link');
     if (copyBtn) {
-      copyBtn.onclick = () => copyLinkToClipboard(copyBtn.dataset.acronym);
+      copyBtn.onclick = () => copyLinkToClipboard(copyBtn.dataset.acronym, copyBtn.dataset.variant);
     }
 
     const webShareBtn = detailEl.querySelector('.glossary-share-btn.web-share');
     if (webShareBtn) {
-      webShareBtn.onclick = () => webShareItem(webShareBtn.dataset.acronym);
+      webShareBtn.onclick = () => webShareItem(webShareBtn.dataset.acronym, webShareBtn.dataset.variant);
     }
 
     const relatedTerms = detailEl.querySelectorAll('.glossary-related-term');
@@ -1936,11 +1936,14 @@
   // ============================================
   // CONDIVISIONE
   // ============================================
-  function copyLinkToClipboard(acronym) {
+  function copyLinkToClipboard(acronym, variant = '') {
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set('term', acronym);
+    if (variant) {
+      currentUrl.searchParams.set('variant', variant);
+    }
     const url = currentUrl.toString();
-    
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(() => {
         showCopyFeedback(true);
@@ -1952,15 +1955,19 @@
     }
   }
 
-  function webShareItem(acronym) {
+  function webShareItem(acronym, variant = '') {
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set('term', acronym);
+    if (variant) {
+      currentUrl.searchParams.set('variant', variant);
+    }
     const url = currentUrl.toString();
-    
+
+    const displayName = variant ? `${acronym}${variant}` : acronym;
     if (navigator.share) {
       navigator.share({
-        title: `Glossario Militare - ${acronym}`,
-        text: `Scopri il significato di ${acronym} nel glossario militare`,
+        title: `Glossario Militare - ${displayName}`,
+        text: `Scopri il significato di ${displayName} nel glossario militare`,
         url: url
       }).catch(err => {
         console.log('Condivisione annullata o errore:', err);
@@ -2008,13 +2015,15 @@
   function loadTermFromURL() {
     const params = new URLSearchParams(window.location.search);
     const term = params.get('term');
+    const variant = params.get('variant') || '';
     if (term) {
       openGlossary();
       setTimeout(() => {
-        selectItem(term);
-        scrollToSelectedItem(term);
+        selectItem(term, variant);
+        scrollToSelectedItem(term, variant);
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('term');
+        newUrl.searchParams.delete('variant');
         window.history.replaceState({}, '', newUrl.toString());
       }, 100);
     }
@@ -2056,15 +2065,16 @@
 
         e.preventDefault();
         const term = linkUrl.searchParams.get('term');
+        const variant = linkUrl.searchParams.get('variant') || '';
 
         if (isOpen) {
-          selectItem(term);
-          scrollToSelectedItem(term);
+          selectItem(term, variant);
+          scrollToSelectedItem(term, variant);
         } else {
           openGlossary();
           setTimeout(() => {
-            selectItem(term);
-            scrollToSelectedItem(term);
+            selectItem(term, variant);
+            scrollToSelectedItem(term, variant);
           }, 100);
         }
 
@@ -2072,6 +2082,7 @@
         setTimeout(() => {
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('term');
+          newUrl.searchParams.delete('variant');
           window.history.replaceState({}, '', newUrl.toString());
         }, 100);
       }
