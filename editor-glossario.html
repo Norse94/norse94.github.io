@@ -453,10 +453,44 @@
     let selectedTerms = new Set();
     let currentTerm = null;
     let currentIndex = -1;
+    let autoSaveTimeout = null;
+
+    // Carica dati dal localStorage all'avvio
+    function loadFromLocalStorage() {
+      try {
+        const saved = localStorage.getItem('glossaryData');
+        if (saved) {
+          glossaryData = JSON.parse(saved);
+          console.log(`Caricati ${glossaryData.length} termini dal salvataggio locale`);
+        }
+      } catch (err) {
+        console.error('Errore nel caricamento dal localStorage:', err);
+      }
+    }
+
+    // Salva dati nel localStorage
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem('glossaryData', JSON.stringify(glossaryData));
+        console.log('Dati salvati automaticamente');
+      } catch (err) {
+        console.error('Errore nel salvataggio al localStorage:', err);
+      }
+    }
+
+    // Auto-save con debounce
+    function triggerAutoSave() {
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+      }
+      autoSaveTimeout = setTimeout(() => {
+        saveToLocalStorage();
+      }, 1000); // Salva dopo 1 secondo di inattività
+    }
 
     // Carica dati di esempio
     function loadSampleData() {
-      glossaryData = [];
+      loadFromLocalStorage();
       renderTermList();
     }
 
@@ -557,6 +591,7 @@
       };
 
       glossaryData.push(newTerm);
+      triggerAutoSave();
       selectTerm(glossaryData.length - 1);
     }
 
@@ -565,23 +600,35 @@
 
       document.getElementById('editorTitle').textContent = currentTerm.acronym;
       document.getElementById('editorActions').style.display = 'flex';
+      
+      // Collega evento al pulsante elimina
+      const deleteBtn = document.querySelector('.editor-actions .btn-danger');
+      if (deleteBtn) {
+        deleteBtn.onclick = deleteTerm;
+      }
+      
+      // Collega evento al pulsante salva
+      const saveBtn = document.querySelector('.editor-actions .btn-success');
+      if (saveBtn) {
+        saveBtn.onclick = saveTerm;
+      }
 
       const content = document.getElementById('editorContent');
       content.innerHTML = `
         <div class="form-group">
           <label class="form-label">Acronimo *</label>
-          <input type="text" class="form-input" id="acronym" value="${currentTerm.acronym}">
+          <input type="text" class="form-input" id="acronym" value="${currentTerm.acronym}" oninput="autoSaveField()">
         </div>
 
         <div class="form-group">
           <label class="form-label">Nome Completo *</label>
-          <input type="text" class="form-input" id="full" value="${currentTerm.full}">
+          <input type="text" class="form-input" id="full" value="${currentTerm.full}" oninput="autoSaveField()">
         </div>
 
         <div class="form-group">
           <label class="form-label">Case Sensitive (solo acronimo primario)</label>
           <div class="form-checkbox-group">
-            <input type="checkbox" class="form-checkbox" id="caseSensitive" ${currentTerm.caseSensitive ? 'checked' : ''}>
+            <input type="checkbox" class="form-checkbox" id="caseSensitive" ${currentTerm.caseSensitive ? 'checked' : ''} onchange="autoSaveField()">
             <label class="form-checkbox-label" for="caseSensitive" onclick="document.getElementById('caseSensitive').click()">
               Evidenzia solo se scritto in MAIUSCOLO
             </label>
@@ -591,13 +638,13 @@
 
         <div class="form-group">
           <label class="form-label">Descrizione</label>
-          <textarea class="form-textarea" id="description">${currentTerm.description || ''}</textarea>
+          <textarea class="form-textarea" id="description" oninput="autoSaveField()">${currentTerm.description || ''}</textarea>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Stato</label>
-            <select class="form-select" id="status">
+            <select class="form-select" id="status" onchange="autoSaveField()">
               <option value="Attivo" ${currentTerm.status === 'Attivo' ? 'selected' : ''}>Attivo</option>
               <option value="Obsoleto" ${currentTerm.status === 'Obsoleto' ? 'selected' : ''}>Obsoleto</option>
             </select>
@@ -605,13 +652,13 @@
 
           <div class="form-group">
             <label class="form-label">Lingua</label>
-            <input type="text" class="form-input" id="language" value="${currentTerm.language || ''}">
+            <input type="text" class="form-input" id="language" value="${currentTerm.language || ''}" oninput="autoSaveField()">
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">Anno</label>
-          <input type="number" class="form-input" id="year" value="${currentTerm.year || ''}">
+          <input type="number" class="form-input" id="year" value="${currentTerm.year || ''}" oninput="autoSaveField()">
         </div>
 
         <div class="form-group">
@@ -696,6 +743,7 @@
         if (!currentTerm[field]) currentTerm[field] = [];
         currentTerm[field].push(value);
         renderTagField(elementId, currentTerm[field]);
+        triggerAutoSave();
       }
     }
 
@@ -710,6 +758,7 @@
       const field = fieldMap[elementId];
       currentTerm[field].splice(index, 1);
       renderTagField(elementId, currentTerm[field]);
+      triggerAutoSave();
     }
 
     function renderArrayField(elementId, items, type) {
@@ -745,6 +794,7 @@
 
       const arrayField = fieldMap[elementId];
       currentTerm[arrayField][index][field] = value;
+      triggerAutoSave();
     }
 
     function removeArrayItem(elementId, index) {
@@ -758,33 +808,41 @@
       const arrayField = fieldMap[elementId];
       currentTerm[arrayField].splice(index, 1);
       renderArrayField(elementId, currentTerm[arrayField], arrayField.slice(0, -1));
+      triggerAutoSave();
     }
 
     function addImage() {
       if (!currentTerm.images) currentTerm.images = [];
       currentTerm.images.push({ url: '', title: '' });
       renderArrayField('imagesList', currentTerm.images, 'image');
+      triggerAutoSave();
     }
 
     function addVideo() {
       if (!currentTerm.videos) currentTerm.videos = [];
       currentTerm.videos.push({ url: '', title: '' });
       renderArrayField('videosList', currentTerm.videos, 'video');
+      triggerAutoSave();
     }
 
     function addDocument() {
       if (!currentTerm.documents) currentTerm.documents = [];
       currentTerm.documents.push({ text: '', url: '' });
       renderArrayField('documentsList', currentTerm.documents, 'document');
+      triggerAutoSave();
     }
 
     function addLink() {
       if (!currentTerm.links) currentTerm.links = [];
       currentTerm.links.push({ text: '', url: '' });
       renderArrayField('linksList', currentTerm.links, 'link');
+      triggerAutoSave();
     }
 
-    function saveTerm() {
+    // Funzione per auto-salvare i campi del form
+    function autoSaveField() {
+      if (!currentTerm) return;
+      
       currentTerm.acronym = document.getElementById('acronym').value;
       currentTerm.full = document.getElementById('full').value;
       currentTerm.description = document.getElementById('description').value;
@@ -794,14 +852,60 @@
       currentTerm.caseSensitive = document.getElementById('caseSensitive').checked;
 
       renderTermList();
+      triggerAutoSave();
+    }
+
+    function saveTerm() {
+      autoSaveField();
       alert('✅ Termine salvato con successo!');
     }
 
     function deleteTerm() {
+      console.log('deleteTerm chiamata');
+      console.log('currentTerm:', currentTerm);
+      console.log('currentIndex:', currentIndex);
+      
+      if (!currentTerm || currentIndex === -1) {
+        console.log('Nessun termine selezionato, uscita');
+        alert('⚠️ Nessun termine selezionato');
+        return;
+      }
+      
       if (confirm('Sei sicuro di voler eliminare questo termine?')) {
+        console.log('Conferma eliminazione ricevuta');
+        
+        // Salva l'acronimo per il messaggio di conferma
+        const deletedAcronym = currentTerm.acronym;
+        console.log('Eliminazione termine:', deletedAcronym);
+        
+        // Rimuovi il termine
+        console.log('glossaryData prima:', glossaryData.length);
         glossaryData.splice(currentIndex, 1);
+        console.log('glossaryData dopo:', glossaryData.length);
+        
+        // Aggiorna gli indici selezionati
+        const newSelectedTerms = new Set();
+        selectedTerms.forEach(idx => {
+          if (idx < currentIndex) {
+            newSelectedTerms.add(idx);
+          } else if (idx > currentIndex) {
+            newSelectedTerms.add(idx - 1);
+          }
+        });
+        selectedTerms = newSelectedTerms;
+        console.log('selectedTerms aggiornati:', selectedTerms);
+        
+        // Reset stato corrente
         currentTerm = null;
         currentIndex = -1;
+        
+        // Salva immediatamente
+        console.log('Salvataggio localStorage...');
+        saveToLocalStorage();
+        console.log('Salvataggio completato');
+        
+        // Aggiorna UI
+        console.log('Aggiornamento UI...');
         renderTermList();
         document.getElementById('editorContent').innerHTML = `
           <div class="empty-state">
@@ -812,6 +916,11 @@
         `;
         document.getElementById('editorTitle').textContent = 'Seleziona un termine';
         document.getElementById('editorActions').style.display = 'none';
+        console.log('UI aggiornata');
+        
+        alert(`✅ Termine "${deletedAcronym}" eliminato con successo!`);
+      } else {
+        console.log('Eliminazione annullata dall\'utente');
       }
     }
 
@@ -863,6 +972,7 @@
           selectedTerms.clear();
           currentTerm = null;
           currentIndex = -1;
+          saveToLocalStorage();
           renderTermList();
           document.getElementById('editorContent').innerHTML = `
             <div class="empty-state">
@@ -929,6 +1039,7 @@
           });
 
           renderTermList();
+          saveToLocalStorage();
           
           let message = `✅ Importazione completata!\n\n`;
           if (added > 0) message += `➕ Aggiunti: ${added} termini\n`;
@@ -947,7 +1058,16 @@
       event.target.value = '';
     }
 
-    // Inizializza con dati di esempio
+    // Avviso prima di chiudere la pagina se ci sono dati non esportati
+    window.addEventListener('beforeunload', function(e) {
+      if (glossaryData.length > 0) {
+        const message = 'I tuoi dati sono salvati automaticamente nel browser. Vuoi continuare?';
+        e.returnValue = message;
+        return message;
+      }
+    });
+
+    // Inizializza con dati dal localStorage
     loadSampleData();
   </script>
 </body>
