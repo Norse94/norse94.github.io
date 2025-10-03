@@ -178,6 +178,92 @@
       box-shadow: 0 4px 12px rgba(66, 95, 147, 0.3) !important;
     }
 
+    .glossary-variants-section {
+      margin: 12px 0 !important;
+      padding: 12px !important;
+      background: #f9fafb !important;
+      border-radius: 8px !important;
+      border: 1px solid #e5e7eb !important;
+    }
+
+    .glossary-variants-title {
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      color: #6b7280 !important;
+      margin: 0 0 8px 0 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+    }
+
+    .glossary-variant-item {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 8px 10px !important;
+      margin-bottom: 6px !important;
+      background: white !important;
+      border-radius: 6px !important;
+      border: 1px solid #e5e7eb !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .glossary-variant-item:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    .glossary-variant-item:hover {
+      border-color: #425F93 !important;
+      background: #f0f5ff !important;
+    }
+
+    .glossary-variant-info {
+      flex: 1 !important;
+      min-width: 0 !important;
+    }
+
+    .glossary-variant-name {
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      color: #1f2937 !important;
+      margin: 0 0 2px 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+    }
+
+    .glossary-variant-full {
+      font-size: 11px !important;
+      color: #6b7280 !important;
+      margin: 0 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    .glossary-variant-btn {
+      background: #425F93 !important;
+      border: none !important;
+      color: white !important;
+      padding: 6px 12px !important;
+      border-radius: 6px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+
+    .glossary-variant-btn:hover {
+      background: #3c5580 !important;
+      transform: scale(1.05) !important;
+    }
+
+    .glossary-variant-current {
+      background: #dfebff !important;
+      border-color: #425F93 !important;
+    }
+
     .glossary-tooltip-arrow {
       position: absolute !important;
       width: 0 !important;
@@ -485,6 +571,10 @@
     const tooltip = document.createElement('div');
     tooltip.className = 'glossary-tooltip';
 
+    // Trova tutte le varianti dello stesso acronimo
+    const allVariants = glossaryData.filter(t => t.acronym === term.acronym);
+    const hasVariants = allVariants.length > 1;
+
     const variantBadge = term.variant ? `<sup style="font-size: 0.7em; margin-left: 2px;">${term.variant}</sup>` : '';
     let html = `
       <div class="glossary-tooltip-header">
@@ -498,8 +588,8 @@
     }
 
     if (term.description) {
-      const shortDesc = term.description.length > 200 
-        ? term.description.substring(0, 200) + '...' 
+      const shortDesc = term.description.length > 200
+        ? term.description.substring(0, 200) + '...'
         : term.description;
       html += `<div class="glossary-tooltip-description">${shortDesc}</div>`;
     }
@@ -514,6 +604,30 @@
       html += `<span class="glossary-tooltip-badge year">📅 ${term.year}</span>`;
     }
     html += `</div>`;
+
+    // Mostra tutte le varianti se presenti
+    if (hasVariants) {
+      html += `<div class="glossary-variants-section">`;
+      html += `<div class="glossary-variants-title">🔄 Altre varianti di questo termine</div>`;
+
+      allVariants.forEach(variant => {
+        const isCurrent = variant === term;
+        const variantNum = variant.variant ? `<sup>${variant.variant}</sup>` : '';
+        const currentClass = isCurrent ? 'glossary-variant-current' : '';
+
+        html += `
+          <div class="glossary-variant-item ${currentClass}">
+            <div class="glossary-variant-info">
+              <div class="glossary-variant-name">${variant.acronym}${variantNum}</div>
+              <div class="glossary-variant-full">${variant.full}</div>
+            </div>
+            ${!isCurrent ? `<button class="glossary-variant-btn" data-acronym="${variant.acronym}" data-variant="${variant.variant || ''}">Vedi</button>` : `<span style="font-size: 11px; color: #6b7280; font-weight: 600;">Corrente</span>`}
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+    }
 
     // Link al glossario completo
     html += `<a href="#" class="glossary-tooltip-link" data-acronym="${term.acronym}" data-variant="${term.variant || ''}">
@@ -538,6 +652,21 @@
       setTimeout(() => tooltip.remove(), 300);
       currentTooltip = null;
     };
+
+    // Event listeners per i pulsanti delle varianti
+    const variantBtns = tooltip.querySelectorAll('.glossary-variant-btn');
+    variantBtns.forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const acronym = btn.dataset.acronym;
+        const variant = btn.dataset.variant;
+        openGlossaryToTerm(acronym, variant);
+        tooltip.classList.remove('show');
+        setTimeout(() => tooltip.remove(), 300);
+        currentTooltip = null;
+      };
+    });
 
     return tooltip;
   }
