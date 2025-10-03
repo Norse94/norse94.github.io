@@ -2017,15 +2017,49 @@
     const term = params.get('term');
     const variant = params.get('variant') || '';
     if (term) {
-      openGlossary();
-      setTimeout(() => {
-        selectItem(term, variant);
-        scrollToSelectedItem(term, variant);
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('term');
-        newUrl.searchParams.delete('variant');
-        window.history.replaceState({}, '', newUrl.toString());
-      }, 100);
+      const wasOpen = isOpen;
+
+      if (!wasOpen) {
+        openGlossary();
+      }
+
+      // Aspetta che il glossario sia pronto e i dati siano caricati
+      const attemptSelect = (attempts = 0) => {
+        if (attempts > 20) {
+          console.log('Timeout: impossibile caricare il termine');
+          return;
+        }
+
+        // Controlla se il glossario è caricato
+        if (glossaryData.length === 0) {
+          setTimeout(() => attemptSelect(attempts + 1), 100);
+          return;
+        }
+
+        // Cerca il termine
+        let item;
+        if (variant) {
+          item = glossaryData.find(i => i.acronym === term && i.variant === parseInt(variant));
+        } else {
+          item = glossaryData.find(i => i.acronym === term);
+        }
+
+        if (item) {
+          selectItem(term, variant);
+          scrollToSelectedItem(term, variant);
+
+          // Pulisci URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('term');
+          newUrl.searchParams.delete('variant');
+          window.history.replaceState({}, '', newUrl.toString());
+        } else {
+          // Termine non trovato, riprova
+          setTimeout(() => attemptSelect(attempts + 1), 100);
+        }
+      };
+
+      setTimeout(() => attemptSelect(), wasOpen ? 0 : 500);
     }
   }
 
