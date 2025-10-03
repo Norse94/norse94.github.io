@@ -317,12 +317,23 @@
 
   async function loadGlossaryData() {
     try {
-      const response = await fetch(CONFIG.jsonUrl);
-      if (!response.ok) {
-        throw new Error('Errore nel caricamento del glossario');
+      // Controlla se i dati sono già stati caricati da glossario.js
+      if (window.sharedGlossaryData && window.sharedGlossaryData.length > 0) {
+        console.log('%c💡 TOOLTIP: Uso dati già caricati (cache condivisa) - Evito fetch duplicato!', 'background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
+        console.log(`   ↳ Termini disponibili: ${window.sharedGlossaryData.length}`);
+        glossaryData = window.sharedGlossaryData;
+      } else {
+        console.log('%c💡 TOOLTIP: Carico dati da JSON (primo caricamento)', 'background: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
+        console.log(`   ↳ URL: ${CONFIG.jsonUrl}`);
+        const response = await fetch(CONFIG.jsonUrl);
+        if (!response.ok) {
+          throw new Error('Errore nel caricamento del glossario');
+        }
+        glossaryData = await response.json();
+        // Condividi i dati per altri script
+        window.sharedGlossaryData = glossaryData;
+        console.log(`   ↳ Caricati ${glossaryData.length} termini - Salvati in cache condivisa`);
       }
-      glossaryData = await response.json();
-      console.log(`Glossario caricato: ${glossaryData.length} termini`);
     } catch (err) {
       console.error('Errore caricamento glossario:', err);
       glossaryData = [];
