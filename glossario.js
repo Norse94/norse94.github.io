@@ -2012,55 +2012,72 @@
     }
   }
 
+  let urlTermProcessed = false; // Flag per evitare doppia elaborazione
+
   function loadTermFromURL() {
     const params = new URLSearchParams(window.location.search);
     const term = params.get('term');
     const variant = params.get('variant') || '';
-    if (term) {
-      const wasOpen = isOpen;
 
-      if (!wasOpen) {
-        openGlossary();
+    if (!term || urlTermProcessed) {
+      return;
+    }
+
+    // Marca come processato per evitare loop
+    urlTermProcessed = true;
+
+    const wasOpen = isOpen;
+
+    if (!wasOpen) {
+      openGlossary();
+    }
+
+    // Aspetta che il glossario sia pronto e i dati siano caricati
+    const attemptSelect = (attempts = 0) => {
+      if (attempts > 30) {
+        console.log('Timeout: impossibile caricare il termine', term, variant);
+        // Pulisci URL anche in caso di timeout
+        cleanURLParams();
+        return;
       }
 
-      // Aspetta che il glossario sia pronto e i dati siano caricati
-      const attemptSelect = (attempts = 0) => {
-        if (attempts > 20) {
-          console.log('Timeout: impossibile caricare il termine');
-          return;
-        }
+      // Controlla se il glossario è caricato
+      if (glossaryData.length === 0) {
+        setTimeout(() => attemptSelect(attempts + 1), 100);
+        return;
+      }
 
-        // Controlla se il glossario è caricato
-        if (glossaryData.length === 0) {
-          setTimeout(() => attemptSelect(attempts + 1), 100);
-          return;
-        }
-
-        // Cerca il termine
-        let item;
-        if (variant) {
-          item = glossaryData.find(i => i.acronym === term && i.variant === parseInt(variant));
-        } else {
+      // Cerca il termine
+      let item;
+      if (variant) {
+        item = glossaryData.find(i => i.acronym === term && i.variant === parseInt(variant));
+      } else {
+        item = glossaryData.find(i => i.acronym === term && !i.variant);
+        // Se non trovato senza variant, prendi il primo con quell'acronimo
+        if (!item) {
           item = glossaryData.find(i => i.acronym === term);
         }
+      }
 
-        if (item) {
-          selectItem(term, variant);
-          scrollToSelectedItem(term, variant);
+      if (item) {
+        selectItem(term, variant);
+        scrollToSelectedItem(term, variant);
+        // Pulisci URL dopo successo
+        cleanURLParams();
+      } else {
+        // Termine non trovato, riprova
+        setTimeout(() => attemptSelect(attempts + 1), 100);
+      }
+    };
 
-          // Pulisci URL
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.delete('term');
-          newUrl.searchParams.delete('variant');
-          window.history.replaceState({}, '', newUrl.toString());
-        } else {
-          // Termine non trovato, riprova
-          setTimeout(() => attemptSelect(attempts + 1), 100);
-        }
-      };
+    setTimeout(() => attemptSelect(), wasOpen ? 0 : 500);
+  }
 
-      setTimeout(() => attemptSelect(), wasOpen ? 0 : 500);
-    }
+  function cleanURLParams() {
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('term');
+    newUrl.searchParams.delete('variant');
+    window.history.replaceState({}, '', newUrl.toString());
   }
 
   // Esponi funzione globale per il sistema tooltip
@@ -2140,6 +2157,8 @@
     const currentUrl = window.location.href;
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
+      // Reset del flag quando l'URL cambia
+      urlTermProcessed = false;
       loadTermFromURL();
     }
   }, 500);
