@@ -304,10 +304,15 @@
   // INIZIALIZZAZIONE
   // ============================================
   function init() {
+    console.log('🔧 Tooltip: Inizializzazione...');
     injectStyles();
     loadGlossaryData().then(() => {
+      console.log('🔧 Tooltip: Dati caricati, inizio elaborazione tabelle...');
       processTablesWithColorClass();
       setupClickOutsideHandler();
+      console.log('🔧 Tooltip: Inizializzazione completata');
+    }).catch(err => {
+      console.error('❌ Tooltip: Errore durante inizializzazione:', err);
     });
   }
 
@@ -400,6 +405,7 @@
   // Costruisce regex combinate divise in chunks per gestire molti termini
   function buildCombinedRegex() {
     try {
+      console.log('🔨 Costruzione regex combinate...');
       combinedRegexes = [];
 
       // Raccogli tutti gli acronimi e alias
@@ -410,6 +416,8 @@
           term.aliases.forEach(alias => allTerms.add(alias));
         }
       });
+
+      console.log(`   📝 Raccolti ${allTerms.size} termini unici (acronimi + alias)`);
 
       // Ordina per lunghezza decrescente (per matchare termini più lunghi prima)
       const sortedTerms = Array.from(allTerms).sort((a, b) => b.length - a.length);
@@ -422,14 +430,27 @@
         chunks.push(sortedTerms.slice(i, i + chunkSize));
       }
 
+      console.log(`   ✂️ Divisi in ${chunks.length} chunks di max ${chunkSize} termini`);
+
       // Crea una regex per ogni chunk
       chunks.forEach((chunk, idx) => {
-        const escapedTerms = chunk.map(term => escapeRegExp(term));
-        const pattern = `\\b(${escapedTerms.join('|')})\\b`;
-        combinedRegexes.push(new RegExp(pattern, 'gi'));
+        try {
+          const escapedTerms = chunk.map(term => escapeRegExp(term));
+          const pattern = `\\b(${escapedTerms.join('|')})\\b`;
+          const regex = new RegExp(pattern, 'gi');
+          combinedRegexes.push(regex);
+          console.log(`   ✅ Regex ${idx + 1}/${chunks.length} creata (${chunk.length} termini)`);
+        } catch (regexErr) {
+          console.error(`   ❌ Errore creazione regex ${idx + 1}:`, regexErr);
+        }
       });
 
-      console.log(`⚡ Regex combinate create: ${sortedTerms.length} termini divisi in ${combinedRegexes.length} regex (${chunkSize} termini ciascuna)`);
+      if (combinedRegexes.length === 0) {
+        console.error('❌ Nessuna regex creata! Uso fallback.');
+        combinedRegexes = [/(?!)/gi];
+      } else {
+        console.log(`⚡ Regex combinate create: ${sortedTerms.length} termini divisi in ${combinedRegexes.length} regex`);
+      }
     } catch (err) {
       console.error('❌ Errore nella creazione delle regex combinate:', err);
       // Fallback: usa una regex semplice che non troverà nulla (evita crash)
@@ -441,23 +462,32 @@
   // ELABORAZIONE TABELLE
   // ============================================
   function processTablesWithColorClass() {
+    console.log(`🔍 Cercando tabelle con classe "${CONFIG.targetClass}"...`);
     const tables = document.querySelectorAll(`table.${CONFIG.targetClass}`);
-    
+
     if (tables.length === 0) {
-      console.log('Nessuna tabella con classe "color" trovata');
+      console.warn(`⚠️ Nessuna tabella con classe "${CONFIG.targetClass}" trovata`);
       return;
     }
 
-    console.log(`Trovate ${tables.length} tabelle con classe "color"`);
+    console.log(`✅ Trovate ${tables.length} tabelle con classe "${CONFIG.targetClass}"`);
 
-    tables.forEach(table => {
+    let totalCells = 0;
+    tables.forEach((table, idx) => {
       const cells = table.querySelectorAll('td, th');
+      totalCells += cells.length;
+      console.log(`   Tabella ${idx + 1}: ${cells.length} celle`);
+
       cells.forEach(cell => {
-        highlightTermsInElement(cell);
+        try {
+          highlightTermsInElement(cell);
+        } catch (err) {
+          console.error(`❌ Errore evidenziazione cella:`, err);
+        }
       });
     });
 
-    console.log(`Termini evidenziati: ${processedTerms.size}`);
+    console.log(`✅ Elaborazione completata: ${totalCells} celle, ${processedTerms.size} termini evidenziati`);
   }
 
   function highlightTermsInElement(element) {
