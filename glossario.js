@@ -730,8 +730,8 @@
       font-size: 14px !important;
       color: #6b7280 !important;
       margin-top: 24px !important;
-      padding-top: 24px !important;
-      border-top: 1px solid #e5e7eb !important;
+      padding-top: 0 !important;
+      border-top: none !important;
     }
 
     .glossary-welcome-cta strong {
@@ -1626,6 +1626,7 @@
           <div class="glossary-detail-empty">
             <div class="glossary-welcome-content">
               <h2 class="glossary-welcome-title">📚 Benvenuto nel Glossario Militare</h2>
+              <hr style="all: revert !important; border: none !important; border-top: 2px solid #e5e7eb !important; margin: 20px 0 24px 0 !important;">
               <p class="glossary-welcome-text">
                 Un database completo di acronimi, termini e concetti del mondo militare italiano e internazionale.
               </p>
