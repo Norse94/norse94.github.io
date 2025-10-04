@@ -1706,70 +1706,102 @@
     const detailEl = document.querySelector('.glossary-detail');
     if (!detailEl) return;
 
-    detailEl.innerHTML = `
-      <div style="padding: 40px; max-width: 700px; margin: 0 auto;">
-        <h2 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 20px 0;">📚 Informazioni sul Glossario Militare</h2>
+    // Salva il contenuto originale della schermata di benvenuto
+    const welcomeContent = document.querySelector('.glossary-welcome-content');
+    if (welcomeContent && !window.glossaryWelcomeBackup) {
+      window.glossaryWelcomeBackup = welcomeContent.cloneNode(true);
+    }
 
-        <div style="background: #f0f5ff; border-left: 4px solid #425F93; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #374151;">
-            <strong>Cos'è questo glossario?</strong><br>
-            Un database completo e sempre aggiornato di acronimi, sigle e termini del mondo militare italiano e internazionale.
-          </p>
-        </div>
+    const infoContainer = document.createElement('div');
+    infoContainer.className = 'glossary-info-page';
+    infoContainer.style.cssText = 'padding: 40px; max-width: 700px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;';
 
-        <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 24px 0 12px 0;">🎯 Caratteristiche principali</h3>
-        <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
-          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-            <strong style="color: #425F93;">🔍 Ricerca avanzata</strong><br>
-            <span style="font-size: 14px; color: #6b7280;">Cerca per acronimo o per significato completo</span>
-          </li>
-          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-            <strong style="color: #425F93;">📁 Filtraggio per categorie</strong><br>
-            <span style="font-size: 14px; color: #6b7280;">Organizzazione per temi e aree militari</span>
-          </li>
-          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-            <strong style="color: #425F93;">🔄 Gestione varianti</strong><br>
-            <span style="font-size: 14px; color: #6b7280;">Stesso acronimo, significati diversi</span>
-          </li>
-          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-            <strong style="color: #425F93;">🎬 Contenuti multimediali</strong><br>
-            <span style="font-size: 14px; color: #6b7280;">Immagini, video e documenti allegati</span>
-          </li>
-          <li style="padding: 12px 0;">
-            <strong style="color: #425F93;">🔗 Link e risorse</strong><br>
-            <span style="font-size: 14px; color: #6b7280;">Collegamenti a fonti e approfondimenti</span>
-          </li>
-        </ul>
+    const title = document.createElement('h2');
+    title.textContent = '📚 Informazioni sul Glossario Militare';
+    title.style.cssText = 'font-size: 28px !important; font-weight: 700 !important; color: #1f2937 !important; margin: 0 0 20px 0 !important; display: block !important;';
 
-        <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 24px 0 12px 0;">💡 Come usarlo</h3>
-        <ol style="padding-left: 20px; margin: 0 0 24px 0;">
-          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
-            <strong>Naviga</strong> la lista dei termini nella colonna di sinistra
-          </li>
-          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
-            <strong>Cerca</strong> un termine specifico usando la barra di ricerca
-          </li>
-          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
-            <strong>Filtra</strong> per categoria per trovare argomenti correlati
-          </li>
-          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
-            <strong>Clicca</strong> su un termine per vedere tutti i dettagli
-          </li>
-        </ol>
+    const introBox = document.createElement('div');
+    introBox.style.cssText = 'background: #f0f5ff !important; border-left: 4px solid #425F93 !important; padding: 16px !important; border-radius: 8px !important; margin-bottom: 24px !important;';
+    introBox.innerHTML = '<p style="margin: 0 !important; font-size: 15px !important; line-height: 1.6 !important; color: #374151 !important; display: block !important;"><strong style="display: inline !important;">Cos\'è questo glossario?</strong><br>Un database completo e sempre aggiornato di acronimi, sigle e termini del mondo militare italiano e internazionale.</p>';
 
-        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 24px 0;">
-          <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350f;">
-            <strong>💡 Suggerimento:</strong> Non hai trovato un termine? Usa il pulsante "Proponi nuovi termini" in alto a sinistra per segnalarcelo!
-          </p>
-        </div>
+    const featuresTitle = document.createElement('h3');
+    featuresTitle.textContent = '🎯 Caratteristiche principali';
+    featuresTitle.style.cssText = 'font-size: 20px !important; font-weight: 600 !important; color: #1f2937 !important; margin: 24px 0 12px 0 !important; display: block !important;';
 
-        <div style="text-align: center; margin-top: 32px;">
-          <button onclick="document.querySelector('.glossary-detail').innerHTML = document.querySelector('.glossary-detail-empty').outerHTML" style="background: #425F93; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
-            Torna alla schermata iniziale
-          </button>
-        </div>
-      </div>
-    `;
+    const featuresList = document.createElement('ul');
+    featuresList.style.cssText = 'list-style: none !important; padding: 0 !important; margin: 0 0 24px 0 !important; display: block !important;';
+
+    const features = [
+      { icon: '🔍', title: 'Ricerca avanzata', desc: 'Cerca per acronimo o per significato completo' },
+      { icon: '📁', title: 'Filtraggio per categorie', desc: 'Organizzazione per temi e aree militari' },
+      { icon: '🔄', title: 'Gestione varianti', desc: 'Stesso acronimo, significati diversi' },
+      { icon: '🎬', title: 'Contenuti multimediali', desc: 'Immagini, video e documenti allegati' },
+      { icon: '🔗', title: 'Link e risorse', desc: 'Collegamenti a fonti e approfondimenti' }
+    ];
+
+    features.forEach((feature, idx) => {
+      const li = document.createElement('li');
+      li.style.cssText = `padding: 12px 0 !important; ${idx < features.length - 1 ? 'border-bottom: 1px solid #e5e7eb !important;' : ''} display: block !important;`;
+      li.innerHTML = `<strong style="color: #425F93 !important; display: inline !important;">${feature.icon} ${feature.title}</strong><br><span style="font-size: 14px !important; color: #6b7280 !important; display: inline !important;">${feature.desc}</span>`;
+      featuresList.appendChild(li);
+    });
+
+    const howToTitle = document.createElement('h3');
+    howToTitle.textContent = '💡 Come usarlo';
+    howToTitle.style.cssText = 'font-size: 20px !important; font-weight: 600 !important; color: #1f2937 !important; margin: 24px 0 12px 0 !important; display: block !important;';
+
+    const howToList = document.createElement('ol');
+    howToList.style.cssText = 'padding-left: 20px !important; margin: 0 0 24px 0 !important; display: block !important;';
+
+    const steps = [
+      '<strong style="display: inline !important;">Naviga</strong> la lista dei termini nella colonna di sinistra',
+      '<strong style="display: inline !important;">Cerca</strong> un termine specifico usando la barra di ricerca',
+      '<strong style="display: inline !important;">Filtra</strong> per categoria per trovare argomenti correlati',
+      '<strong style="display: inline !important;">Clicca</strong> su un termine per vedere tutti i dettagli'
+    ];
+
+    steps.forEach(step => {
+      const li = document.createElement('li');
+      li.style.cssText = 'margin-bottom: 12px !important; color: #374151 !important; line-height: 1.6 !important; display: list-item !important;';
+      li.innerHTML = step;
+      howToList.appendChild(li);
+    });
+
+    const tipBox = document.createElement('div');
+    tipBox.style.cssText = 'background: #fef3c7 !important; border-left: 4px solid #f59e0b !important; padding: 16px !important; border-radius: 8px !important; margin: 24px 0 !important;';
+    tipBox.innerHTML = '<p style="margin: 0 !important; font-size: 14px !important; line-height: 1.6 !important; color: #78350f !important; display: block !important;"><strong style="display: inline !important;">💡 Suggerimento:</strong> Non hai trovato un termine? Usa il pulsante "Proponi nuovi termini" in alto a sinistra per segnalarcelo!</p>';
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'text-align: center !important; margin-top: 32px !important;';
+
+    const backButton = document.createElement('button');
+    backButton.textContent = 'Torna alla schermata iniziale';
+    backButton.style.cssText = 'background: #425F93 !important; color: white !important; border: none !important; padding: 12px 24px !important; border-radius: 8px !important; font-size: 14px !important; font-weight: 600 !important; cursor: pointer !important; transition: all 0.2s ease !important;';
+    backButton.onmouseover = () => backButton.style.background = '#3c5580 !important';
+    backButton.onmouseout = () => backButton.style.background = '#425F93 !important';
+    backButton.onclick = () => {
+      if (window.glossaryWelcomeBackup) {
+        detailEl.innerHTML = '';
+        const emptyState = document.createElement('div');
+        emptyState.className = 'glossary-detail-empty';
+        emptyState.appendChild(window.glossaryWelcomeBackup.cloneNode(true));
+        detailEl.appendChild(emptyState);
+      }
+    };
+
+    buttonContainer.appendChild(backButton);
+
+    infoContainer.appendChild(title);
+    infoContainer.appendChild(introBox);
+    infoContainer.appendChild(featuresTitle);
+    infoContainer.appendChild(featuresList);
+    infoContainer.appendChild(howToTitle);
+    infoContainer.appendChild(howToList);
+    infoContainer.appendChild(tipBox);
+    infoContainer.appendChild(buttonContainer);
+
+    detailEl.innerHTML = '';
+    detailEl.appendChild(infoContainer);
 
     if (isMobile) {
       detailEl.classList.add('show');
