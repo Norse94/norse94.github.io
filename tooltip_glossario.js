@@ -73,11 +73,8 @@
     }
 
     .glossary-tooltip-header {
-      display: flex !important;
-      align-items: flex-start !important;
-      justify-content: space-between !important;
+      display: block !important;
       margin-bottom: 8px !important;
-      gap: 12px !important;
     }
 
     .glossary-tooltip-title {
@@ -87,25 +84,6 @@
       margin: 0 !important;
       line-height: 1.3 !important;
       text-align: center !important;
-      flex: 1 !important;
-    }
-
-    .glossary-tooltip-close {
-      background: transparent !important;
-      border: none !important;
-      color: #9ca3af !important;
-      font-size: 20px !important;
-      cursor: pointer !important;
-      padding: 0 !important;
-      width: 24px !important;
-      height: 24px !important;
-      flex-shrink: 0 !important;
-      line-height: 1 !important;
-      transition: color 0.2s ease !important;
-    }
-
-    .glossary-tooltip-close:hover {
-      color: #374151 !important;
     }
 
     .glossary-tooltip-full {
@@ -856,7 +834,6 @@
     let html = `
       <div class="glossary-tooltip-header">
         <h3 class="glossary-tooltip-title">${term.acronym}${variantBadge}</h3>
-        <button class="glossary-tooltip-close">×</button>
       </div>
     `;
 
@@ -916,13 +893,6 @@
     tooltip.innerHTML = html;
 
     // Event listeners
-    const closeBtn = tooltip.querySelector('.glossary-tooltip-close');
-    closeBtn.onclick = () => {
-      tooltip.classList.remove('show');
-      setTimeout(() => tooltip.remove(), 300);
-      currentTooltip = null;
-    };
-
     const link = tooltip.querySelector('.glossary-tooltip-link');
     link.onclick = (e) => {
       e.preventDefault();
