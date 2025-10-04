@@ -1,5 +1,5 @@
 // ============================================
-// GLOSSARIO MILITARE INTERATTIVO
+// GLOSSARIO MILITARE
 // ============================================
 
 (function() {
@@ -7,7 +7,7 @@
 
   // Configurazione
   const CONFIG = {
-    jsonUrl: 'https://norse94.github.io/glossary_json2.json',
+    jsonUrl: 'https://norse94.github.io/glossary_test_2000.json',
     buttonText: '📚 Glossario',
     title: 'Glossario Militare',
     placeholder: 'Cerca termine o acronimo...'
