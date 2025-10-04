@@ -780,21 +780,27 @@
       if (window.innerWidth <= 768) {
         const rect = event.target.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        const elementCenter = rect.top + (rect.height / 2);
-        const viewportCenter = viewportHeight / 2;
-        const scrollOffset = elementCenter - viewportCenter;
+
+        // Calcola la posizione attuale dell'elemento rispetto al documento
+        const elementTop = rect.top + window.pageYOffset;
+        const elementHeight = rect.height;
+
+        // Calcola dove dovrebbe essere il centro dell'elemento per essere centrato nel viewport
+        const targetScrollPosition = elementTop - (viewportHeight / 2) + (elementHeight / 2);
+        const currentScrollPosition = window.pageYOffset;
+        const scrollOffset = targetScrollPosition - currentScrollPosition;
 
         // Scrolla solo se necessario (se l'elemento non è già centrato)
         if (Math.abs(scrollOffset) > 50) {
-          window.scrollBy({
-            top: scrollOffset,
+          window.scrollTo({
+            top: targetScrollPosition,
             behavior: 'smooth'
           });
 
           // Aspetta che lo scroll sia completato prima di mostrare il tooltip
           setTimeout(() => {
             showTooltipAfterScroll(event, term);
-          }, 300);
+          }, 400);
           return;
         }
       }
