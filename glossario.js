@@ -541,6 +541,68 @@
       overflow-y: auto !important;
       border-right: 1px solid #e5e7eb !important;
       background: #f9fafb !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+
+    .glossary-list-header {
+      background: #425F93 !important;
+      padding: 16px !important;
+      border-bottom: 2px solid #3c5580 !important;
+      flex-shrink: 0 !important;
+    }
+
+    .glossary-info-btn {
+      width: 100% !important;
+      padding: 12px 16px !important;
+      background: white !important;
+      border: 2px solid white !important;
+      border-radius: 8px !important;
+      color: #425F93 !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      margin-bottom: 10px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+    }
+
+    .glossary-info-btn:hover {
+      background: #dfebff !important;
+      border-color: #dfebff !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .glossary-propose-btn {
+      width: 100% !important;
+      padding: 10px 16px !important;
+      background: rgba(255, 255, 255, 0.2) !important;
+      border: 2px solid rgba(255, 255, 255, 0.5) !important;
+      border-radius: 8px !important;
+      color: white !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+    }
+
+    .glossary-propose-btn:hover {
+      background: rgba(255, 255, 255, 0.3) !important;
+      border-color: rgba(255, 255, 255, 0.7) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    .glossary-list-items {
+      flex: 1 !important;
+      overflow-y: auto !important;
     }
 
     .glossary-item {
@@ -602,12 +664,59 @@
 
     .glossary-detail-empty {
       display: flex !important;
+      flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
       height: 100% !important;
-      color: #9ca3af !important;
+      color: #6b7280 !important;
       font-size: 16px !important;
       text-align: center !important;
+      padding: 40px !important;
+    }
+
+    .glossary-welcome-content {
+      max-width: 600px !important;
+    }
+
+    .glossary-welcome-title {
+      font-size: 32px !important;
+      font-weight: 700 !important;
+      color: #1f2937 !important;
+      margin: 0 0 16px 0 !important;
+    }
+
+    .glossary-welcome-text {
+      font-size: 16px !important;
+      line-height: 1.6 !important;
+      color: #6b7280 !important;
+      margin: 0 0 24px 0 !important;
+    }
+
+    .glossary-welcome-features {
+      text-align: left !important;
+      margin: 0 0 24px 0 !important;
+    }
+
+    .glossary-welcome-feature {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+      margin-bottom: 12px !important;
+      font-size: 14px !important;
+      color: #374151 !important;
+    }
+
+    .glossary-welcome-icon {
+      font-size: 20px !important;
+      flex-shrink: 0 !important;
+    }
+
+    .glossary-welcome-cta {
+      font-size: 14px !important;
+      color: #6b7280 !important;
+      margin-top: 24px !important;
+      padding-top: 24px !important;
+      border-top: 1px solid #e5e7eb !important;
     }
 
     .glossary-share-buttons {
@@ -1013,7 +1122,21 @@
     .glossary-no-results {
       padding: 40px 16px !important;
       text-align: center !important;
-      color: #9ca3af !important;
+      color: #6b7280 !important;
+      font-size: 15px !important;
+      line-height: 1.6 !important;
+    }
+
+    .glossary-no-results-link {
+      color: #425F93 !important;
+      font-weight: 600 !important;
+      text-decoration: underline !important;
+      cursor: pointer !important;
+      transition: color 0.2s ease !important;
+    }
+
+    .glossary-no-results-link:hover {
+      color: #3c5580 !important;
     }
 
     .glossary-loading-screen {
@@ -1462,9 +1585,47 @@
         </div>
       </div>
       <div class="glossary-content">
-        <div class="glossary-list"></div>
+        <div class="glossary-list">
+          <div class="glossary-list-header">
+            <button class="glossary-info-btn" id="glossaryInfoBtn">
+              ℹ️ Cos'è questo glossario?
+            </button>
+            <button class="glossary-propose-btn" id="glossaryProposeBtn">
+              ✏️ Proponi nuovi termini
+            </button>
+          </div>
+          <div class="glossary-list-items"></div>
+        </div>
         <div class="glossary-detail">
-          <div class="glossary-detail-empty">Seleziona un termine dalla lista</div>
+          <div class="glossary-detail-empty">
+            <div class="glossary-welcome-content">
+              <h2 class="glossary-welcome-title">📚 Benvenuto nel Glossario Militare</h2>
+              <p class="glossary-welcome-text">
+                Un database completo di acronimi, termini e concetti del mondo militare italiano e internazionale.
+              </p>
+              <div class="glossary-welcome-features">
+                <div class="glossary-welcome-feature">
+                  <span class="glossary-welcome-icon">🔍</span>
+                  <span>Cerca tra migliaia di termini usando la barra di ricerca</span>
+                </div>
+                <div class="glossary-welcome-feature">
+                  <span class="glossary-welcome-icon">📁</span>
+                  <span>Filtra per categoria per trovare rapidamente ciò che cerchi</span>
+                </div>
+                <div class="glossary-welcome-feature">
+                  <span class="glossary-welcome-icon">🔗</span>
+                  <span>Ogni termine può includere descrizioni, immagini, video e link utili</span>
+                </div>
+                <div class="glossary-welcome-feature">
+                  <span class="glossary-welcome-icon">🔄</span>
+                  <span>Database in continuo aggiornamento con nuovi termini</span>
+                </div>
+              </div>
+              <p class="glossary-welcome-cta">
+                <strong>Inizia subito:</strong> seleziona un termine dalla lista a sinistra o usa la ricerca per trovare ciò che ti interessa.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -1482,6 +1643,14 @@
 
     const toggleFiltersBtn = modal.querySelector('.glossary-toggle-filters-btn');
     toggleFiltersBtn.onclick = toggleAccordion;
+
+    const infoBtn = modal.querySelector('#glossaryInfoBtn');
+    infoBtn.onclick = showGlossaryInfo;
+
+    const proposeBtn = modal.querySelector('#glossaryProposeBtn');
+    proposeBtn.onclick = () => {
+      window.open('https://difesa.forumfree.it/?t=79610194', '_blank', 'noopener,noreferrer');
+    };
 
     const accordion = modal.querySelector('.glossary-accordion');
     const accordionHeader = accordion.querySelector('.glossary-accordion-header');
@@ -1533,14 +1702,94 @@
     }
   }
 
+  function showGlossaryInfo() {
+    const detailEl = document.querySelector('.glossary-detail');
+    if (!detailEl) return;
+
+    detailEl.innerHTML = `
+      <div style="padding: 40px; max-width: 700px; margin: 0 auto;">
+        <h2 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 20px 0;">📚 Informazioni sul Glossario Militare</h2>
+
+        <div style="background: #f0f5ff; border-left: 4px solid #425F93; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #374151;">
+            <strong>Cos'è questo glossario?</strong><br>
+            Un database completo e sempre aggiornato di acronimi, sigle e termini del mondo militare italiano e internazionale.
+          </p>
+        </div>
+
+        <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 24px 0 12px 0;">🎯 Caratteristiche principali</h3>
+        <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
+          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <strong style="color: #425F93;">🔍 Ricerca avanzata</strong><br>
+            <span style="font-size: 14px; color: #6b7280;">Cerca per acronimo o per significato completo</span>
+          </li>
+          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <strong style="color: #425F93;">📁 Filtraggio per categorie</strong><br>
+            <span style="font-size: 14px; color: #6b7280;">Organizzazione per temi e aree militari</span>
+          </li>
+          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <strong style="color: #425F93;">🔄 Gestione varianti</strong><br>
+            <span style="font-size: 14px; color: #6b7280;">Stesso acronimo, significati diversi</span>
+          </li>
+          <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <strong style="color: #425F93;">🎬 Contenuti multimediali</strong><br>
+            <span style="font-size: 14px; color: #6b7280;">Immagini, video e documenti allegati</span>
+          </li>
+          <li style="padding: 12px 0;">
+            <strong style="color: #425F93;">🔗 Link e risorse</strong><br>
+            <span style="font-size: 14px; color: #6b7280;">Collegamenti a fonti e approfondimenti</span>
+          </li>
+        </ul>
+
+        <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin: 24px 0 12px 0;">💡 Come usarlo</h3>
+        <ol style="padding-left: 20px; margin: 0 0 24px 0;">
+          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
+            <strong>Naviga</strong> la lista dei termini nella colonna di sinistra
+          </li>
+          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
+            <strong>Cerca</strong> un termine specifico usando la barra di ricerca
+          </li>
+          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
+            <strong>Filtra</strong> per categoria per trovare argomenti correlati
+          </li>
+          <li style="margin-bottom: 12px; color: #374151; line-height: 1.6;">
+            <strong>Clicca</strong> su un termine per vedere tutti i dettagli
+          </li>
+        </ol>
+
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 24px 0;">
+          <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #78350f;">
+            <strong>💡 Suggerimento:</strong> Non hai trovato un termine? Usa il pulsante "Proponi nuovi termini" in alto a sinistra per segnalarcelo!
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 32px;">
+          <button onclick="document.querySelector('.glossary-detail').innerHTML = document.querySelector('.glossary-detail-empty').outerHTML" style="background: #425F93; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
+            Torna alla schermata iniziale
+          </button>
+        </div>
+      </div>
+    `;
+
+    if (isMobile) {
+      detailEl.classList.add('show');
+      const listEl = document.querySelector('.glossary-list');
+      const searchEl = document.querySelector('.glossary-search');
+      const backBtn = document.querySelector('.glossary-back-btn');
+      if (listEl) listEl.classList.add('hidden');
+      if (searchEl) searchEl.classList.add('hidden');
+      if (backBtn) backBtn.classList.add('show');
+    }
+  }
+
   function goBackToList() {
     if (!isMobile) return;
-    
+
     const detailEl = document.querySelector('.glossary-detail');
     const backBtn = document.querySelector('.glossary-back-btn');
     const listEl = document.querySelector('.glossary-list');
     const searchEl = document.querySelector('.glossary-search');
-    
+
     if (detailEl && backBtn && listEl && searchEl) {
       detailEl.classList.remove('show');
       backBtn.classList.remove('show');
@@ -1668,7 +1917,7 @@
   // RENDERING
   // ============================================
   function renderList(filter = '') {
-    const listEl = document.querySelector('.glossary-list');
+    const listEl = document.querySelector('.glossary-list-items');
     if (!listEl) return;
 
     // Usa requestAnimationFrame per rendering più fluido
@@ -1729,7 +1978,7 @@
     });
 
       if (filtered.length === 0) {
-        listEl.innerHTML = '<div class="glossary-no-results">Nessun risultato trovato</div>';
+        listEl.innerHTML = '<div class="glossary-no-results">Continua a digitare. Se non hai trovato ancora nulla puoi chiedere il significato del termine <a href="https://difesa.forumfree.it/?t=79610194" target="_blank" rel="noopener noreferrer" class="glossary-no-results-link">cliccando qui</a></div>';
         renderedItems = [];
         return;
       }
