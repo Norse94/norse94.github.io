@@ -1628,7 +1628,7 @@
               <h2 class="glossary-welcome-title">📚 Benvenuto nel Glossario Militare</h2>
               <hr style="all: revert !important; border: none !important; border-top: 2px solid #e5e7eb !important; margin: 20px 0 24px 0 !important;">
               <p class="glossary-welcome-text">
-                Un database completo di acronimi, termini e concetti del mondo militare italiano e internazionale.
+                Un database di acronimi, termini e concetti del mondo militare italiano e internazionale.
               </p>
               <div class="glossary-welcome-features">
                 <div class="glossary-welcome-feature">
@@ -1645,7 +1645,7 @@
                 </div>
                 <div class="glossary-welcome-feature">
                   <span class="glossary-welcome-icon">🔄</span>
-                  <span>Database in continuo aggiornamento con nuovi termini</span>
+                  <span>Database con nuovi termini aggiunti periodicamente</span>
                 </div>
               </div>
               <p class="glossary-welcome-cta">
@@ -1750,7 +1750,7 @@
       <div style="all: revert !important; background: #f0f5ff !important; border-left: 4px solid #425F93 !important; padding: 16px !important; border-radius: 8px !important; margin-bottom: 24px !important;">
         <p style="all: revert !important; margin: 0 !important; font-size: 15px !important; line-height: 1.6 !important; color: #374151 !important;">
           <strong>Cos'è questo glossario?</strong><br>
-          Un database completo e sempre aggiornato di acronimi, sigle e termini del mondo militare italiano e internazionale.
+          Un database di acronimi, sigle e termini del mondo militare italiano e internazionale.
         </p>
       </div>
 
