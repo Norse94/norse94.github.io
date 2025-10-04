@@ -1805,32 +1805,10 @@
           <strong>💡 Suggerimento:</strong> Non hai trovato un termine? Usa il pulsante "Proponi nuovi termini" in alto a sinistra per segnalarcelo!
         </p>
       </div>
-
-      <div style="all: revert !important; text-align: center !important; margin-top: 32px !important;">
-        <button id="glossaryInfoBackBtn" style="all: revert !important; background: #425F93 !important; color: white !important; border: none !important; padding: 12px 24px !important; border-radius: 8px !important; font-size: 14px !important; font-weight: 600 !important; cursor: pointer !important; transition: background 0.2s ease !important;">
-          Torna alla schermata iniziale
-        </button>
-      </div>
     `;
 
     detailEl.innerHTML = '';
     detailEl.appendChild(infoContainer);
-
-    // Aggiungi event listener al pulsante
-    const backButton = infoContainer.querySelector('#glossaryInfoBackBtn');
-    if (backButton) {
-      backButton.onmouseover = () => backButton.style.background = '#3c5580';
-      backButton.onmouseout = () => backButton.style.background = '#425F93';
-      backButton.onclick = () => {
-        if (window.glossaryWelcomeBackup) {
-          detailEl.innerHTML = '';
-          const emptyState = document.createElement('div');
-          emptyState.className = 'glossary-detail-empty';
-          emptyState.appendChild(window.glossaryWelcomeBackup.cloneNode(true));
-          detailEl.appendChild(emptyState);
-        }
-      };
-    }
 
     if (isMobile) {
       detailEl.classList.add('show');
