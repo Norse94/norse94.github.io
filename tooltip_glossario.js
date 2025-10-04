@@ -14,7 +14,7 @@
 
   let glossaryData = [];
   let glossaryIndex = {}; // Indice hash per ricerche O(1)
-  let combinedRegex = null; // Regex combinata per ricerca efficiente
+  let combinedRegexes = []; // Array di regex (divise in chunks per performance)
   let processedTerms = new Set();
   let currentTooltip = null;
   let tooltipTimeout = null;
@@ -397,29 +397,44 @@
     buildCombinedRegex();
   }
 
-  // Costruisce una regex combinata per trovare tutti i termini in un solo passaggio
+  // Costruisce regex combinate divise in chunks per gestire molti termini
   function buildCombinedRegex() {
-    const patterns = [];
+    try {
+      combinedRegexes = [];
 
-    // Raccogli tutti gli acronimi e alias
-    const allTerms = new Set();
-    glossaryData.forEach(term => {
-      allTerms.add(term.acronym);
-      if (term.aliases && Array.isArray(term.aliases)) {
-        term.aliases.forEach(alias => allTerms.add(alias));
+      // Raccogli tutti gli acronimi e alias
+      const allTerms = new Set();
+      glossaryData.forEach(term => {
+        allTerms.add(term.acronym);
+        if (term.aliases && Array.isArray(term.aliases)) {
+          term.aliases.forEach(alias => allTerms.add(alias));
+        }
+      });
+
+      // Ordina per lunghezza decrescente (per matchare termini più lunghi prima)
+      const sortedTerms = Array.from(allTerms).sort((a, b) => b.length - a.length);
+
+      // Dividi in chunks di 500 termini per evitare regex troppo grandi
+      const chunkSize = 500;
+      const chunks = [];
+
+      for (let i = 0; i < sortedTerms.length; i += chunkSize) {
+        chunks.push(sortedTerms.slice(i, i + chunkSize));
       }
-    });
 
-    // Ordina per lunghezza decrescente (per matchare termini più lunghi prima)
-    const sortedTerms = Array.from(allTerms).sort((a, b) => b.length - a.length);
+      // Crea una regex per ogni chunk
+      chunks.forEach((chunk, idx) => {
+        const escapedTerms = chunk.map(term => escapeRegExp(term));
+        const pattern = `\\b(${escapedTerms.join('|')})\\b`;
+        combinedRegexes.push(new RegExp(pattern, 'gi'));
+      });
 
-    // Crea pattern combinato
-    const escapedTerms = sortedTerms.map(term => escapeRegExp(term));
-    const pattern = `\\b(${escapedTerms.join('|')})\\b`;
-
-    combinedRegex = new RegExp(pattern, 'gi');
-
-    console.log(`⚡ Regex combinata creata: ${sortedTerms.length} termini in un pattern unico`);
+      console.log(`⚡ Regex combinate create: ${sortedTerms.length} termini divisi in ${combinedRegexes.length} regex (${chunkSize} termini ciascuna)`);
+    } catch (err) {
+      console.error('❌ Errore nella creazione delle regex combinate:', err);
+      // Fallback: usa una regex semplice che non troverà nulla (evita crash)
+      combinedRegexes = [/(?!)/gi];
+    }
   }
 
   // ============================================
@@ -468,36 +483,38 @@
       const text = textNode.textContent;
       let replacements = [];
 
-      // Usa regex combinata per trovare tutti i match in un solo passaggio
-      combinedRegex.lastIndex = 0; // Reset regex
-      let match;
-      while ((match = combinedRegex.exec(text)) !== null) {
-        const matchedText = match[0];
-        const matchedKey = matchedText.toLowerCase();
+      // Usa tutte le regex combinate per trovare tutti i match
+      combinedRegexes.forEach(regex => {
+        regex.lastIndex = 0; // Reset regex
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          const matchedText = match[0];
+          const matchedKey = matchedText.toLowerCase();
 
-        // Trova il termine corrispondente usando l'indice hash
-        const candidates = glossaryIndex[matchedKey];
+          // Trova il termine corrispondente usando l'indice hash
+          const candidates = glossaryIndex[matchedKey];
 
-        if (candidates && candidates.length > 0) {
-          // Prendi il primo termine (gestisce varianti se necessario)
-          const term = candidates[0];
+          if (candidates && candidates.length > 0) {
+            // Prendi il primo termine (gestisce varianti se necessario)
+            const term = candidates[0];
 
-          // Verifica case-sensitive se necessario
-          if (term.caseSensitive === true) {
-            // Solo maiuscole
-            if (matchedText !== matchedText.toUpperCase()) {
-              continue; // Salta questo match
+            // Verifica case-sensitive se necessario
+            if (term.caseSensitive === true) {
+              // Solo maiuscole
+              if (matchedText !== matchedText.toUpperCase()) {
+                continue; // Salta questo match
+              }
             }
-          }
 
-          replacements.push({
-            start: match.index,
-            end: match.index + matchedText.length,
-            text: matchedText,
-            term: term
-          });
+            replacements.push({
+              start: match.index,
+              end: match.index + matchedText.length,
+              text: matchedText,
+              term: term
+            });
+          }
         }
-      }
+      });
 
       if (replacements.length > 0) {
         // Ordina per posizione e rimuovi sovrapposizioni
