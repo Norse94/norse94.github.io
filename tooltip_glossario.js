@@ -776,7 +776,7 @@
         currentTooltip.remove();
       }
 
-      // Su mobile, scrolla prima per centrare l'elemento
+      // Su mobile, scrolla prima per posizionare l'elemento nella parte alta
       if (window.innerWidth <= 768) {
         const rect = event.target.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
@@ -785,12 +785,12 @@
         const elementTop = rect.top + window.pageYOffset;
         const elementHeight = rect.height;
 
-        // Calcola dove dovrebbe essere il centro dell'elemento per essere centrato nel viewport
-        const targetScrollPosition = elementTop - (viewportHeight / 2) + (elementHeight / 2);
+        // Posiziona l'elemento a 1/4 dall'alto dello schermo (lascia spazio per il tooltip sotto)
+        const targetScrollPosition = elementTop - (viewportHeight * 0.25);
         const currentScrollPosition = window.pageYOffset;
         const scrollOffset = targetScrollPosition - currentScrollPosition;
 
-        // Scrolla solo se necessario (se l'elemento non è già centrato)
+        // Scrolla solo se necessario
         if (Math.abs(scrollOffset) > 50) {
           window.scrollTo({
             top: targetScrollPosition,
