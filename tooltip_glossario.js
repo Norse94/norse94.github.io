@@ -776,29 +776,57 @@
         currentTooltip.remove();
       }
 
-      // Crea il nuovo tooltip
-      const tooltip = createTooltip(term);
-      document.body.appendChild(tooltip);
-      currentTooltip = tooltip;
+      // Su mobile, scrolla prima per centrare l'elemento
+      if (window.innerWidth <= 768) {
+        const rect = event.target.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const elementCenter = rect.top + (rect.height / 2);
+        const viewportCenter = viewportHeight / 2;
+        const scrollOffset = elementCenter - viewportCenter;
 
-      // Posiziona il tooltip
-      positionTooltip(tooltip, event.target);
+        // Scrolla solo se necessario (se l'elemento non è già centrato)
+        if (Math.abs(scrollOffset) > 50) {
+          window.scrollBy({
+            top: scrollOffset,
+            behavior: 'smooth'
+          });
 
-      // Mostra con animazione
-      setTimeout(() => tooltip.classList.add('show'), 10);
-
-      // Aggiungi event listeners per mantenere il tooltip aperto
-      tooltip.addEventListener('mouseenter', () => {
-        if (tooltipTimeout) {
-          clearTimeout(tooltipTimeout);
+          // Aspetta che lo scroll sia completato prima di mostrare il tooltip
+          setTimeout(() => {
+            showTooltipAfterScroll(event, term);
+          }, 300);
+          return;
         }
-        if (hideTimeout) {
-          clearTimeout(hideTimeout);
-        }
-      });
+      }
 
-      tooltip.addEventListener('mouseleave', hideTooltipDelayed);
+      // Desktop o elemento già visibile: mostra subito
+      showTooltipAfterScroll(event, term);
     }, CONFIG.tooltipDelay);
+  }
+
+  function showTooltipAfterScroll(event, term) {
+    // Crea il nuovo tooltip
+    const tooltip = createTooltip(term);
+    document.body.appendChild(tooltip);
+    currentTooltip = tooltip;
+
+    // Posiziona il tooltip
+    positionTooltip(tooltip, event.target);
+
+    // Mostra con animazione
+    setTimeout(() => tooltip.classList.add('show'), 10);
+
+    // Aggiungi event listeners per mantenere il tooltip aperto
+    tooltip.addEventListener('mouseenter', () => {
+      if (tooltipTimeout) {
+        clearTimeout(tooltipTimeout);
+      }
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+    });
+
+    tooltip.addEventListener('mouseleave', hideTooltipDelayed);
   }
 
   function hideTooltipDelayed() {
@@ -976,31 +1004,6 @@
     arrow.style.transform = 'translateX(-50%)';
 
     tooltip.appendChild(arrow);
-
-    // Su mobile, scrolla per mostrare il tooltip completo
-    if (window.innerWidth <= 768) {
-      setTimeout(() => {
-        const tooltipRect = tooltip.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-
-        // Calcola se il tooltip è parzialmente fuori dal viewport
-        const tooltipBottom = tooltipRect.bottom;
-        const tooltipTop = tooltipRect.top;
-
-        if (tooltipBottom > viewportHeight || tooltipTop < 0) {
-          // Calcola la posizione di scroll ottimale per centrare il tooltip
-          const tooltipCenter = tooltipRect.top + (tooltipRect.height / 2);
-          const viewportCenter = viewportHeight / 2;
-          const scrollOffset = tooltipCenter - viewportCenter;
-
-          // Scrolla smooth verso la posizione ottimale
-          window.scrollBy({
-            top: scrollOffset,
-            behavior: 'smooth'
-          });
-        }
-      }, 100); // Piccolo delay per permettere al tooltip di apparire completamente
-    }
   }
 
   function setupClickOutsideHandler() {
