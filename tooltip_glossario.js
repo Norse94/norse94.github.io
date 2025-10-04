@@ -86,6 +86,8 @@
       color: #1f2937 !important;
       margin: 0 !important;
       line-height: 1.3 !important;
+      text-align: center !important;
+      flex: 1 !important;
     }
 
     .glossary-tooltip-close {
