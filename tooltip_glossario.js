@@ -7,7 +7,7 @@
 
   // Configurazione
   const CONFIG = {
-    jsonUrl: 'https://norse94.github.io/glossary_json2.json',
+    jsonUrl: 'https://norse94.github.io/glossary_test_2000.json',
     targetClass: 'color', // Classe delle tabelle dove cercare i termini
     tooltipDelay: 300 // Delay prima di mostrare il tooltip (ms)
   };
