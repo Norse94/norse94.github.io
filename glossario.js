@@ -1293,10 +1293,14 @@
 
     createOverlay().then(overlay => {
       document.body.appendChild(overlay);
+
+      // Calcola larghezza scrollbar e compensa il layout shift
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = 'hidden';
-      
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+
       renderList();
-      
+
       setTimeout(() => overlay.classList.add('show'), 10);
     });
   }
@@ -1308,6 +1312,7 @@
       setTimeout(() => {
         overlay.remove();
         document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
       }, 300);
     }
     isOpen = false;

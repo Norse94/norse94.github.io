@@ -20,6 +20,7 @@
   let currentTooltip = null;
   let tooltipTimeout = null;
   let hideTimeout = null;
+  let cellObserver = null; // Intersection Observer per lazy loading
 
   // ============================================
   // STILI CSS
@@ -310,6 +311,10 @@
     injectStyles();
     loadGlossaryData().then(() => {
       console.log('🔧 Tooltip: Dati caricati, inizio elaborazione tabelle...');
+
+      // Setup observer prima di processare tabelle
+      setupCellObserver();
+
       processTablesWithColorClass();
       setupClickOutsideHandler();
       console.log('🔧 Tooltip: Inizializzazione completata');
@@ -508,6 +513,43 @@
   }
 
   // ============================================
+  // INTERSECTION OBSERVER (LAZY LOADING)
+  // ============================================
+  function setupCellObserver() {
+    if (!window.IntersectionObserver) {
+      console.warn('⚠️ IntersectionObserver non supportato, uso fallback immediato');
+      processTablesImmediate();
+      return;
+    }
+
+    // Crea observer con opzioni ottimizzate
+    cellObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const cell = entry.target;
+
+          // Processa la cella solo quando diventa visibile
+          try {
+            highlightTermsInElement(cell);
+          } catch (err) {
+            console.error(`❌ Errore evidenziazione cella:`, err);
+          }
+
+          // Stop observing dopo il processing
+          cellObserver.unobserve(cell);
+        }
+      });
+    }, {
+      // Inizia il processing quando la cella è al 10% visibile
+      threshold: 0.1,
+      // Margine di 200px per pre-caricare celle vicine
+      rootMargin: '200px'
+    });
+
+    console.log('✅ Intersection Observer attivato');
+  }
+
+  // ============================================
   // ELABORAZIONE TABELLE
   // ============================================
   function processTablesWithColorClass() {
@@ -526,6 +568,39 @@
       const cells = table.querySelectorAll('td, th');
       totalCells += cells.length;
       console.log(`   Tabella ${idx + 1}: ${cells.length} celle`);
+
+      cells.forEach(cell => {
+        // Osserva ogni cella invece di processarla immediatamente
+        if (cellObserver) {
+          cellObserver.observe(cell);
+        } else {
+          // Fallback: processa immediatamente se observer non disponibile
+          try {
+            highlightTermsInElement(cell);
+          } catch (err) {
+            console.error(`❌ Errore evidenziazione cella:`, err);
+          }
+        }
+      });
+    });
+
+    console.log(`📊 ${totalCells} celle monitorate per lazy loading`);
+  }
+
+  // Fallback per browser senza IntersectionObserver
+  function processTablesImmediate() {
+    console.log(`🔍 Cercando tabelle con classe "${CONFIG.targetClass}"...`);
+    const tables = document.querySelectorAll(`table.${CONFIG.targetClass}`);
+
+    if (tables.length === 0) {
+      console.warn(`⚠️ Nessuna tabella con classe "${CONFIG.targetClass}" trovata`);
+      return;
+    }
+
+    let totalCells = 0;
+    tables.forEach((table, idx) => {
+      const cells = table.querySelectorAll('td, th');
+      totalCells += cells.length;
 
       cells.forEach(cell => {
         try {
