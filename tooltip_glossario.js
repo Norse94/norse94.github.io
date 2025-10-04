@@ -737,6 +737,9 @@
         if (tooltipTimeout) {
           clearTimeout(tooltipTimeout);
         }
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+        }
       });
 
       tooltip.addEventListener('mouseleave', hideTooltipDelayed);
