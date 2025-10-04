@@ -675,10 +675,18 @@
     }
 
     .glossary-welcome-content {
+      all: revert !important;
       max-width: 600px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+    }
+
+    .glossary-welcome-content * {
+      all: revert !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
     }
 
     .glossary-welcome-title {
+      all: revert !important;
       font-size: 32px !important;
       font-weight: 700 !important;
       color: #1f2937 !important;
@@ -686,6 +694,7 @@
     }
 
     .glossary-welcome-text {
+      all: revert !important;
       font-size: 16px !important;
       line-height: 1.6 !important;
       color: #6b7280 !important;
@@ -693,11 +702,15 @@
     }
 
     .glossary-welcome-features {
+      all: revert !important;
       text-align: left !important;
       margin: 0 0 24px 0 !important;
+      padding: 0 !important;
+      list-style: none !important;
     }
 
     .glossary-welcome-feature {
+      all: revert !important;
       display: flex !important;
       align-items: flex-start !important;
       gap: 12px !important;
@@ -707,16 +720,23 @@
     }
 
     .glossary-welcome-icon {
+      all: revert !important;
       font-size: 20px !important;
       flex-shrink: 0 !important;
     }
 
     .glossary-welcome-cta {
+      all: revert !important;
       font-size: 14px !important;
       color: #6b7280 !important;
       margin-top: 24px !important;
       padding-top: 24px !important;
       border-top: 1px solid #e5e7eb !important;
+    }
+
+    .glossary-welcome-cta strong {
+      all: revert !important;
+      font-weight: 700 !important;
     }
 
     .glossary-info-page * {
