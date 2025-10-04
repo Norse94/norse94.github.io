@@ -978,13 +978,21 @@
       arrowClass = 'bottom';
     }
 
+    // Assicurati che il tooltip non esca verticalmente dal viewport
+    if (top < 16) {
+      top = 16;
+    }
+    if (top + tooltipRect.height > viewportHeight - 16) {
+      top = viewportHeight - tooltipRect.height - 16;
+    }
+
     // Calcola posizione orizzontale del tooltip
     left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
 
     // Salva la posizione ideale del centro del termine (per la freccia)
     const targetCenterX = rect.left + (rect.width / 2);
 
-    // Assicurati che il tooltip rimanga dentro il viewport
+    // Assicurati che il tooltip rimanga dentro il viewport orizzontalmente
     if (left < 16) left = 16;
     if (left + tooltipRect.width > viewportWidth - 16) {
       left = viewportWidth - tooltipRect.width - 16;
