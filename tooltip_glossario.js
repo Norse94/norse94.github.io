@@ -976,6 +976,31 @@
     arrow.style.transform = 'translateX(-50%)';
 
     tooltip.appendChild(arrow);
+
+    // Su mobile, scrolla per mostrare il tooltip completo
+    if (window.innerWidth <= 768) {
+      setTimeout(() => {
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+
+        // Calcola se il tooltip è parzialmente fuori dal viewport
+        const tooltipBottom = tooltipRect.bottom;
+        const tooltipTop = tooltipRect.top;
+
+        if (tooltipBottom > viewportHeight || tooltipTop < 0) {
+          // Calcola la posizione di scroll ottimale per centrare il tooltip
+          const tooltipCenter = tooltipRect.top + (tooltipRect.height / 2);
+          const viewportCenter = viewportHeight / 2;
+          const scrollOffset = tooltipCenter - viewportCenter;
+
+          // Scrolla smooth verso la posizione ottimale
+          window.scrollBy({
+            top: scrollOffset,
+            behavior: 'smooth'
+          });
+        }
+      }, 100); // Piccolo delay per permettere al tooltip di apparire completamente
+    }
   }
 
   function setupClickOutsideHandler() {
