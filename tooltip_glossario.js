@@ -330,6 +330,11 @@
         glossaryData = await window.sharedGlossaryDataPromise;
         console.log('%c💡 TOOLTIP: Uso dati appena caricati (cache condivisa) - Evito fetch duplicato!', 'background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
         console.log(`   ↳ Termini disponibili: ${glossaryData.length}`);
+
+        // Costruisci indice e regex
+        console.log('📊 Costruisco indice da promise...');
+        buildGlossaryIndex();
+        console.log('✅ Indice costruito da promise');
         return;
       }
 
@@ -338,6 +343,13 @@
         console.log('%c💡 TOOLTIP: Uso dati già caricati (cache condivisa) - Evito fetch duplicato!', 'background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
         console.log(`   ↳ Termini disponibili: ${window.sharedGlossaryData.length}`);
         glossaryData = window.sharedGlossaryData;
+
+        // Costruisci indice e regex se non già fatto
+        if (Object.keys(glossaryIndex).length === 0) {
+          console.log('📊 Costruisco indice da cache...');
+          buildGlossaryIndex();
+          console.log('✅ Indice costruito da cache');
+        }
         return;
       }
 
@@ -362,44 +374,70 @@
       glossaryData = await window.sharedGlossaryDataPromise;
 
       // Costruisci indice hash per ricerche rapide
+      console.log('📊 Dati caricati, costruisco indice...');
       buildGlossaryIndex();
+      console.log('✅ Indice costruito');
+      console.log(`🔍 DEBUG: glossaryData.length = ${glossaryData.length}`);
+      console.log(`🔍 DEBUG: Object.keys(glossaryIndex).length = ${Object.keys(glossaryIndex).length}`);
+      console.log(`🔍 DEBUG: combinedRegexes.length = ${combinedRegexes.length}`);
     } catch (err) {
-      console.error('Errore caricamento glossario:', err);
+      console.error('❌ Errore caricamento glossario:', err);
       glossaryData = [];
     }
   }
 
   // Costruisce un indice hash per ricerche O(1)
   function buildGlossaryIndex() {
-    glossaryIndex = {};
+    try {
+      glossaryIndex = {};
 
-    glossaryData.forEach(term => {
-      const key = term.acronym.toLowerCase();
-
-      // Crea array se non esiste
-      if (!glossaryIndex[key]) {
-        glossaryIndex[key] = [];
+      if (!glossaryData || glossaryData.length === 0) {
+        console.error('❌ Nessun dato da indicizzare!');
+        return;
       }
 
-      // Aggiungi il termine (può avere varianti)
-      glossaryIndex[key].push(term);
+      console.log(`📝 Indicizzazione di ${glossaryData.length} termini...`);
 
-      // Aggiungi anche gli alias all'indice
-      if (term.aliases && Array.isArray(term.aliases)) {
-        term.aliases.forEach(alias => {
-          const aliasKey = alias.toLowerCase();
-          if (!glossaryIndex[aliasKey]) {
-            glossaryIndex[aliasKey] = [];
-          }
-          glossaryIndex[aliasKey].push(term);
-        });
+      glossaryData.forEach(term => {
+        if (!term || !term.acronym) {
+          console.warn('⚠️ Termine senza acronimo:', term);
+          return;
+        }
+
+        const key = term.acronym.toLowerCase();
+
+        // Crea array se non esiste
+        if (!glossaryIndex[key]) {
+          glossaryIndex[key] = [];
+        }
+
+        // Aggiungi il termine (può avere varianti)
+        glossaryIndex[key].push(term);
+
+        // Aggiungi anche gli alias all'indice
+        if (term.aliases && Array.isArray(term.aliases)) {
+          term.aliases.forEach(alias => {
+            const aliasKey = alias.toLowerCase();
+            if (!glossaryIndex[aliasKey]) {
+              glossaryIndex[aliasKey] = [];
+            }
+            glossaryIndex[aliasKey].push(term);
+          });
+        }
+      });
+
+      const indexSize = Object.keys(glossaryIndex).length;
+      console.log(`🔍 Indice hash tooltip creato: ${indexSize} chiavi univoche (acronimi + alias)`);
+
+      // Costruisci regex combinata per performance
+      if (indexSize > 0) {
+        buildCombinedRegex();
+      } else {
+        console.error('❌ Indice vuoto! Non posso creare regex.');
       }
-    });
-
-    console.log(`🔍 Indice hash tooltip creato: ${Object.keys(glossaryIndex).length} chiavi univoche (acronimi + alias)`);
-
-    // Costruisci regex combinata per performance
-    buildCombinedRegex();
+    } catch (err) {
+      console.error('❌ Errore costruzione indice:', err);
+    }
   }
 
   // Costruisce regex combinate divise in chunks per gestire molti termini
@@ -509,15 +547,33 @@
       }
     }
 
+    if (textNodes.length === 0) {
+      return; // Nessun nodo testo da processare
+    }
+
     textNodes.forEach(textNode => {
       const text = textNode.textContent;
+
+      if (!text || text.trim().length === 0) {
+        return; // Salta nodi vuoti
+      }
+
       let replacements = [];
 
+      // Verifica che le regex siano disponibili
+      if (!combinedRegexes || combinedRegexes.length === 0) {
+        console.error('❌ Nessuna regex disponibile per evidenziazione!');
+        return;
+      }
+
       // Usa tutte le regex combinate per trovare tutti i match
-      combinedRegexes.forEach(regex => {
+      combinedRegexes.forEach((regex, regexIdx) => {
         regex.lastIndex = 0; // Reset regex
         let match;
+        let matchCount = 0;
+
         while ((match = regex.exec(text)) !== null) {
+          matchCount++;
           const matchedText = match[0];
           const matchedKey = matchedText.toLowerCase();
 
@@ -896,7 +952,35 @@
   // Esponi funzione globale per integrare con il glossario principale
   window.glossaryTooltipSystem = {
     processElement: highlightTermsInElement,
-    refresh: processTablesWithColorClass
+    refresh: processTablesWithColorClass,
+    // Funzione di test per debug
+    testMatch: function(text) {
+      console.log('🧪 Test matching su testo:', text);
+      console.log('📊 Regex disponibili:', combinedRegexes.length);
+      console.log('📚 Termini in indice:', Object.keys(glossaryIndex).length);
+
+      let totalMatches = 0;
+      combinedRegexes.forEach((regex, idx) => {
+        regex.lastIndex = 0;
+        let match;
+        let matches = [];
+        while ((match = regex.exec(text)) !== null) {
+          const key = match[0].toLowerCase();
+          const term = glossaryIndex[key] ? glossaryIndex[key][0] : null;
+          matches.push({
+            text: match[0],
+            position: match.index,
+            term: term ? term.acronym : 'NOT_FOUND'
+          });
+          totalMatches++;
+        }
+        if (matches.length > 0) {
+          console.log(`   Regex ${idx + 1}: ${matches.length} match`, matches);
+        }
+      });
+      console.log(`✅ Totale: ${totalMatches} match trovati`);
+      return totalMatches;
+    }
   };
 
 })();
