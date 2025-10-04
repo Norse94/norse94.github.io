@@ -1016,6 +1016,54 @@
       color: #9ca3af !important;
     }
 
+    .glossary-loading-screen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(66, 95, 147, 0.95) !important;
+      z-index: 10000 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      opacity: 1 !important;
+      transition: opacity 0.3s ease !important;
+    }
+
+    .glossary-loading-screen.hide {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .glossary-loading-spinner {
+      width: 60px !important;
+      height: 60px !important;
+      border: 4px solid rgba(255, 255, 255, 0.3) !important;
+      border-top: 4px solid white !important;
+      border-radius: 50% !important;
+      animation: glossary-spin 1s linear infinite !important;
+      margin-bottom: 24px !important;
+    }
+
+    @keyframes glossary-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .glossary-loading-text {
+      color: white !important;
+      font-size: 18px !important;
+      font-weight: 600 !important;
+      margin-bottom: 8px !important;
+    }
+
+    .glossary-loading-subtext {
+      color: rgba(255, 255, 255, 0.8) !important;
+      font-size: 14px !important;
+    }
+
     @media (max-width: 768px) {
       .glossary-overlay {
         align-items: stretch !important;
@@ -1291,18 +1339,40 @@
     isOpen = true;
     checkMobile();
 
+    // Mostra schermata di caricamento
+    const loadingScreen = createLoadingScreen();
+    document.body.appendChild(loadingScreen);
+
+    // Blocca scroll
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
+
     createOverlay().then(overlay => {
       document.body.appendChild(overlay);
 
-      // Calcola larghezza scrollbar e compensa il layout shift
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-
       renderList();
 
+      // Mostra overlay
       setTimeout(() => overlay.classList.add('show'), 10);
+
+      // Nascondi schermata di caricamento dopo che l'overlay è visibile
+      setTimeout(() => {
+        loadingScreen.classList.add('hide');
+        setTimeout(() => loadingScreen.remove(), 300);
+      }, 100);
     });
+  }
+
+  function createLoadingScreen() {
+    const loadingScreen = document.createElement('div');
+    loadingScreen.className = 'glossary-loading-screen';
+    loadingScreen.innerHTML = `
+      <div class="glossary-loading-spinner"></div>
+      <div class="glossary-loading-text">Caricamento glossario...</div>
+      <div class="glossary-loading-subtext">Preparazione dei dati</div>
+    `;
+    return loadingScreen;
   }
 
   function closeGlossary() {
