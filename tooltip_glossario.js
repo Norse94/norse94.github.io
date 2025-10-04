@@ -13,6 +13,8 @@
   };
 
   let glossaryData = [];
+  let glossaryIndex = {}; // Indice hash per ricerche O(1)
+  let combinedRegex = null; // Regex combinata per ricerca efficiente
   let processedTerms = new Set();
   let currentTooltip = null;
   let tooltipTimeout = null;
@@ -353,10 +355,71 @@
         });
 
       glossaryData = await window.sharedGlossaryDataPromise;
+
+      // Costruisci indice hash per ricerche rapide
+      buildGlossaryIndex();
     } catch (err) {
       console.error('Errore caricamento glossario:', err);
       glossaryData = [];
     }
+  }
+
+  // Costruisce un indice hash per ricerche O(1)
+  function buildGlossaryIndex() {
+    glossaryIndex = {};
+
+    glossaryData.forEach(term => {
+      const key = term.acronym.toLowerCase();
+
+      // Crea array se non esiste
+      if (!glossaryIndex[key]) {
+        glossaryIndex[key] = [];
+      }
+
+      // Aggiungi il termine (può avere varianti)
+      glossaryIndex[key].push(term);
+
+      // Aggiungi anche gli alias all'indice
+      if (term.aliases && Array.isArray(term.aliases)) {
+        term.aliases.forEach(alias => {
+          const aliasKey = alias.toLowerCase();
+          if (!glossaryIndex[aliasKey]) {
+            glossaryIndex[aliasKey] = [];
+          }
+          glossaryIndex[aliasKey].push(term);
+        });
+      }
+    });
+
+    console.log(`🔍 Indice hash tooltip creato: ${Object.keys(glossaryIndex).length} chiavi univoche (acronimi + alias)`);
+
+    // Costruisci regex combinata per performance
+    buildCombinedRegex();
+  }
+
+  // Costruisce una regex combinata per trovare tutti i termini in un solo passaggio
+  function buildCombinedRegex() {
+    const patterns = [];
+
+    // Raccogli tutti gli acronimi e alias
+    const allTerms = new Set();
+    glossaryData.forEach(term => {
+      allTerms.add(term.acronym);
+      if (term.aliases && Array.isArray(term.aliases)) {
+        term.aliases.forEach(alias => allTerms.add(alias));
+      }
+    });
+
+    // Ordina per lunghezza decrescente (per matchare termini più lunghi prima)
+    const sortedTerms = Array.from(allTerms).sort((a, b) => b.length - a.length);
+
+    // Crea pattern combinato
+    const escapedTerms = sortedTerms.map(term => escapeRegExp(term));
+    const pattern = `\\b(${escapedTerms.join('|')})\\b`;
+
+    combinedRegex = new RegExp(pattern, 'gi');
+
+    console.log(`⚡ Regex combinata creata: ${sortedTerms.length} termini in un pattern unico`);
   }
 
   // ============================================
@@ -405,57 +468,36 @@
       const text = textNode.textContent;
       let replacements = [];
 
-      // Cerca tutti i termini del glossario nel testo
-      glossaryData.forEach(term => {
-        // Cerca l'acronimo
-        // Se il termine ha caseSensitive: true, cerca solo uppercase
-        let acronymRegex;
-        if (term.caseSensitive === true) {
-          // Cerca solo se il termine è tutto maiuscolo
-          acronymRegex = new RegExp(`\\b${escapeRegExp(term.acronym)}\\b`, 'g');
-        } else {
-          // Ricerca case-insensitive normale
-          acronymRegex = new RegExp(`\\b${escapeRegExp(term.acronym)}\\b`, 'gi');
-        }
-        
-        let match;
-        while ((match = acronymRegex.exec(text)) !== null) {
-          // Se caseSensitive è true, verifica che sia effettivamente uppercase
-          if (term.caseSensitive === true) {
-            const matchedText = match[0];
-            if (matchedText === matchedText.toUpperCase()) {
-              replacements.push({
-                start: match.index,
-                end: match.index + match[0].length,
-                text: match[0],
-                term: term
-              });
-            }
-          } else {
-            replacements.push({
-              start: match.index,
-              end: match.index + match[0].length,
-              text: match[0],
-              term: term
-            });
-          }
-        }
+      // Usa regex combinata per trovare tutti i match in un solo passaggio
+      combinedRegex.lastIndex = 0; // Reset regex
+      let match;
+      while ((match = combinedRegex.exec(text)) !== null) {
+        const matchedText = match[0];
+        const matchedKey = matchedText.toLowerCase();
 
-        // Cerca anche gli alias se presenti (sempre case-insensitive)
-        if (term.aliases && Array.isArray(term.aliases)) {
-          term.aliases.forEach(alias => {
-            const aliasRegex = new RegExp(`\\b${escapeRegExp(alias)}\\b`, 'gi');
-            while ((match = aliasRegex.exec(text)) !== null) {
-              replacements.push({
-                start: match.index,
-                end: match.index + match[0].length,
-                text: match[0],
-                term: term
-              });
+        // Trova il termine corrispondente usando l'indice hash
+        const candidates = glossaryIndex[matchedKey];
+
+        if (candidates && candidates.length > 0) {
+          // Prendi il primo termine (gestisce varianti se necessario)
+          const term = candidates[0];
+
+          // Verifica case-sensitive se necessario
+          if (term.caseSensitive === true) {
+            // Solo maiuscole
+            if (matchedText !== matchedText.toUpperCase()) {
+              continue; // Salta questo match
             }
+          }
+
+          replacements.push({
+            start: match.index,
+            end: match.index + matchedText.length,
+            text: matchedText,
+            term: term
           });
         }
-      });
+      }
 
       if (replacements.length > 0) {
         // Ordina per posizione e rimuovi sovrapposizioni

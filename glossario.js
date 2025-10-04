@@ -14,6 +14,7 @@
   };
 
   let glossaryData = [];
+  let glossaryIndex = {}; // Indice hash per ricerche O(1)
   let isOpen = false;
   let currentFilter = '';
   let currentCategories = []; // Array di categorie selezionate
@@ -1225,6 +1226,9 @@
 
       glossaryData.sort((a, b) => a.acronym.localeCompare(b.acronym));
 
+      // Costruisci indice hash per ricerche rapide
+      buildGlossaryIndex();
+
       const otherCategories = [...new Set(glossaryData.flatMap(item => {
         if (Array.isArray(item.category)) {
           return item.category;
@@ -1239,6 +1243,25 @@
       console.error('Errore caricamento glossario:', err);
       glossaryData = [];
     }
+  }
+
+  // Costruisce un indice hash per ricerche O(1)
+  function buildGlossaryIndex() {
+    glossaryIndex = {};
+
+    glossaryData.forEach(term => {
+      const key = term.acronym.toLowerCase();
+
+      // Crea array se non esiste
+      if (!glossaryIndex[key]) {
+        glossaryIndex[key] = [];
+      }
+
+      // Aggiungi il termine (può avere varianti)
+      glossaryIndex[key].push(term);
+    });
+
+    console.log(`🔍 Indice hash creato: ${Object.keys(glossaryIndex).length} chiavi univoche`);
   }
 
   // ============================================
@@ -1636,15 +1659,21 @@
   }
 
   function selectItem(acronym, variant = '') {
+    // Usa indice hash per ricerca O(1)
+    const key = acronym.toLowerCase();
+    const candidates = glossaryIndex[key];
+
+    if (!candidates || candidates.length === 0) return;
+
     // Cerca il termine, considerando anche la variante se presente
     let item;
     if (variant) {
-      item = glossaryData.find(i => i.acronym === acronym && i.variant === parseInt(variant));
+      item = candidates.find(i => i.variant === parseInt(variant));
     } else {
-      item = glossaryData.find(i => i.acronym === acronym && !i.variant);
-      // Se non trovato senza variant, prendi il primo con quell'acronimo
+      item = candidates.find(i => !i.variant);
+      // Se non trovato senza variant, prendi il primo
       if (!item) {
-        item = glossaryData.find(i => i.acronym === acronym);
+        item = candidates[0];
       }
     }
     if (!item) return;
@@ -2079,15 +2108,24 @@
         return;
       }
 
-      // Cerca il termine
+      // Cerca il termine usando indice hash
+      const key = term.toLowerCase();
+      const candidates = glossaryIndex[key];
+
+      if (!candidates || candidates.length === 0) {
+        // Termine non trovato, riprova
+        setTimeout(() => attemptSelect(attempts + 1), 100);
+        return;
+      }
+
       let item;
       if (variant) {
-        item = glossaryData.find(i => i.acronym === term && i.variant === parseInt(variant));
+        item = candidates.find(i => i.variant === parseInt(variant));
       } else {
-        item = glossaryData.find(i => i.acronym === term && !i.variant);
-        // Se non trovato senza variant, prendi il primo con quell'acronimo
+        item = candidates.find(i => !i.variant);
+        // Se non trovato senza variant, prendi il primo
         if (!item) {
-          item = glossaryData.find(i => i.acronym === term);
+          item = candidates[0];
         }
       }
 
