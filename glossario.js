@@ -22,6 +22,8 @@
   let currentSort = 'alfabetico';
   let isMobile = false;
   let categories = ['Tutte'];
+  let filterTimeout = null; // Debounce per filtro ricerca
+  let renderedItems = []; // Cache lista renderizzata
 
   // ============================================
   // STILI CSS
@@ -1247,6 +1249,13 @@
 
   // Costruisce un indice hash per ricerche O(1)
   function buildGlossaryIndex() {
+    // Usa indice condiviso se disponibile
+    if (window.sharedGlossaryIndex) {
+      console.log('🔍 Uso indice condiviso dal tooltip');
+      glossaryIndex = window.sharedGlossaryIndex;
+      return;
+    }
+
     glossaryIndex = {};
 
     glossaryData.forEach(term => {
@@ -1261,6 +1270,8 @@
       glossaryIndex[key].push(term);
     });
 
+    // Condividi indice globalmente
+    window.sharedGlossaryIndex = glossaryIndex;
     console.log(`🔍 Indice hash creato: ${Object.keys(glossaryIndex).length} chiavi univoche`);
   }
 
@@ -1567,7 +1578,15 @@
 
   function filterGlossary(query) {
     currentFilter = query;
-    renderList(query);
+
+    // Debounce: aspetta 150ms prima di filtrare
+    if (filterTimeout) {
+      clearTimeout(filterTimeout);
+    }
+
+    filterTimeout = setTimeout(() => {
+      renderList(query);
+    }, 150);
   }
 
   // ============================================
@@ -1577,38 +1596,40 @@
     const listEl = document.querySelector('.glossary-list');
     if (!listEl) return;
 
-    let filtered = glossaryData.filter(item => {
-      const search = filter.toLowerCase().trim();
-      
-      // Filtro per categorie
-      if (currentCategories.length > 0) {
-        const itemCategories = Array.isArray(item.category) ? item.category : [item.category];
-        
-        if (multiCategoryMode) {
-          // Modalità AND: il termine deve avere TUTTE le categorie selezionate
-          const hasAllCategories = currentCategories.every(cat => itemCategories.includes(cat));
-          if (!hasAllCategories) {
-            return false;
-          }
-        } else {
-          // Modalità OR: il termine deve avere ALMENO UNA delle categorie
-          const hasAnyCategory = currentCategories.some(cat => itemCategories.includes(cat));
-          if (!hasAnyCategory) {
-            return false;
+    // Usa requestAnimationFrame per rendering più fluido
+    requestAnimationFrame(() => {
+      let filtered = glossaryData.filter(item => {
+        const search = filter.toLowerCase().trim();
+
+        // Filtro per categorie
+        if (currentCategories.length > 0) {
+          const itemCategories = Array.isArray(item.category) ? item.category : [item.category];
+
+          if (multiCategoryMode) {
+            // Modalità AND: il termine deve avere TUTTE le categorie selezionate
+            const hasAllCategories = currentCategories.every(cat => itemCategories.includes(cat));
+            if (!hasAllCategories) {
+              return false;
+            }
+          } else {
+            // Modalità OR: il termine deve avere ALMENO UNA delle categorie
+            const hasAnyCategory = currentCategories.some(cat => itemCategories.includes(cat));
+            if (!hasAnyCategory) {
+              return false;
+            }
           }
         }
-      }
-      
-      if (search) {
-        if (search.length === 1) {
-          return item.acronym.toLowerCase().startsWith(search);
+
+        if (search) {
+          if (search.length === 1) {
+            return item.acronym.toLowerCase().startsWith(search);
+          }
+          return item.acronym.toLowerCase().includes(search) ||
+                 item.full.toLowerCase().includes(search);
         }
-        return item.acronym.toLowerCase().includes(search) ||
-               item.full.toLowerCase().includes(search);
-      }
-      
-      return true;
-    });
+
+        return true;
+      });
 
     filtered.sort((a, b) => {
       switch(currentSort) {
@@ -1632,29 +1653,42 @@
       }
     });
 
-    if (filtered.length === 0) {
-      listEl.innerHTML = '<div class="glossary-no-results">Nessun risultato trovato</div>';
-      return;
-    }
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="glossary-no-results">Nessun risultato trovato</div>';
+        renderedItems = [];
+        return;
+      }
 
-    listEl.innerHTML = filtered.map(item => {
-      const itemCategories = Array.isArray(item.category) ? item.category : (item.category ? [item.category] : []);
-      const categoryBadges = itemCategories.length > 0
-        ? itemCategories.map(cat => `<span class="glossary-item-category">${cat}</span>`).join(' ')
-        : '';
-      const variantBadge = item.variant ? `<span class="glossary-variant-badge">${item.variant}</span>` : '';
+      // Cache e DocumentFragment per performance
+      const fragment = document.createDocumentFragment();
 
-      return `
-        <div class="glossary-item" data-acronym="${item.acronym}" data-variant="${item.variant || ''}">
+      filtered.forEach(item => {
+        const itemCategories = Array.isArray(item.category) ? item.category : (item.category ? [item.category] : []);
+        const categoryBadges = itemCategories.length > 0
+          ? itemCategories.map(cat => `<span class="glossary-item-category">${cat}</span>`).join(' ')
+          : '';
+        const variantBadge = item.variant ? `<span class="glossary-variant-badge">${item.variant}</span>` : '';
+
+        const div = document.createElement('div');
+        div.className = 'glossary-item';
+        div.dataset.acronym = item.acronym;
+        div.dataset.variant = item.variant || '';
+        div.innerHTML = `
           <div class="glossary-item-acronym">${item.acronym}${variantBadge}</div>
           <div class="glossary-item-full">${item.full}</div>
           ${categoryBadges}
-        </div>
-      `;
-    }).join('');
+        `;
 
-    listEl.querySelectorAll('.glossary-item').forEach(el => {
-      el.onclick = () => selectItem(el.dataset.acronym, el.dataset.variant);
+        // Event delegation più efficiente
+        div.onclick = () => selectItem(item.acronym, item.variant || '');
+
+        fragment.appendChild(div);
+      });
+
+      // Replace in una sola operazione
+      listEl.innerHTML = '';
+      listEl.appendChild(fragment);
+      renderedItems = filtered;
     });
   }
 

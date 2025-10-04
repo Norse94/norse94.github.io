@@ -16,8 +16,10 @@
   let glossaryIndex = {}; // Indice hash per ricerche O(1)
   let combinedRegexes = []; // Array di regex (divise in chunks per performance)
   let processedTerms = new Set();
+  let processedElements = new WeakSet(); // Cache elementi già processati
   let currentTooltip = null;
   let tooltipTimeout = null;
+  let hideTimeout = null;
 
   // ============================================
   // STILI CSS
@@ -331,10 +333,8 @@
         console.log('%c💡 TOOLTIP: Uso dati appena caricati (cache condivisa) - Evito fetch duplicato!', 'background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold');
         console.log(`   ↳ Termini disponibili: ${glossaryData.length}`);
 
-        // Costruisci indice e regex
-        console.log('📊 Costruisco indice da promise...');
-        buildGlossaryIndex();
-        console.log('✅ Indice costruito da promise');
+        // Usa indice condiviso o costruiscilo
+        useOrBuildSharedIndex();
         return;
       }
 
@@ -344,12 +344,8 @@
         console.log(`   ↳ Termini disponibili: ${window.sharedGlossaryData.length}`);
         glossaryData = window.sharedGlossaryData;
 
-        // Costruisci indice e regex se non già fatto
-        if (Object.keys(glossaryIndex).length === 0) {
-          console.log('📊 Costruisco indice da cache...');
-          buildGlossaryIndex();
-          console.log('✅ Indice costruito da cache');
-        }
+        // Usa indice condiviso o costruiscilo
+        useOrBuildSharedIndex();
         return;
       }
 
@@ -373,17 +369,32 @@
 
       glossaryData = await window.sharedGlossaryDataPromise;
 
-      // Costruisci indice hash per ricerche rapide
-      console.log('📊 Dati caricati, costruisco indice...');
-      buildGlossaryIndex();
-      console.log('✅ Indice costruito');
-      console.log(`🔍 DEBUG: glossaryData.length = ${glossaryData.length}`);
-      console.log(`🔍 DEBUG: Object.keys(glossaryIndex).length = ${Object.keys(glossaryIndex).length}`);
-      console.log(`🔍 DEBUG: combinedRegexes.length = ${combinedRegexes.length}`);
+      // Usa indice condiviso o costruiscilo
+      useOrBuildSharedIndex();
     } catch (err) {
       console.error('❌ Errore caricamento glossario:', err);
       glossaryData = [];
     }
+  }
+
+  // Usa indice condiviso o costruiscilo
+  function useOrBuildSharedIndex() {
+    // Controlla se esiste già un indice condiviso
+    if (window.sharedGlossaryIndex && window.sharedCombinedRegexes) {
+      console.log('📊 Uso indice e regex condivisi - Evito ricostruzione!');
+      glossaryIndex = window.sharedGlossaryIndex;
+      combinedRegexes = window.sharedCombinedRegexes;
+      console.log(`🔍 Indice condiviso: ${Object.keys(glossaryIndex).length} chiavi`);
+      console.log(`⚡ Regex condivise: ${combinedRegexes.length} chunks`);
+      return;
+    }
+
+    // Costruisci e condividi
+    console.log('📊 Costruisco indice e regex (primo caricamento tooltip)...');
+    buildGlossaryIndex();
+    window.sharedGlossaryIndex = glossaryIndex;
+    window.sharedCombinedRegexes = combinedRegexes;
+    console.log('✅ Indice e regex condivisi salvati globalmente');
   }
 
   // Costruisce un indice hash per ricerche O(1)
@@ -529,6 +540,12 @@
   }
 
   function highlightTermsInElement(element) {
+    // Skip se già processato
+    if (processedElements.has(element)) {
+      return;
+    }
+    processedElements.add(element);
+
     // Ottieni tutti i nodi di testo
     const walker = document.createTreeWalker(
       element,
@@ -730,8 +747,11 @@
     if (tooltipTimeout) {
       clearTimeout(tooltipTimeout);
     }
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
 
-    tooltipTimeout = setTimeout(() => {
+    hideTimeout = setTimeout(() => {
       if (currentTooltip) {
         currentTooltip.classList.remove('show');
         setTimeout(() => {
