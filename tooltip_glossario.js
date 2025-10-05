@@ -907,7 +907,6 @@
           <div class="glossary-variant-item ${currentClass}">
             <div class="glossary-variant-info">
               <div class="glossary-variant-name">${variant.acronym}${variantNum}</div>
-              <div class="glossary-variant-full">${variant.full}</div>
             </div>
             ${!isCurrent ? `<button class="glossary-variant-btn" data-acronym="${variant.acronym}" data-variant="${variant.variant || ''}">Vedi</button>` : `<span style="font-size: 11px; color: #6b7280; font-weight: 600;">Corrente</span>`}
           </div>
