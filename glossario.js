@@ -7,7 +7,7 @@
 
   // Configurazione
   const CONFIG = {
-    jsonUrl: 'https://norse94.github.io/glossary_json2.json',
+    jsonUrl: 'https://norse94.github.io/glossary_test_2000.json',
     buttonText: '📚 Glossario',
     title: 'Glossario Militare',
     placeholder: 'Cerca termine o acronimo...'
@@ -627,6 +627,7 @@
       color: #1f2937 !important;
       margin-bottom: 4px !important;
       display: block !important;
+      pointer-events: none !important;
     }
 
     .glossary-variant-badge {
@@ -636,6 +637,7 @@
       font-weight: 600 !important;
       color: #425F93 !important;
       margin-left: 2px !important;
+      pointer-events: none !important;
     }
 
     .glossary-item-full {
@@ -643,6 +645,7 @@
       color: #6b7280 !important;
       margin-bottom: 4px !important;
       display: block !important;
+      pointer-events: none !important;
     }
 
     .glossary-item-category {
@@ -653,6 +656,13 @@
       background: #dfebff !important;
       color: #425F93 !important;
       font-weight: 600 !important;
+      pointer-events: none !important;
+    }
+
+    .glossary-item-category.primary {
+      background: #425F93 !important;
+      color: white !important;
+      font-weight: 700 !important;
     }
 
     .glossary-detail {
@@ -819,6 +829,12 @@
       border-radius: 16px !important;
       font-size: 12px !important;
       font-weight: 600 !important;
+    }
+
+    .glossary-badge.category-primary {
+      background: #425F93 !important;
+      color: white !important;
+      font-weight: 700 !important;
     }
 
     .glossary-badge.category {
@@ -2028,7 +2044,10 @@
       filtered.forEach(item => {
         const itemCategories = Array.isArray(item.category) ? item.category : (item.category ? [item.category] : []);
         const categoryBadges = itemCategories.length > 0
-          ? itemCategories.map(cat => `<span class="glossary-item-category">${cat}</span>`).join(' ')
+          ? itemCategories.map((cat, index) => {
+              const isPrimary = index === 0;
+              return `<span class="glossary-item-category ${isPrimary ? 'primary' : ''}">${cat}</span>`;
+            }).join(' ')
           : '';
         const variantBadge = item.variant ? `<span class="glossary-variant-badge">${item.variant}</span>` : '';
 
@@ -2089,8 +2108,12 @@
     
     html += `<div class="glossary-detail-meta">`;
     const itemCategories = Array.isArray(item.category) ? item.category : (item.category ? [item.category] : []);
-    itemCategories.forEach(cat => {
-      html += `<span class="glossary-badge category">📁 ${cat}</span>`;
+    itemCategories.forEach((cat, index) => {
+      // Prima categoria è la primaria, le altre sono aggiuntive
+      const isPrimary = index === 0;
+      const badgeClass = isPrimary ? 'category-primary' : 'category';
+      const icon = isPrimary ? '📁' : '🏷️';
+      html += `<span class="glossary-badge ${badgeClass}">${icon} ${cat}</span>`;
     });
     if (item.status) {
       const statusClass = item.status.toLowerCase() === 'attivo' ? 'status-active' : 'status-obsolete';
