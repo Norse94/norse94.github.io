@@ -7,7 +7,7 @@
 
   // Configurazione
   const CONFIG = {
-    jsonUrl: 'https://norse94.github.io/glossary_json2.json',
+    jsonUrl: 'https://norse94.github.io/glossary_test_2000.json',
     targetClass: 'color', // Classe delle tabelle dove cercare i termini
     tooltipDelay: 300 // Delay prima di mostrare il tooltip (ms)
   };
@@ -776,36 +776,33 @@
         currentTooltip.remove();
       }
 
-      // Su mobile, scrolla prima per posizionare l'elemento nella parte alta
-      if (window.innerWidth <= 768) {
-        const rect = event.target.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
+      // Scrolla per posizionare l'elemento in modo ottimale su tutti gli schermi
+      const rect = event.target.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const elementTop = rect.top + window.pageYOffset;
 
-        // Calcola la posizione attuale dell'elemento rispetto al documento
-        const elementTop = rect.top + window.pageYOffset;
-        const elementHeight = rect.height;
+      // Calcola la posizione ideale: 30% dall'alto per schermi grandi, 25% per piccoli
+      const topPercentage = window.innerWidth <= 768 ? 0.25 : 0.30;
+      const targetScrollPosition = elementTop - (viewportHeight * topPercentage);
+      const currentScrollPosition = window.pageYOffset;
+      const scrollOffset = targetScrollPosition - currentScrollPosition;
 
-        // Posiziona l'elemento a 1/4 dall'alto dello schermo (lascia spazio per il tooltip sotto)
-        const targetScrollPosition = elementTop - (viewportHeight * 0.25);
-        const currentScrollPosition = window.pageYOffset;
-        const scrollOffset = targetScrollPosition - currentScrollPosition;
+      // Scrolla solo se l'elemento è troppo in alto o troppo in basso (fuori vista ottimale)
+      const scrollThreshold = window.innerWidth <= 768 ? 50 : 100;
+      if (Math.abs(scrollOffset) > scrollThreshold) {
+        window.scrollTo({
+          top: Math.max(0, targetScrollPosition), // Non scrollare oltre il top della pagina
+          behavior: 'smooth'
+        });
 
-        // Scrolla solo se necessario
-        if (Math.abs(scrollOffset) > 50) {
-          window.scrollTo({
-            top: targetScrollPosition,
-            behavior: 'smooth'
-          });
-
-          // Aspetta che lo scroll sia completato prima di mostrare il tooltip
-          setTimeout(() => {
-            showTooltipAfterScroll(event, term);
-          }, 400);
-          return;
-        }
+        // Aspetta che lo scroll sia completato prima di mostrare il tooltip
+        setTimeout(() => {
+          showTooltipAfterScroll(event, term);
+        }, 400);
+        return;
       }
 
-      // Desktop o elemento già visibile: mostra subito
+      // Elemento già in posizione ottimale: mostra subito
       showTooltipAfterScroll(event, term);
     }, CONFIG.tooltipDelay);
   }
