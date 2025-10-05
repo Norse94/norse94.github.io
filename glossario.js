@@ -7,7 +7,7 @@
 
   // Configurazione
   const CONFIG = {
-    jsonUrl: 'https://norse94.github.io/glossary_test_2000.json',
+    jsonUrl: 'https://norse94.github.io/glossary_json2.json',
     buttonText: '📚 Glossario',
     title: 'Glossario Militare',
     placeholder: 'Cerca termine o acronimo...'
