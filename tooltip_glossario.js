@@ -934,20 +934,29 @@
       currentTooltip = null;
     };
 
-    // Event listeners per i pulsanti delle varianti
-    const variantBtns = tooltip.querySelectorAll('.glossary-variant-btn');
-    variantBtns.forEach(btn => {
-      btn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const acronym = btn.dataset.acronym;
-        const variant = btn.dataset.variant;
-        openGlossaryToTerm(acronym, variant);
-        tooltip.classList.remove('show');
-        setTimeout(() => tooltip.remove(), 300);
-        currentTooltip = null;
-      };
-    });
+    // Event listeners per le varianti (nel caso di termini con varianti)
+    if (hasVariants) {
+      const variantItems = tooltip.querySelectorAll('.glossary-variant-item');
+      variantItems.forEach((item, index) => {
+        const variant = allVariants[index];
+        item.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openGlossaryToTerm(variant.acronym, variant.variant);
+          tooltip.classList.remove('show');
+          setTimeout(() => tooltip.remove(), 300);
+          currentTooltip = null;
+        };
+
+        // Aggiungi effetto hover
+        item.addEventListener('mouseenter', () => {
+          item.style.background = '#f3f4f6';
+        });
+        item.addEventListener('mouseleave', () => {
+          item.style.background = '';
+        });
+      });
+    }
 
     return tooltip;
   }
