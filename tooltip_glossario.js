@@ -871,48 +871,47 @@
       </div>
     `;
 
-    if (term.full) {
-      html += `<p class="glossary-tooltip-full">${term.full}</p>`;
-    }
-
-    if (term.description) {
-      const shortDesc = term.description.length > 200
-        ? term.description.substring(0, 200) + '...'
-        : term.description;
-      html += `<div class="glossary-tooltip-description">${shortDesc}</div>`;
-    }
-
-    // Meta informazioni
-    html += `<div class="glossary-tooltip-meta">`;
-    const categories = Array.isArray(term.category) ? term.category : (term.category ? [term.category] : []);
-    categories.forEach(cat => {
-      html += `<span class="glossary-tooltip-badge category">📁 ${cat}</span>`;
-    });
-    if (term.year) {
-      html += `<span class="glossary-tooltip-badge year">📅 ${term.year}</span>`;
-    }
-    html += `</div>`;
-
-    // Mostra tutte le varianti se presenti
+    // Se ci sono varianti, mostra SOLO la lista delle varianti
     if (hasVariants) {
       html += `<div class="glossary-variants-section">`;
-      html += `<div class="glossary-variants-title">🔄 Altre varianti di questo termine</div>`;
+      html += `<div class="glossary-variants-title">Seleziona la variante corretta</div>`;
 
       allVariants.forEach(variant => {
-        const isCurrent = variant === term;
         const variantNum = variant.variant ? `<sup>${variant.variant}</sup>` : '';
-        const currentClass = isCurrent ? 'glossary-variant-current' : '';
 
         html += `
-          <div class="glossary-variant-item ${currentClass}">
+          <div class="glossary-variant-item" style="cursor: pointer; margin: 8px 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; transition: background 0.2s;">
             <div class="glossary-variant-info">
-              <div class="glossary-variant-name">${variant.acronym}${variantNum}</div>
+              <div class="glossary-variant-name" style="font-weight: 600; margin-bottom: 4px;">${variant.acronym}${variantNum}</div>
+              <div class="glossary-variant-full" style="font-size: 13px; color: #4b5563;">${variant.full}</div>
             </div>
-            ${!isCurrent ? `<button class="glossary-variant-btn" data-acronym="${variant.acronym}" data-variant="${variant.variant || ''}">Vedi</button>` : `<span style="font-size: 11px; color: #6b7280; font-weight: 600;">Corrente</span>`}
           </div>
         `;
       });
 
+      html += `</div>`;
+    } else {
+      // Se non ci sono varianti, mostra il contenuto normale
+      if (term.full) {
+        html += `<p class="glossary-tooltip-full">${term.full}</p>`;
+      }
+
+      if (term.description) {
+        const shortDesc = term.description.length > 200
+          ? term.description.substring(0, 200) + '...'
+          : term.description;
+        html += `<div class="glossary-tooltip-description">${shortDesc}</div>`;
+      }
+
+      // Meta informazioni
+      html += `<div class="glossary-tooltip-meta">`;
+      const categories = Array.isArray(term.category) ? term.category : (term.category ? [term.category] : []);
+      categories.forEach(cat => {
+        html += `<span class="glossary-tooltip-badge category">📁 ${cat}</span>`;
+      });
+      if (term.year) {
+        html += `<span class="glossary-tooltip-badge year">📅 ${term.year}</span>`;
+      }
       html += `</div>`;
     }
 
