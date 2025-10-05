@@ -2055,7 +2055,7 @@
         const div = document.createElement('div');
         div.className = 'glossary-item';
         div.dataset.acronym = item.acronym;
-        div.dataset.variant = item.variant || '';
+        div.dataset.variant = String(item.variant || '');
         div.innerHTML = `
           <div class="glossary-item-acronym">${item.acronym}${variantBadge}</div>
           <div class="glossary-item-full">${item.full}</div>
@@ -2063,7 +2063,7 @@
         `;
 
         // Event delegation più efficiente
-        div.onclick = () => selectItem(item.acronym, item.variant || '');
+        div.onclick = () => selectItem(item.acronym, String(item.variant || ''));
 
         fragment.appendChild(div);
       });
@@ -2277,8 +2277,9 @@
       if (!listEl) return;
 
       // Cerca l'elemento attivo nella lista
+      const variantStr = String(variant || '');
       const activeItem = Array.from(listEl.querySelectorAll('.glossary-item')).find(el => {
-        return el.dataset.acronym === acronym && el.dataset.variant === variant;
+        return el.dataset.acronym === acronym && el.dataset.variant === variantStr;
       });
 
       if (activeItem) {
@@ -2551,8 +2552,9 @@
       }
 
       if (item) {
-        selectItem(term, variant);
-        scrollToSelectedItem(term, variant);
+        const variantStr = String(variant || '');
+        selectItem(term, variantStr);
+        scrollToSelectedItem(term, variantStr);
         // Pulisci URL dopo successo
         cleanURLParams();
       } else {
@@ -2576,9 +2578,10 @@
     if (!isOpen) {
       openGlossary();
     }
+    const variantStr = String(variant || '');
     setTimeout(() => {
-      selectItem(acronym, variant || '');
-      scrollToSelectedItem(acronym, variant || '');
+      selectItem(acronym, variantStr);
+      scrollToSelectedItem(acronym, variantStr);
     }, isOpen ? 0 : 300);
   };
 
