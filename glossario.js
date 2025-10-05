@@ -38,6 +38,7 @@
       all: initial;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       box-sizing: border-box;
+      pointer-events: auto;
     }
 
     .glossary-overlay {
