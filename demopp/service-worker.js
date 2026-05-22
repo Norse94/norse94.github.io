@@ -1,3 +1,4 @@
+// v1.3: service worker intentionally disabled during testing.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
   event.waitUntil(

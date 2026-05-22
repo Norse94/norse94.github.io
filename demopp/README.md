@@ -1,4 +1,4 @@
-# Secure P2P Chat v1.2
+# Secure P2P Chat v1.3
 
 App web statica, mobile-first, pensata per GitHub Pages.
 
@@ -119,3 +119,22 @@ Prima di riprovare:
 5. ricarica la pagina.
 
 Su mobile, elimina i dati del sito dalle impostazioni del browser o cambia temporaneamente path/repository GitHub Pages.
+
+
+## Fix v1.3
+
+- Il parser del codice di pairing ora è più robusto:
+  - ignora spazi, ritorni a capo e caratteri invisibili;
+  - estrae automaticamente il primo blocco `SP2P1...` anche se incollato dentro altro testo;
+  - mostra un errore chiaro se il codice arriva da una vecchia build con `identityPublicKey:{}`.
+- Aggiunto fallback per il pulsante copia quando `navigator.clipboard` non è disponibile.
+
+## Come riconoscere un codice valido
+
+Deve iniziare con:
+
+```text
+SP2P1.
+```
+
+e deve essere copiato fino all’ultimo carattere. Se lo mandi via WhatsApp/Telegram/forum, evita di modificarlo o inserirlo in mezzo a formattazioni strane.
