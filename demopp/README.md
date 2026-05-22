@@ -1,4 +1,4 @@
-# Secure P2P Chat v1.3
+# Secure P2P Chat v1.5
 
 App web statica, mobile-first, pensata per GitHub Pages.
 
@@ -10,13 +10,26 @@ Funzioni incluse:
 - WebRTC DataChannel per chat testuale P2P;
 - cifratura applicativa dei messaggi con ECDH + HKDF + AES-GCM;
 - chiamata vocale P2P via WebRTC;
-- mute/unmute;
+- modalità ascolto se un utente non ha microfono;
+- mute/unmute quando il microfono è disponibile;
 - supporto mobile-first per Safari e Chrome moderni;
-- PWA minimale con service worker.
+- nessun service worker attivo durante i test.
+
+## Novità v1.5
+
+Se **Abilita voce nel pairing** è attivo ma il browser non trova un microfono, l'app non torna più a "solo testo".
+Aggiunge invece un transceiver WebRTC audio `recvonly`, cioè:
+
+```text
+utente senza microfono → può ascoltare
+utente con microfono   → può parlare e ascoltare
+```
+
+Quindi un PC senza microfono può comunque sentire un telefono o un portatile che parla.
 
 ## Come provarla in locale
 
-Serve un contesto sicuro per Web Crypto e microfono. Puoi usare `localhost`.
+Serve un contesto sicuro per Web Crypto e microfono. `localhost` va bene.
 
 ```bash
 python3 -m http.server 8080
@@ -37,29 +50,15 @@ http://localhost:8080
 5. Branch: `main`, folder `/root`.
 6. Apri l’URL `https://nomeutente.github.io/nome-repo/`.
 
-## Uso
+## Uso consigliato
 
-Persona A:
+Su entrambi i dispositivi:
 
-1. crea profilo o fa login;
-2. decide se abilitare la voce;
-3. clicca **Crea invito**;
-4. copia il codice generato e lo invia a Persona B.
-
-Persona B:
-
-1. crea profilo o fa login;
-2. decide se abilitare la voce;
-3. incolla il codice in **Codice ricevuto**;
-4. clicca **Usa invito ricevuto**;
-5. copia la risposta generata e la invia a Persona A.
-
-Persona A:
-
-1. incolla la risposta in **Codice ricevuto**;
-2. clicca **Conferma risposta ricevuta**.
-
-Dopo pochi secondi la chat dovrebbe aprirsi.
+1. crea un nuovo profilo locale;
+2. lascia **Abilita voce nel pairing** attivo se almeno vuoi ascoltare;
+3. se non hai microfono, l’app mostrerà la modalità ascolto;
+4. genera un nuovo invito con la v1.5;
+5. non riusare inviti di versioni precedenti.
 
 ## Note di sicurezza
 
@@ -76,65 +75,29 @@ Cose buone:
 
 Limiti importanti:
 
-- il codice di signaling va scambiato attraverso un canale esterno: se quel canale è compromesso, devi verificare i fingerprint;
-- la chiave ECDH persistente non offre perfect forward secrecy;
 - la voce usa la cifratura nativa di WebRTC, non una cifratura applicativa aggiuntiva;
+- la chiave ECDH persistente non offre perfect forward secrecy;
 - STUN esterno è abilitato di default per aumentare la probabilità di connessione;
 - se il NAT/firewall è difficile può servire un TURN server, ma quello non è incluso;
 - se perdi la password locale, non puoi recuperare il profilo.
 
-## Miglioramenti consigliati
+## Se qualcosa non va
 
-- QR code locale per invito/risposta;
-- chiavi effimere firmate da identità persistente;
-- verifica SAS tipo “confronta 4 parole”;
-- esportazione/importazione cifrata del profilo;
-- cronologia locale cifrata;
-- cancellazione sicura del profilo;
-- eventuale signaling opzionale via Cloudflare Worker mantenendo E2EE.
+Dopo upgrade da versioni vecchie:
 
+1. cancella i dati del sito;
+2. ricarica la pagina;
+3. ricrea il profilo;
+4. rigenera l’invito.
 
-## Fix v1.1
+Un invito valido deve contenere nel payload decodificato:
 
-- Corretto un bug che poteva generare un invito senza chiave pubblica valida.
-- Aggiunti errori più chiari quando WebRTC, HTTPS o microfono bloccano la creazione dell’invito.
-- Se l’invito non appare, prova prima con **Abilita voce nel pairing** disattivato.
-
-
-## Fix v1.2
-
-- Rinominato il file JS in `js/app.v1.2.js` per evitare che un vecchio service worker serva ancora `js/app.js`.
-- Disabilitata la registrazione del service worker durante i test.
-- Aggiunto controllo esplicito: l’invito non viene creato se la chiave pubblica è `{}` o non valida.
-- Il vecchio bug produceva inviti con `"identityPublicKey":{}`. Un invito valido deve contenere una stringa base64 in `identityPublicKey`.
-
-## Se arrivi dalla v1 o v1.1
-
-Prima di riprovare:
-
-1. apri DevTools → Application → Service Workers;
-2. clicca **Unregister** sul service worker del sito;
-3. vai in Application → Storage;
-4. clicca **Clear site data**;
-5. ricarica la pagina.
-
-Su mobile, elimina i dati del sito dalle impostazioni del browser o cambia temporaneamente path/repository GitHub Pages.
-
-
-## Fix v1.3
-
-- Il parser del codice di pairing ora è più robusto:
-  - ignora spazi, ritorni a capo e caratteri invisibili;
-  - estrae automaticamente il primo blocco `SP2P1...` anche se incollato dentro altro testo;
-  - mostra un errore chiaro se il codice arriva da una vecchia build con `identityPublicKey:{}`.
-- Aggiunto fallback per il pulsante copia quando `navigator.clipboard` non è disponibile.
-
-## Come riconoscere un codice valido
-
-Deve iniziare con:
-
-```text
-SP2P1.
+```json
+"identityPublicKey": "MI..."
 ```
 
-e deve essere copiato fino all’ultimo carattere. Se lo mandi via WhatsApp/Telegram/forum, evita di modificarlo o inserirlo in mezzo a formattazioni strane.
+non:
+
+```json
+"identityPublicKey": {}
+```
