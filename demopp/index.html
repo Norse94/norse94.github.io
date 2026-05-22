@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Secure P2P Chat</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <noscript>Questa app richiede JavaScript.</noscript>
+
+  <main class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">GitHub Pages · WebRTC · Web Crypto</p>
+        <h1>Secure P2P Chat</h1>
+        <p class="subtitle">Chat testuale cifrata lato app + voce P2P, con login locale e pairing manuale.</p>
+      </div>
+      <span id="secureContextBadge" class="badge">checking…</span>
+    </header>
+
+    <section id="authView" class="card">
+      <h2>Profilo locale</h2>
+      <p class="muted">
+        Il profilo resta nel browser. La password sblocca la chiave privata cifrata localmente:
+        non esiste recupero password.
+      </p>
+
+      <label>
+        Nome profilo
+        <input id="usernameInput" autocomplete="username" placeholder="es. Sergio" />
+      </label>
+
+      <label>
+        Password locale
+        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="minimo 10 caratteri" />
+      </label>
+
+      <div class="button-row">
+        <button id="createProfileBtn" class="primary">Crea profilo</button>
+        <button id="loginBtn">Login</button>
+      </div>
+
+      <details>
+        <summary>Profili salvati in questo browser</summary>
+        <div id="profilesList" class="small-list"></div>
+      </details>
+    </section>
+
+    <section id="chatView" class="hidden">
+      <section class="card">
+        <div class="top-row">
+          <div>
+            <h2 id="welcomeTitle">Profilo</h2>
+            <p id="localFingerprint" class="mono tiny"></p>
+          </div>
+          <button id="logoutBtn" class="ghost">Esci</button>
+        </div>
+
+        <div class="warning">
+          Verifica sempre il fingerprint dell’altro utente tramite un canale esterno prima di fidarti della conversazione.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>1. Impostazioni connessione</h2>
+
+        <div class="toggle-grid">
+          <label class="toggle">
+            <input id="voiceEnabled" type="checkbox" />
+            <span>Abilita voce nel pairing</span>
+          </label>
+
+          <label class="toggle">
+            <input id="disableStun" type="checkbox" />
+            <span>Non usare STUN esterno</span>
+          </label>
+        </div>
+
+        <p class="muted">
+          Se disattivi STUN, la connessione può funzionare solo in reti semplici o locali.
+          Con STUN la voce/chat resta P2P, ma il browser contatta un server STUN per scoprire il percorso di rete.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>2. Pairing manuale</h2>
+        <div class="button-row">
+          <button id="createOfferBtn" class="primary">Crea invito</button>
+          <button id="joinOfferBtn">Usa invito ricevuto</button>
+          <button id="acceptAnswerBtn">Conferma risposta ricevuta</button>
+        </div>
+
+        <label>
+          Codice da inviare
+          <textarea id="outgoingSignal" readonly placeholder="Qui apparirà l’invito o la risposta da copiare."></textarea>
+        </label>
+
+        <div class="button-row">
+          <button id="copyOutgoingBtn">Copia codice</button>
+          <button id="clearOutgoingBtn" class="ghost">Pulisci</button>
+        </div>
+
+        <label>
+          Codice ricevuto
+          <textarea id="incomingSignal" placeholder="Incolla qui l’invito o la risposta dell’altra persona."></textarea>
+        </label>
+
+        <div id="connectionStatus" class="status">Non connesso.</div>
+      </section>
+
+      <section class="card">
+        <h2>3. Identità remota</h2>
+        <div id="remoteIdentity" class="identity-box muted">Nessun contatto remoto ancora impostato.</div>
+      </section>
+
+      <section class="card voice-panel">
+        <h2>Voce</h2>
+        <div class="button-row">
+          <button id="muteBtn" disabled>Mute</button>
+          <button id="playRemoteAudioBtn" disabled>Attiva audio remoto</button>
+          <button id="hangupBtn" class="danger" disabled>Chiudi connessione</button>
+        </div>
+        <p id="voiceStatus" class="muted">Voce non attiva.</p>
+        <audio id="remoteAudio" autoplay playsinline></audio>
+      </section>
+
+      <section class="card chat-card">
+        <h2>Chat</h2>
+        <div id="messages" class="messages" aria-live="polite"></div>
+
+        <form id="messageForm" class="message-form">
+          <input id="messageInput" autocomplete="off" placeholder="Scrivi un messaggio…" disabled />
+          <button id="sendBtn" class="primary" disabled>Invia</button>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

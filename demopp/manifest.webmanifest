@@ -1,0 +1,10 @@
+{
+  "name": "Secure P2P Chat",
+  "short_name": "P2P Chat",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#111827",
+  "description": "Chat P2P via WebRTC con login locale e pairing manuale.",
+  "icons": []
+}
