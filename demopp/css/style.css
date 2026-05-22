@@ -344,3 +344,5 @@ textarea {
     border-radius: 18px;
   }
 }
+
+.version { color: var(--muted); margin-top: -.25rem; font-weight: 700; }

@@ -1,4 +1,4 @@
-# Secure P2P Chat
+# Secure P2P Chat v1.1
 
 App web statica, mobile-first, pensata per GitHub Pages.
 
@@ -92,3 +92,10 @@ Limiti importanti:
 - cronologia locale cifrata;
 - cancellazione sicura del profilo;
 - eventuale signaling opzionale via Cloudflare Worker mantenendo E2EE.
+
+
+## Fix v1.1
+
+- Corretto un bug che poteva generare un invito senza chiave pubblica valida.
+- Aggiunti errori più chiari quando WebRTC, HTTPS o microfono bloccano la creazione dell’invito.
+- Se l’invito non appare, prova prima con **Abilita voce nel pairing** disattivato.
