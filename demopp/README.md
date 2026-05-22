@@ -1,4 +1,4 @@
-# Secure P2P Chat v1.1
+# Secure P2P Chat v1.2
 
 App web statica, mobile-first, pensata per GitHub Pages.
 
@@ -99,3 +99,23 @@ Limiti importanti:
 - Corretto un bug che poteva generare un invito senza chiave pubblica valida.
 - Aggiunti errori più chiari quando WebRTC, HTTPS o microfono bloccano la creazione dell’invito.
 - Se l’invito non appare, prova prima con **Abilita voce nel pairing** disattivato.
+
+
+## Fix v1.2
+
+- Rinominato il file JS in `js/app.v1.2.js` per evitare che un vecchio service worker serva ancora `js/app.js`.
+- Disabilitata la registrazione del service worker durante i test.
+- Aggiunto controllo esplicito: l’invito non viene creato se la chiave pubblica è `{}` o non valida.
+- Il vecchio bug produceva inviti con `"identityPublicKey":{}`. Un invito valido deve contenere una stringa base64 in `identityPublicKey`.
+
+## Se arrivi dalla v1 o v1.1
+
+Prima di riprovare:
+
+1. apri DevTools → Application → Service Workers;
+2. clicca **Unregister** sul service worker del sito;
+3. vai in Application → Storage;
+4. clicca **Clear site data**;
+5. ricarica la pagina.
+
+Su mobile, elimina i dati del sito dalle impostazioni del browser o cambia temporaneamente path/repository GitHub Pages.
