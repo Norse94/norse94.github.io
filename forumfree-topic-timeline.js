@@ -24,6 +24,10 @@
     year: "numeric"
   });
 
+  function isMobileTimeline() {
+    return window.matchMedia("(max-width: 900px)").matches;
+  }
+
   function readState() {
     try {
       return JSON.parse(localStorage.getItem(storageKey) ?? "null");
@@ -258,7 +262,100 @@
 
       @media (max-width: 900px) {
         #fftl-root {
-          display: none;
+          top: auto;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          width: auto;
+          height: calc(82px + env(safe-area-inset-bottom, 0px));
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+          box-sizing: border-box;
+          background: rgba(22, 22, 24, 0.96);
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.32);
+        }
+
+        #fftl-root .fftl-date {
+          position: absolute;
+          top: 8px;
+          height: 16px;
+          max-width: 42%;
+          overflow: hidden;
+          color: #a7a7ad;
+          font-size: 12px;
+          line-height: 16px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        #fftl-root .fftl-start {
+          left: 14px;
+        }
+
+        #fftl-root .fftl-end {
+          right: 14px;
+          text-align: right;
+        }
+
+        #fftl-root .fftl-track {
+          top: 34px;
+          right: 14px;
+          bottom: auto;
+          left: 14px;
+          width: auto;
+          height: 38px;
+        }
+
+        #fftl-root .fftl-back.is-visible + .fftl-track {
+          right: 82px;
+        }
+
+        #fftl-root .fftl-line {
+          top: 17px;
+          right: 0;
+          bottom: auto;
+          left: 0;
+          width: auto;
+          height: 2px;
+        }
+
+        #fftl-root .fftl-handle {
+          top: 0;
+          left: 0;
+          width: 112px;
+          min-height: 38px;
+          box-sizing: border-box;
+          border-top: 6px solid #8d70ff;
+          border-left: 0;
+          padding: 6px 6px 0;
+          text-align: center;
+        }
+
+        #fftl-root .fftl-handle strong {
+          overflow: hidden;
+          font-size: 14px;
+          line-height: 15px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        #fftl-root .fftl-handle span {
+          overflow: hidden;
+          margin-top: 0;
+          font-size: 12px;
+          line-height: 14px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        #fftl-root .fftl-back {
+          top: 38px;
+          right: 14px;
+          left: auto;
+          min-width: 58px;
+          height: 30px;
+          padding: 0 8px;
+          font-size: 13px;
         }
       }
     `;
@@ -277,11 +374,23 @@
     start.textContent = formatMonth.format(new Date(timeline.topic.firstPostAt));
     end.textContent = formatDay.format(new Date(timeline.topic.lastPostAt));
 
+    function setHandlePosition(ratio) {
+      if (isMobileTimeline()) {
+        const x = ratio * Math.max(1, track.clientWidth - handle.clientWidth);
+        handle.style.left = `${x}px`;
+        handle.style.top = "0";
+        return;
+      }
+
+      const y = ratio * Math.max(1, track.clientHeight - handle.clientHeight);
+      handle.style.top = `${y}px`;
+      handle.style.left = "4px";
+    }
+
     function setHandleByPostNumber(postNumber) {
       const total = Math.max(1, Number(timeline.topic.totalPosts));
       const ratio = Math.min(1, Math.max(0, (postNumber - 1) / Math.max(1, total - 1)));
-      const y = ratio * Math.max(1, track.clientHeight - handle.clientHeight);
-      handle.style.top = `${y}px`;
+      setHandlePosition(ratio);
       handleStrong.textContent = `${postNumber} / ${total}`;
 
       const checkpoint = nearestCheckpoint(timeline, ratio);
@@ -310,11 +419,16 @@
 
     function ratioFromPointer(event) {
       const rect = track.getBoundingClientRect();
+      if (isMobileTimeline()) {
+        return Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+      }
+
       return Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
     }
 
     handle.addEventListener("pointerdown", (event) => {
       dragging = true;
+      pendingCheckpoint = null;
       handle.setPointerCapture(event.pointerId);
     });
 
@@ -322,8 +436,7 @@
       if (!dragging) return;
       const ratio = ratioFromPointer(event);
       pendingCheckpoint = nearestCheckpoint(timeline, ratio);
-      const y = ratio * Math.max(1, track.clientHeight - handle.clientHeight);
-      handle.style.top = `${y}px`;
+      setHandlePosition(ratio);
       handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
       handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
     });
@@ -331,6 +444,11 @@
     handle.addEventListener("pointerup", () => {
       dragging = false;
       if (pendingCheckpoint) navigateToCheckpoint(timeline, pendingCheckpoint);
+    });
+
+    handle.addEventListener("pointercancel", () => {
+      dragging = false;
+      pendingCheckpoint = null;
     });
 
     track.addEventListener("click", (event) => {
@@ -345,10 +463,10 @@
 
     updateReadState();
     window.addEventListener("scroll", updateReadState, { passive: true });
+    window.addEventListener("resize", updateReadState, { passive: true });
   }
 
   loadTimeline().then(render).catch((error) => {
     console.warn("ForumFree timeline unavailable", error);
   });
 })();
-
