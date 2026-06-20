@@ -47,13 +47,35 @@
     window.location.href = url;
   }
 
-  function nearestCheckpoint(timeline, ratio) {
+  function checkpointFromRatio(timeline, ratio) {
     const days = timeline.days;
-    const first = Date.parse(timeline.topic.firstPostAt);
-    const last = Date.parse(timeline.topic.lastPostAt);
-    const target = first + (last - first) * ratio;
+    const index = Math.min(
+      days.length - 1,
+      Math.max(0, Math.round(ratio * Math.max(0, days.length - 1)))
+    );
 
-    return days.find((day) => Date.parse(day.firstPostAt) >= target) ?? days[days.length - 1];
+    return days[index];
+  }
+
+  function checkpointForPostNumber(timeline, postNumber) {
+    const days = timeline.days;
+    let low = 0;
+    let high = days.length - 1;
+    let best = days[0];
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = days[mid];
+
+      if (candidate.firstPostNumber <= postNumber) {
+        best = candidate;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    return best;
   }
 
   function currentPostNumber() {
@@ -474,8 +496,8 @@
       setHandlePosition(ratio);
       handleStrong.textContent = `${postNumber} / ${total}`;
 
-      const checkpoint = nearestCheckpoint(timeline, ratio);
-      handleDate.textContent = formatMonth.format(new Date(checkpoint.firstPostAt));
+      const checkpoint = checkpointForPostNumber(timeline, postNumber);
+      handleDate.textContent = formatDay.format(new Date(checkpoint.firstPostAt));
     }
 
     function updateReadState() {
@@ -514,11 +536,11 @@
       dragging = true;
       activePointerId = event.pointerId;
       pointerMoved = false;
-      pendingCheckpoint = isMobileTimeline() ? nearestCheckpoint(timeline, ratio) : null;
+      pendingCheckpoint = isMobileTimeline() ? checkpointFromRatio(timeline, ratio) : null;
       if (pendingCheckpoint) {
         setHandlePosition(ratio);
         handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
-        handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+        handleDate.textContent = formatDay.format(new Date(pendingCheckpoint.firstPostAt));
       }
       handle.setPointerCapture(event.pointerId);
       event.preventDefault();
@@ -528,10 +550,10 @@
       if (!dragging || activePointerId !== event.pointerId) return;
       const ratio = ratioFromPointer(event);
       pointerMoved = true;
-      pendingCheckpoint = nearestCheckpoint(timeline, ratio);
+      pendingCheckpoint = checkpointFromRatio(timeline, ratio);
       setHandlePosition(ratio);
       handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
-      handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+      handleDate.textContent = formatDay.format(new Date(pendingCheckpoint.firstPostAt));
       event.preventDefault();
     });
 
@@ -558,10 +580,10 @@
       dragging = true;
       activePointerId = event.pointerId;
       pointerMoved = false;
-      pendingCheckpoint = nearestCheckpoint(timeline, ratio);
+      pendingCheckpoint = checkpointFromRatio(timeline, ratio);
       setHandlePosition(ratio);
       handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
-      handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+      handleDate.textContent = formatDay.format(new Date(pendingCheckpoint.firstPostAt));
       track.setPointerCapture(event.pointerId);
       event.preventDefault();
     });
@@ -570,10 +592,10 @@
       if (!isMobileTimeline() || !dragging || activePointerId !== event.pointerId) return;
       const ratio = ratioFromPointer(event);
       pointerMoved = true;
-      pendingCheckpoint = nearestCheckpoint(timeline, ratio);
+      pendingCheckpoint = checkpointFromRatio(timeline, ratio);
       setHandlePosition(ratio);
       handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
-      handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+      handleDate.textContent = formatDay.format(new Date(pendingCheckpoint.firstPostAt));
       event.preventDefault();
     });
 
@@ -596,7 +618,7 @@
     track.addEventListener("click", (event) => {
       if (isMobileTimeline()) return;
       if (event.target === handle || handle.contains(event.target)) return;
-      navigateToCheckpoint(timeline, nearestCheckpoint(timeline, ratioFromPointer(event)));
+      navigateToCheckpoint(timeline, checkpointFromRatio(timeline, ratioFromPointer(event)));
     });
 
     backButton.addEventListener("click", () => {
