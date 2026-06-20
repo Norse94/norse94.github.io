@@ -54,17 +54,17 @@
       status.style.cssText = [
         "position:fixed",
         "z-index:99999",
-        "top:96px",
-        "right:18px",
-        "max-width:220px",
+        "top:82px",
+        "right:16px",
+        "max-width:240px",
         "box-sizing:border-box",
-        "border:1px solid rgba(90,167,255,.34)",
+        "border:1px solid rgba(149,190,242,.3)",
         "border-radius:8px",
-        "padding:9px 11px",
-        "background:rgba(8,26,52,.96)",
-        "color:#f4f8ff",
-        "font:13px/1.25 Arial,Helvetica,sans-serif",
-        "box-shadow:0 8px 24px rgba(0,0,0,.28)"
+        "padding:10px 12px",
+        "background:linear-gradient(135deg,rgba(24,48,78,.96),rgba(7,13,22,.96))",
+        "color:#f7fbff",
+        "font:700 13px/1.25 Arial,Helvetica,sans-serif",
+        "box-shadow:0 18px 46px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.08)"
       ].join(";");
       document.body.appendChild(status);
     }
@@ -77,11 +77,11 @@
       status.style.maxWidth = "";
       status.style.textAlign = "center";
     } else {
-      status.style.top = "96px";
-      status.style.right = "18px";
+      status.style.top = "82px";
+      status.style.right = "16px";
       status.style.bottom = "";
       status.style.left = "";
-      status.style.maxWidth = "220px";
+      status.style.maxWidth = "240px";
       status.style.textAlign = "";
     }
 
@@ -128,6 +128,45 @@
     }
 
     return best;
+  }
+
+  function timelineTicks(timeline) {
+    const byYear = new Map();
+
+    timeline.days.forEach((day) => {
+      const year = String(day.date).slice(0, 4);
+      if (!byYear.has(year)) byYear.set(year, day);
+    });
+
+    const ticks = [...byYear.entries()].map(([year, day]) => ({
+      year,
+      postNumber: Number(day.firstPostNumber)
+    }));
+
+    if (ticks.length <= 6) return ticks;
+
+    const selected = [];
+    for (let index = 0; index < 6; index += 1) {
+      selected.push(ticks[Math.round(index * (ticks.length - 1) / 5)]);
+    }
+
+    return selected.filter((tick, index, list) => {
+      return index === 0 || tick.year !== list[index - 1].year;
+    });
+  }
+
+  function renderTicks(timeline, ticksRoot) {
+    const total = Math.max(1, Number(timeline.topic.totalPosts));
+    ticksRoot.textContent = "";
+
+    timelineTicks(timeline).forEach((tick) => {
+      const ratio = Math.min(1, Math.max(0, (tick.postNumber - 1) / Math.max(1, total - 1)));
+      const item = document.createElement("span");
+      item.className = "fftl-tick";
+      item.style.setProperty("--ratio", `${(ratio * 100).toFixed(2)}%`);
+      item.textContent = tick.year;
+      ticksRoot.appendChild(item);
+    });
   }
 
   function currentPostNumber() {
@@ -191,15 +230,15 @@
     const lastCheckpointDay = timeline.days[timeline.days.length - 1].date;
     const firstTopicDay = String(timeline.topic.firstPostAt ?? "").slice(0, 10);
     const lastTopicDay = String(timeline.topic.lastPostAt ?? "").slice(0, 10);
-    const totalPosts = Number(timeline.topic.totalPosts ?? 0);
-    const checkpointPosts = timeline.days.reduce((sum, day) => {
-      return sum + Math.max(0, Number(day.count ?? 0));
-    }, 0);
+    const pageCount = Math.max(1, Number(timeline.topic.pages ?? 1));
+    const expectedLastSt = (pageCount - 1) * POSTS_PER_PAGE;
+    const lastIndexedSt = Number(timeline.topic.lastIndexedSt);
+    const hasIndexedLastPage = !Number.isFinite(lastIndexedSt) || lastIndexedSt >= expectedLastSt;
 
     return (
       firstCheckpointDay === firstTopicDay &&
       lastCheckpointDay === lastTopicDay &&
-      (!totalPosts || checkpointPosts >= totalPosts)
+      hasIndexedLastPage
     );
   }
 
@@ -267,7 +306,7 @@
   }
 
   async function loadTimeline() {
-    const cached = await fetch(endpoint).then((response) => {
+    const cached = await fetch(endpoint, { cache: "no-store" }).then((response) => {
       if (!response.ok) return null;
       return response.json();
     }).catch(() => null);
@@ -288,17 +327,28 @@
     root.id = "fftl-root";
     root.setAttribute("aria-label", "Timeline discussione");
     root.innerHTML = `
-      <div class="fftl-date fftl-start"></div>
-      <button class="fftl-back" type="button">Torna</button>
-      <div class="fftl-track">
-        <div class="fftl-line"></div>
-        <div class="fftl-fill"></div>
-        <button class="fftl-handle" type="button" aria-label="Vai alla data selezionata">
-          <strong></strong>
-          <span></span>
+      <div class="fftl-shell">
+        <div class="fftl-cap">
+          <span class="fftl-date fftl-start"></span>
+          <span class="fftl-spark" aria-hidden="true"></span>
+        </div>
+        <button class="fftl-back" type="button" aria-label="Torna all'ultimo letto" title="Torna all'ultimo letto">
+          <span aria-hidden="true">&larr;</span>
         </button>
+        <div class="fftl-track">
+          <div class="fftl-line"></div>
+          <div class="fftl-fill"></div>
+          <div class="fftl-ticks" aria-hidden="true"></div>
+          <button class="fftl-handle" type="button" aria-label="Vai alla data selezionata">
+            <span class="fftl-pin" aria-hidden="true"></span>
+            <strong></strong>
+            <span></span>
+          </button>
+        </div>
+        <div class="fftl-cap fftl-cap-end">
+          <span class="fftl-date fftl-end"></span>
+        </div>
       </div>
-      <div class="fftl-date fftl-end"></div>
     `;
 
     document.getElementById("fftl-style")?.remove();
@@ -306,51 +356,117 @@
     style.id = "fftl-style";
     style.textContent = `
       #fftl-root {
-        --fftl-bg: rgba(6, 18, 36, 0.88);
-        --fftl-bg-strong: rgba(8, 26, 52, 0.96);
-        --fftl-track: rgba(86, 143, 214, 0.32);
-        --fftl-blue: #1d74f5;
-        --fftl-blue-soft: #5aa7ff;
-        --fftl-blue-pale: #b8d9ff;
-        --fftl-text: #f4f8ff;
-        --fftl-muted: #9bb0c9;
+        --fftl-panel: rgba(9, 15, 24, 0.9);
+        --fftl-panel-strong: rgba(7, 13, 22, 0.96);
+        --fftl-stroke: rgba(149, 190, 242, 0.28);
+        --fftl-rail: rgba(90, 127, 171, 0.34);
+        --fftl-blue: #1677ff;
+        --fftl-blue-hot: #44a3ff;
+        --fftl-cyan: #55d9ff;
+        --fftl-mint: #78e7c6;
+        --fftl-ink: #f7fbff;
+        --fftl-muted: #9db2c9;
+        --fftl-faint: #64758a;
         position: fixed;
         z-index: 99999;
-        top: 96px;
-        right: 18px;
-        width: 132px;
-        height: min(430px, calc(100vh - 140px));
-        color: var(--fftl-text);
-        font: 15px/1.2 Arial, Helvetica, sans-serif;
+        top: 82px;
+        right: 16px;
+        width: 184px;
+        height: min(560px, calc(100vh - 118px));
+        color: var(--fftl-ink);
+        font: 14px/1.2 Arial, Helvetica, sans-serif;
+        pointer-events: none;
         user-select: none;
       }
 
-      #fftl-root .fftl-date {
+      #fftl-root * {
+        box-sizing: border-box;
+      }
+
+      #fftl-root .fftl-shell {
         position: absolute;
-        right: 0;
-        left: 0;
+        inset: 0;
+        overflow: hidden;
+        border: 1px solid var(--fftl-stroke);
+        border-radius: 8px;
+        background:
+          linear-gradient(90deg, rgba(85, 217, 255, 0.13), transparent 32%, rgba(120, 231, 198, 0.08)),
+          linear-gradient(180deg, var(--fftl-panel), var(--fftl-panel-strong));
+        box-shadow:
+          0 18px 46px rgba(0, 0, 0, 0.36),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.42);
+        pointer-events: auto;
+      }
+
+      #fftl-root .fftl-shell::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
+          linear-gradient(90deg, rgba(68, 163, 255, 0.16), transparent 18%);
+        pointer-events: none;
+      }
+
+      #fftl-root .fftl-shell::after {
+        content: "";
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        bottom: 1px;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, rgba(85, 217, 255, 0.42), transparent);
+        pointer-events: none;
+      }
+
+      #fftl-root .fftl-cap {
+        position: absolute;
+        z-index: 2;
+        top: 8px;
+        right: 12px;
+        left: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 26px;
+      }
+
+      #fftl-root .fftl-cap-end {
+        top: auto;
+        bottom: 8px;
+      }
+
+      #fftl-root .fftl-date {
+        display: block;
         overflow: hidden;
         color: var(--fftl-muted);
-        font-size: 14px;
-        height: 24px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 16px;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
 
-      #fftl-root .fftl-start {
-        top: 0;
-      }
-
-      #fftl-root .fftl-end {
-        bottom: 0;
+      #fftl-root .fftl-spark {
+        width: 8px;
+        height: 8px;
+        border: 1px solid rgba(120, 231, 198, 0.78);
+        border-radius: 3px;
+        background: rgba(85, 217, 255, 0.58);
+        box-shadow: 0 0 14px rgba(85, 217, 255, 0.55);
+        transform: rotate(45deg);
+        flex: 0 0 auto;
       }
 
       #fftl-root .fftl-track {
         position: absolute;
-        top: 28px;
-        bottom: 28px;
-        left: 6px;
-        width: 112px;
+        z-index: 1;
+        top: 42px;
+        right: 10px;
+        bottom: 42px;
+        left: 12px;
         touch-action: none;
       }
 
@@ -358,40 +474,98 @@
         position: absolute;
         top: 0;
         bottom: 0;
-        left: 11px;
-        width: 3px;
-        border-radius: 999px;
-        background: var(--fftl-track);
+        left: 31px;
+        width: 5px;
+        border-radius: 4px;
+        background:
+          linear-gradient(180deg, rgba(85, 217, 255, 0.18), rgba(86, 119, 156, 0.34)),
+          var(--fftl-rail);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 0 1px rgba(14, 30, 48, 0.62);
+      }
+
+      #fftl-root .fftl-line::after {
+        content: "";
+        position: absolute;
+        top: 4px;
+        right: 2px;
+        bottom: 4px;
+        width: 1px;
+        background: rgba(255, 255, 255, 0.28);
       }
 
       #fftl-root .fftl-fill {
         position: absolute;
         top: 0;
-        left: 11px;
-        width: 3px;
+        left: 31px;
+        width: 5px;
         height: 0;
-        border-radius: 999px;
-        background: var(--fftl-blue);
-        box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.18), 0 0 18px rgba(29, 116, 245, 0.4);
+        border-radius: 4px;
+        background: linear-gradient(180deg, var(--fftl-cyan), var(--fftl-blue) 55%, var(--fftl-mint));
+        box-shadow:
+          0 0 0 1px rgba(85, 217, 255, 0.24),
+          0 0 18px rgba(22, 119, 255, 0.58);
+      }
+
+      #fftl-root .fftl-ticks {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      #fftl-root .fftl-tick {
+        position: absolute;
+        top: var(--ratio);
+        left: 40px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--fftl-faint);
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 12px;
+        transform: translateY(-50%);
+      }
+
+      #fftl-root .fftl-tick::before {
+        content: "";
+        width: 14px;
+        height: 1px;
+        background: rgba(157, 178, 201, 0.42);
       }
 
       #fftl-root .fftl-handle {
         position: absolute;
-        left: 0;
-        width: 102px;
-        min-height: 54px;
+        left: 40px;
+        width: 130px;
+        min-height: 58px;
         box-sizing: border-box;
-        border: 1px solid rgba(116, 176, 255, 0.36);
-        border-left: 6px solid var(--fftl-blue);
+        border: 1px solid rgba(116, 176, 255, 0.42);
         border-radius: 8px;
-        padding: 7px 8px 7px 12px;
-        background: var(--fftl-bg);
-        color: var(--fftl-text);
+        padding: 8px 9px 8px 34px;
+        background:
+          linear-gradient(135deg, rgba(24, 48, 78, 0.98), rgba(8, 18, 31, 0.96)),
+          var(--fftl-panel-strong);
+        color: var(--fftl-ink);
         text-align: left;
         cursor: grab;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        box-shadow:
+          0 12px 30px rgba(0, 0, 0, 0.38),
+          0 0 0 1px rgba(85, 217, 255, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
         outline: none;
         touch-action: none;
+      }
+
+      #fftl-root .fftl-handle::before {
+        content: "";
+        position: absolute;
+        top: 7px;
+        bottom: 7px;
+        left: 26px;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, rgba(85, 217, 255, 0.52), transparent);
       }
 
       #fftl-root .fftl-handle:active {
@@ -399,14 +573,38 @@
       }
 
       #fftl-root .fftl-handle:focus-visible {
-        box-shadow: 0 0 0 3px rgba(90, 167, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.28);
+        box-shadow:
+          0 0 0 3px rgba(85, 217, 255, 0.28),
+          0 12px 30px rgba(0, 0, 0, 0.38);
+      }
+
+      #fftl-root .fftl-pin {
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        width: 13px;
+        height: 13px;
+        border: 1px solid rgba(247, 251, 255, 0.72);
+        border-radius: 3px;
+        background: linear-gradient(135deg, var(--fftl-cyan), var(--fftl-blue));
+        box-shadow: 0 0 16px rgba(85, 217, 255, 0.52);
+        transform: translateY(-50%) rotate(45deg);
+      }
+
+      #fftl-root .fftl-pin::after {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 2px;
+        background: #ffffff;
       }
 
       #fftl-root .fftl-handle strong {
         display: block;
         overflow: hidden;
-        font-size: 17px;
-        line-height: 20px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 21px;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
@@ -414,9 +612,10 @@
       #fftl-root .fftl-handle span {
         display: block;
         overflow: hidden;
-        color: var(--fftl-blue-pale);
-        font-size: 14px;
-        line-height: 17px;
+        color: #b8d9ff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 15px;
         margin-top: 2px;
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -425,15 +624,24 @@
       #fftl-root .fftl-back {
         display: none;
         position: absolute;
-        top: 25px;
-        left: 34px;
-        border: 1px solid rgba(184, 217, 255, 0.36);
+        z-index: 3;
+        top: 38px;
+        right: 12px;
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(184, 217, 255, 0.34);
         border-radius: 8px;
-        padding: 6px 10px;
+        padding: 0;
         color: #ffffff;
-        background: var(--fftl-blue);
-        box-shadow: 0 8px 18px rgba(29, 116, 245, 0.28);
+        background: linear-gradient(135deg, var(--fftl-blue-hot), var(--fftl-blue));
+        box-shadow:
+          0 10px 22px rgba(22, 119, 255, 0.34),
+          inset 0 1px 0 rgba(255, 255, 255, 0.22);
         cursor: pointer;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 32px;
+        text-align: center;
       }
 
       #fftl-root .fftl-back.is-visible {
@@ -443,93 +651,125 @@
       @media (max-width: 900px) {
         #fftl-root {
           top: auto;
-          right: 0;
-          bottom: 0;
-          left: 0;
+          right: 8px;
+          bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+          left: 8px;
           width: auto;
-          height: calc(82px + env(safe-area-inset-bottom, 0px));
-          padding-bottom: env(safe-area-inset-bottom, 0px);
-          box-sizing: border-box;
-          background: var(--fftl-bg-strong);
-          border-top: 1px solid rgba(90, 167, 255, 0.28);
-          box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.36);
+          height: 96px;
         }
 
         body.fftl-mobile-ready {
-          padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important;
+          padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
         }
 
-        #fftl-root .fftl-date {
+        #fftl-root .fftl-shell {
+          border-radius: 8px;
+        }
+
+        #fftl-root .fftl-cap {
           position: absolute;
-          top: 9px;
-          height: 16px;
-          max-width: 42%;
-          overflow: hidden;
-          color: var(--fftl-muted);
-          font-size: 12px;
-          line-height: 16px;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-
-        #fftl-root .fftl-start {
+          top: 8px;
+          right: auto;
           left: 14px;
+          max-width: 43%;
+          min-height: 18px;
         }
 
-        #fftl-root .fftl-end {
-          bottom: auto;
+        #fftl-root .fftl-cap-end {
           right: 14px;
+          left: auto;
+          justify-content: flex-end;
           text-align: right;
         }
 
+        #fftl-root .fftl-date {
+          font-size: 11px;
+          line-height: 16px;
+          max-width: 100%;
+        }
+
         #fftl-root .fftl-track {
-          top: 36px;
-          right: 14px;
+          top: 39px;
+          right: 16px;
           bottom: auto;
-          left: 14px;
+          left: 16px;
           width: auto;
-          height: 40px;
+          height: 44px;
         }
 
         #fftl-root .fftl-back.is-visible + .fftl-track {
-          right: 88px;
+          right: 60px;
         }
 
         #fftl-root .fftl-line {
-          top: 19px;
+          top: 20px;
           right: 0;
           bottom: auto;
           left: 0;
           width: auto;
-          height: 3px;
+          height: 5px;
         }
 
         #fftl-root .fftl-fill {
-          top: 19px;
+          top: 20px;
           left: 0;
           width: 0;
-          height: 3px;
+          height: 5px;
+        }
+
+        #fftl-root .fftl-line::after {
+          top: 2px;
+          right: 4px;
+          bottom: auto;
+          left: 4px;
+          width: auto;
+          height: 1px;
+        }
+
+        #fftl-root .fftl-tick {
+          top: 34px;
+          left: var(--ratio);
+          gap: 0;
+          font-size: 9px;
+          line-height: 10px;
+          transform: translateX(-50%);
+        }
+
+        #fftl-root .fftl-tick::before {
+          position: absolute;
+          top: -13px;
+          left: 50%;
+          width: 1px;
+          height: 8px;
+          transform: translateX(-50%);
+        }
+
+        #fftl-root .fftl-tick:nth-child(n+5) {
+          display: none;
         }
 
         #fftl-root .fftl-handle {
           top: 0;
           left: 0;
-          width: 118px;
-          min-height: 40px;
+          width: 130px;
+          min-height: 42px;
           box-sizing: border-box;
-          border: 1px solid rgba(116, 176, 255, 0.34);
-          border-top: 5px solid var(--fftl-blue);
-          border-left: 0;
+          border: 1px solid rgba(116, 176, 255, 0.38);
+          border-top: 4px solid var(--fftl-cyan);
           border-radius: 8px;
-          padding: 6px 8px 0;
-          background: rgba(9, 31, 62, 0.96);
+          padding: 6px 8px 4px;
           text-align: center;
+        }
+
+        #fftl-root .fftl-handle::before,
+        #fftl-root .fftl-pin {
+          display: none;
         }
 
         #fftl-root .fftl-handle strong {
           overflow: hidden;
           font-size: 14px;
-          line-height: 15px;
+          line-height: 16px;
           white-space: nowrap;
           text-overflow: ellipsis;
         }
@@ -538,19 +778,19 @@
           overflow: hidden;
           margin-top: 0;
           font-size: 12px;
-          line-height: 14px;
+          line-height: 15px;
           white-space: nowrap;
           text-overflow: ellipsis;
         }
 
         #fftl-root .fftl-back {
-          top: 39px;
+          top: 34px;
           right: 14px;
           left: auto;
-          min-width: 64px;
-          height: 32px;
-          padding: 0 8px;
-          font-size: 13px;
+          width: 34px;
+          height: 34px;
+          font-size: 18px;
+          line-height: 32px;
         }
       }
     `;
@@ -563,6 +803,7 @@
     const end = root.querySelector(".fftl-end");
     const track = root.querySelector(".fftl-track");
     const fill = root.querySelector(".fftl-fill");
+    const ticks = root.querySelector(".fftl-ticks");
     const handle = root.querySelector(".fftl-handle");
     const handleStrong = handle.querySelector("strong");
     const handleDate = handle.querySelector("span");
@@ -570,6 +811,7 @@
 
     start.textContent = formatMonth.format(new Date(timeline.topic.firstPostAt));
     end.textContent = formatDay.format(new Date(timeline.topic.lastPostAt));
+    renderTicks(timeline, ticks);
 
     function setHandlePosition(ratio) {
       fill.style.height = `${ratio * 100}%`;
@@ -580,13 +822,13 @@
         handle.style.left = `${x}px`;
         handle.style.top = "0";
         fill.style.width = `${ratio * 100}%`;
-        fill.style.height = "3px";
+        fill.style.height = "5px";
         return;
       }
 
       const y = ratio * Math.max(1, track.clientHeight - handle.clientHeight);
       handle.style.top = `${y}px`;
-      handle.style.left = "0";
+      handle.style.left = "";
     }
 
     function setHandleByPostNumber(postNumber) {
