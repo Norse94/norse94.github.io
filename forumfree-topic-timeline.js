@@ -165,12 +165,14 @@
 
     const root = document.createElement("aside");
     root.id = "fftl-root";
+    root.setAttribute("aria-label", "Timeline discussione");
     root.innerHTML = `
       <div class="fftl-date fftl-start"></div>
       <button class="fftl-back" type="button">Torna</button>
       <div class="fftl-track">
         <div class="fftl-line"></div>
-        <button class="fftl-handle" type="button">
+        <div class="fftl-fill"></div>
+        <button class="fftl-handle" type="button" aria-label="Vai alla data selezionata">
           <strong></strong>
           <span></span>
         </button>
@@ -178,81 +180,138 @@
       <div class="fftl-date fftl-end"></div>
     `;
 
+    document.getElementById("fftl-style")?.remove();
     const style = document.createElement("style");
+    style.id = "fftl-style";
     style.textContent = `
       #fftl-root {
+        --fftl-bg: rgba(6, 18, 36, 0.88);
+        --fftl-bg-strong: rgba(8, 26, 52, 0.96);
+        --fftl-track: rgba(86, 143, 214, 0.32);
+        --fftl-blue: #1d74f5;
+        --fftl-blue-soft: #5aa7ff;
+        --fftl-blue-pale: #b8d9ff;
+        --fftl-text: #f4f8ff;
+        --fftl-muted: #9bb0c9;
         position: fixed;
         z-index: 99999;
         top: 96px;
         right: 18px;
-        width: 118px;
+        width: 132px;
         height: min(430px, calc(100vh - 140px));
-        color: #d9d9df;
+        color: var(--fftl-text);
         font: 15px/1.2 Arial, Helvetica, sans-serif;
         user-select: none;
       }
 
       #fftl-root .fftl-date {
-        color: #9a9aa2;
+        position: absolute;
+        right: 0;
+        left: 0;
+        overflow: hidden;
+        color: var(--fftl-muted);
+        font-size: 14px;
         height: 24px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      #fftl-root .fftl-start {
+        top: 0;
+      }
+
+      #fftl-root .fftl-end {
+        bottom: 0;
       }
 
       #fftl-root .fftl-track {
         position: absolute;
         top: 28px;
         bottom: 28px;
-        left: 8px;
-        width: 92px;
+        left: 6px;
+        width: 112px;
+        touch-action: none;
       }
 
       #fftl-root .fftl-line {
         position: absolute;
         top: 0;
         bottom: 0;
-        left: 8px;
-        width: 2px;
-        background: #8d70ff;
+        left: 11px;
+        width: 3px;
+        border-radius: 999px;
+        background: var(--fftl-track);
+      }
+
+      #fftl-root .fftl-fill {
+        position: absolute;
+        top: 0;
+        left: 11px;
+        width: 3px;
+        height: 0;
+        border-radius: 999px;
+        background: var(--fftl-blue);
+        box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.18), 0 0 18px rgba(29, 116, 245, 0.4);
       }
 
       #fftl-root .fftl-handle {
         position: absolute;
-        left: 4px;
-        width: 80px;
-        min-height: 48px;
-        border: 0;
-        border-left: 6px solid #8d70ff;
-        padding: 4px 0 4px 10px;
-        background: transparent;
-        color: #f5f5f7;
+        left: 0;
+        width: 102px;
+        min-height: 54px;
+        box-sizing: border-box;
+        border: 1px solid rgba(116, 176, 255, 0.36);
+        border-left: 6px solid var(--fftl-blue);
+        border-radius: 8px;
+        padding: 7px 8px 7px 12px;
+        background: var(--fftl-bg);
+        color: var(--fftl-text);
         text-align: left;
         cursor: grab;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        outline: none;
+        touch-action: none;
       }
 
       #fftl-root .fftl-handle:active {
         cursor: grabbing;
       }
 
+      #fftl-root .fftl-handle:focus-visible {
+        box-shadow: 0 0 0 3px rgba(90, 167, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.28);
+      }
+
       #fftl-root .fftl-handle strong {
         display: block;
-        font-size: 18px;
+        overflow: hidden;
+        font-size: 17px;
+        line-height: 20px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
 
       #fftl-root .fftl-handle span {
         display: block;
-        color: #9a9aa2;
+        overflow: hidden;
+        color: var(--fftl-blue-pale);
+        font-size: 14px;
+        line-height: 17px;
         margin-top: 2px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
 
       #fftl-root .fftl-back {
         display: none;
         position: absolute;
-        top: 24px;
-        left: 30px;
-        border: 0;
-        border-radius: 4px;
-        padding: 5px 8px;
+        top: 25px;
+        left: 34px;
+        border: 1px solid rgba(184, 217, 255, 0.36);
+        border-radius: 8px;
+        padding: 6px 10px;
         color: #ffffff;
-        background: #2484ff;
+        background: var(--fftl-blue);
+        box-shadow: 0 8px 18px rgba(29, 116, 245, 0.28);
         cursor: pointer;
       }
 
@@ -270,18 +329,22 @@
           height: calc(82px + env(safe-area-inset-bottom, 0px));
           padding-bottom: env(safe-area-inset-bottom, 0px);
           box-sizing: border-box;
-          background: rgba(22, 22, 24, 0.96);
-          border-top: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.32);
+          background: var(--fftl-bg-strong);
+          border-top: 1px solid rgba(90, 167, 255, 0.28);
+          box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.36);
+        }
+
+        body.fftl-mobile-ready {
+          padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important;
         }
 
         #fftl-root .fftl-date {
           position: absolute;
-          top: 8px;
+          top: 9px;
           height: 16px;
           max-width: 42%;
           overflow: hidden;
-          color: #a7a7ad;
+          color: var(--fftl-muted);
           font-size: 12px;
           line-height: 16px;
           white-space: nowrap;
@@ -293,41 +356,52 @@
         }
 
         #fftl-root .fftl-end {
+          bottom: auto;
           right: 14px;
           text-align: right;
         }
 
         #fftl-root .fftl-track {
-          top: 34px;
+          top: 36px;
           right: 14px;
           bottom: auto;
           left: 14px;
           width: auto;
-          height: 38px;
+          height: 40px;
         }
 
         #fftl-root .fftl-back.is-visible + .fftl-track {
-          right: 82px;
+          right: 88px;
         }
 
         #fftl-root .fftl-line {
-          top: 17px;
+          top: 19px;
           right: 0;
           bottom: auto;
           left: 0;
           width: auto;
-          height: 2px;
+          height: 3px;
+        }
+
+        #fftl-root .fftl-fill {
+          top: 19px;
+          left: 0;
+          width: 0;
+          height: 3px;
         }
 
         #fftl-root .fftl-handle {
           top: 0;
           left: 0;
-          width: 112px;
-          min-height: 38px;
+          width: 118px;
+          min-height: 40px;
           box-sizing: border-box;
-          border-top: 6px solid #8d70ff;
+          border: 1px solid rgba(116, 176, 255, 0.34);
+          border-top: 5px solid var(--fftl-blue);
           border-left: 0;
-          padding: 6px 6px 0;
+          border-radius: 8px;
+          padding: 6px 8px 0;
+          background: rgba(9, 31, 62, 0.96);
           text-align: center;
         }
 
@@ -349,11 +423,11 @@
         }
 
         #fftl-root .fftl-back {
-          top: 38px;
+          top: 39px;
           right: 14px;
           left: auto;
-          min-width: 58px;
-          height: 30px;
+          min-width: 64px;
+          height: 32px;
           padding: 0 8px;
           font-size: 13px;
         }
@@ -362,10 +436,12 @@
 
     document.head.appendChild(style);
     document.body.appendChild(root);
+    document.body.classList.add("fftl-mobile-ready");
 
     const start = root.querySelector(".fftl-start");
     const end = root.querySelector(".fftl-end");
     const track = root.querySelector(".fftl-track");
+    const fill = root.querySelector(".fftl-fill");
     const handle = root.querySelector(".fftl-handle");
     const handleStrong = handle.querySelector("strong");
     const handleDate = handle.querySelector("span");
@@ -375,16 +451,21 @@
     end.textContent = formatDay.format(new Date(timeline.topic.lastPostAt));
 
     function setHandlePosition(ratio) {
+      fill.style.height = `${ratio * 100}%`;
+      fill.style.width = "";
+
       if (isMobileTimeline()) {
         const x = ratio * Math.max(1, track.clientWidth - handle.clientWidth);
         handle.style.left = `${x}px`;
         handle.style.top = "0";
+        fill.style.width = `${ratio * 100}%`;
+        fill.style.height = "3px";
         return;
       }
 
       const y = ratio * Math.max(1, track.clientHeight - handle.clientHeight);
       handle.style.top = `${y}px`;
-      handle.style.left = "4px";
+      handle.style.left = "0";
     }
 
     function setHandleByPostNumber(postNumber) {
@@ -416,6 +497,8 @@
 
     let dragging = false;
     let pendingCheckpoint = null;
+    let activePointerId = null;
+    let pointerMoved = false;
 
     function ratioFromPointer(event) {
       const rect = track.getBoundingClientRect();
@@ -427,31 +510,91 @@
     }
 
     handle.addEventListener("pointerdown", (event) => {
+      const ratio = ratioFromPointer(event);
       dragging = true;
-      pendingCheckpoint = null;
+      activePointerId = event.pointerId;
+      pointerMoved = false;
+      pendingCheckpoint = isMobileTimeline() ? nearestCheckpoint(timeline, ratio) : null;
+      if (pendingCheckpoint) {
+        setHandlePosition(ratio);
+        handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
+        handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+      }
       handle.setPointerCapture(event.pointerId);
+      event.preventDefault();
     });
 
     handle.addEventListener("pointermove", (event) => {
-      if (!dragging) return;
+      if (!dragging || activePointerId !== event.pointerId) return;
       const ratio = ratioFromPointer(event);
+      pointerMoved = true;
       pendingCheckpoint = nearestCheckpoint(timeline, ratio);
       setHandlePosition(ratio);
       handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
       handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+      event.preventDefault();
     });
 
-    handle.addEventListener("pointerup", () => {
+    handle.addEventListener("pointerup", (event) => {
+      if (activePointerId !== event.pointerId) return;
       dragging = false;
-      if (pendingCheckpoint) navigateToCheckpoint(timeline, pendingCheckpoint);
+      activePointerId = null;
+      if (pendingCheckpoint && (isMobileTimeline() || pointerMoved)) {
+        navigateToCheckpoint(timeline, pendingCheckpoint);
+      }
+      pointerMoved = false;
     });
 
     handle.addEventListener("pointercancel", () => {
       dragging = false;
+      activePointerId = null;
+      pointerMoved = false;
+      pendingCheckpoint = null;
+    });
+
+    track.addEventListener("pointerdown", (event) => {
+      if (!isMobileTimeline() || event.target === handle || handle.contains(event.target)) return;
+      const ratio = ratioFromPointer(event);
+      dragging = true;
+      activePointerId = event.pointerId;
+      pointerMoved = false;
+      pendingCheckpoint = nearestCheckpoint(timeline, ratio);
+      setHandlePosition(ratio);
+      handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
+      handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+      track.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+
+    track.addEventListener("pointermove", (event) => {
+      if (!isMobileTimeline() || !dragging || activePointerId !== event.pointerId) return;
+      const ratio = ratioFromPointer(event);
+      pointerMoved = true;
+      pendingCheckpoint = nearestCheckpoint(timeline, ratio);
+      setHandlePosition(ratio);
+      handleStrong.textContent = `${pendingCheckpoint.firstPostNumber} / ${timeline.topic.totalPosts}`;
+      handleDate.textContent = formatMonth.format(new Date(pendingCheckpoint.firstPostAt));
+      event.preventDefault();
+    });
+
+    track.addEventListener("pointerup", (event) => {
+      if (!isMobileTimeline() || activePointerId !== event.pointerId) return;
+      dragging = false;
+      activePointerId = null;
+      if (pendingCheckpoint) navigateToCheckpoint(timeline, pendingCheckpoint);
+      pointerMoved = false;
+    });
+
+    track.addEventListener("pointercancel", () => {
+      if (!isMobileTimeline()) return;
+      dragging = false;
+      activePointerId = null;
+      pointerMoved = false;
       pendingCheckpoint = null;
     });
 
     track.addEventListener("click", (event) => {
+      if (isMobileTimeline()) return;
       if (event.target === handle || handle.contains(event.target)) return;
       navigateToCheckpoint(timeline, nearestCheckpoint(timeline, ratioFromPointer(event)));
     });
