@@ -3,7 +3,8 @@
   const FUNCTION_NAME = "topic-timeline";
   const TOPIC_PARAM = "t";
   const POSTS_PER_PAGE = 15;
-  const MAX_CLIENT_PAGES = 200;
+  const CLIENT_FETCH_CONCURRENCY = 4;
+  const CLIENT_FETCH_RETRIES = 2;
 
   const pageUrl = new URL(window.location.href);
   const topicId = pageUrl.searchParams.get(TOPIC_PARAM);
@@ -38,6 +39,57 @@
 
   function writeState(state) {
     localStorage.setItem(storageKey, JSON.stringify(state));
+  }
+
+  function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function showLoadingStatus(message) {
+    let status = document.getElementById("fftl-status");
+    if (!status) {
+      status = document.createElement("div");
+      status.id = "fftl-status";
+      status.setAttribute("role", "status");
+      status.style.cssText = [
+        "position:fixed",
+        "z-index:99999",
+        "top:96px",
+        "right:18px",
+        "max-width:220px",
+        "box-sizing:border-box",
+        "border:1px solid rgba(90,167,255,.34)",
+        "border-radius:8px",
+        "padding:9px 11px",
+        "background:rgba(8,26,52,.96)",
+        "color:#f4f8ff",
+        "font:13px/1.25 Arial,Helvetica,sans-serif",
+        "box-shadow:0 8px 24px rgba(0,0,0,.28)"
+      ].join(";");
+      document.body.appendChild(status);
+    }
+
+    if (isMobileTimeline()) {
+      status.style.top = "";
+      status.style.right = "14px";
+      status.style.bottom = "14px";
+      status.style.left = "14px";
+      status.style.maxWidth = "";
+      status.style.textAlign = "center";
+    } else {
+      status.style.top = "96px";
+      status.style.right = "18px";
+      status.style.bottom = "";
+      status.style.left = "";
+      status.style.maxWidth = "220px";
+      status.style.textAlign = "";
+    }
+
+    status.textContent = message;
+  }
+
+  function hideLoadingStatus() {
+    document.getElementById("fftl-status")?.remove();
   }
 
   function navigateToCheckpoint(timeline, checkpoint) {
@@ -91,14 +143,64 @@
     return currentSt + visibleIndex + 1;
   }
 
-  async function fetchForumfreePage(st) {
-    const response = await fetch(`/api.php?t=${topicId}&st=${st}&raw=1&cookie=1`, {
-      credentials: "include",
-      headers: { accept: "application/json" }
-    });
+  async function fetchForumfreePage(st, attempt = 0) {
+    try {
+      const response = await fetch(`/api.php?t=${topicId}&st=${st}&raw=1&cookie=1`, {
+        credentials: "include",
+        headers: { accept: "application/json" }
+      });
 
-    if (!response.ok) throw new Error(`ForumFree API HTTP ${response.status}`);
-    return response.json();
+      if (!response.ok) throw new Error(`ForumFree API HTTP ${response.status}`);
+      return response.json();
+    } catch (error) {
+      if (attempt >= CLIENT_FETCH_RETRIES) throw error;
+
+      await delay(350 * (attempt + 1));
+      return fetchForumfreePage(st, attempt + 1);
+    }
+  }
+
+  async function fetchAllForumfreePages(firstPage) {
+    const pageCount = Math.max(1, Number(firstPage.info.pages ?? 1));
+    const pages = new Array(pageCount);
+    let nextPageIndex = 1;
+    let fetchedPages = 1;
+    pages[0] = firstPage;
+    showLoadingStatus(`Timeline: indicizzo ${fetchedPages}/${pageCount} pagine`);
+
+    async function worker() {
+      while (nextPageIndex < pageCount) {
+        const pageIndex = nextPageIndex;
+        nextPageIndex += 1;
+        pages[pageIndex] = await fetchForumfreePage(pageIndex * POSTS_PER_PAGE);
+        fetchedPages += 1;
+        showLoadingStatus(`Timeline: indicizzo ${fetchedPages}/${pageCount} pagine`);
+      }
+    }
+
+    const workerCount = Math.min(CLIENT_FETCH_CONCURRENCY, Math.max(0, pageCount - 1));
+    await Promise.all(Array.from({ length: workerCount }, worker));
+
+    return pages;
+  }
+
+  function isTimelineComplete(timeline) {
+    if (!timeline?.topic || !timeline?.days?.length) return false;
+
+    const firstCheckpointDay = timeline.days[0].date;
+    const lastCheckpointDay = timeline.days[timeline.days.length - 1].date;
+    const firstTopicDay = String(timeline.topic.firstPostAt ?? "").slice(0, 10);
+    const lastTopicDay = String(timeline.topic.lastPostAt ?? "").slice(0, 10);
+    const totalPosts = Number(timeline.topic.totalPosts ?? 0);
+    const checkpointPosts = timeline.days.reduce((sum, day) => {
+      return sum + Math.max(0, Number(day.count ?? 0));
+    }, 0);
+
+    return (
+      firstCheckpointDay === firstTopicDay &&
+      lastCheckpointDay === lastTopicDay &&
+      (!totalPosts || checkpointPosts >= totalPosts)
+    );
   }
 
   function buildTimelineFromPages(pages) {
@@ -148,14 +250,9 @@
   }
 
   async function buildTimelineFromForumfree() {
-    const pages = [];
+    showLoadingStatus("Timeline: leggo la discussione");
     const firstPage = await fetchForumfreePage(0);
-    pages.push(firstPage);
-
-    const pageCount = Math.min(Number(firstPage.info.pages ?? 1), MAX_CLIENT_PAGES);
-    for (let pageIndex = 1; pageIndex < pageCount; pageIndex += 1) {
-      pages.push(await fetchForumfreePage(pageIndex * POSTS_PER_PAGE));
-    }
+    const pages = await fetchAllForumfreePages(firstPage);
 
     const timeline = buildTimelineFromPages(pages);
     fetch(endpoint, {
@@ -175,11 +272,13 @@
       return response.json();
     }).catch(() => null);
 
-    if (cached?.days?.length) return cached;
+    if (isTimelineComplete(cached)) return cached;
+    if (cached) showLoadingStatus("Timeline: aggiorno indice incompleto");
     return buildTimelineFromForumfree();
   }
 
   function render(timeline) {
+    hideLoadingStatus();
     if (!timeline.days.length) return;
 
     const existing = document.getElementById("fftl-root");
@@ -633,5 +732,7 @@
 
   loadTimeline().then(render).catch((error) => {
     console.warn("ForumFree timeline unavailable", error);
+    showLoadingStatus("Timeline non disponibile");
+    setTimeout(hideLoadingStatus, 6000);
   });
 })();
