@@ -18,10 +18,14 @@
   const state = {
     initialized: false,
     buttonsRegistered: false,
+    classicButtonRegistered: false,
+    visualButtonRegistered: false,
     pasteRegistered: false,
     pasteDisabled: false,
     pasteText: "",
-    preview: null
+    preview: null,
+    integrationAttempts: 0,
+    integrationTimer: 0
   };
 
   function commons() {
@@ -135,6 +139,23 @@
     };
   }
 
+  function isAllowedForumLocation() {
+    const host = location.hostname.toLowerCase();
+    const allowedHost = CONFIG.allowedForumHost.toLowerCase();
+    const C = commons();
+    const forum = C && C.forum ? C.forum : {};
+
+    if (location.protocol === "file:") {
+      return true;
+    }
+
+    if (host === allowedHost || host === "www." + allowedHost) {
+      return true;
+    }
+
+    return forum.subdomain === "difesa" && forum.domain === "forumfree.it";
+  }
+
   function getForumContext() {
     const C = commons();
     const forum = C && C.forum ? C.forum : {};
@@ -157,7 +178,7 @@
       return false;
     }
 
-    if (location.hostname && location.hostname !== CONFIG.allowedForumHost && location.protocol !== "file:") {
+    if (!isAllowedForumLocation()) {
       toast("error", APP_TITLE, "Questo script e configurato per " + CONFIG.allowedForumHost + ".");
       return false;
     }
@@ -798,17 +819,19 @@
   }
 
   function registerEditorButtons() {
-    if (state.buttonsRegistered) {
+    if (state.classicButtonRegistered && state.visualButtonRegistered) {
+      state.buttonsRegistered = true;
       return true;
     }
 
     const C = commons();
-    if (!C || !C.utilities || !C.utilities.replierForm) {
+    if (!C || !C.utilities) {
       return false;
     }
 
-    const buttons = C.utilities.replierForm.buttons;
-    if (buttons && typeof buttons.add === "function") {
+    const replierForm = C.utilities.replierForm || {};
+    const buttons = replierForm.buttons;
+    if (!state.classicButtonRegistered && buttons && typeof buttons.add === "function") {
       buttons.add({
         title: APP_TITLE,
         event: async () => {
@@ -816,9 +839,10 @@
         },
         allowCustomEditors: false
       });
+      state.classicButtonRegistered = true;
     }
 
-    if (Array.isArray(C.utilities.queue)) {
+    if (!state.visualButtonRegistered && Array.isArray(C.utilities.queue)) {
       C.utilities.queue.push({
         tag: "ve:externals:add",
         event: {
@@ -829,9 +853,10 @@
           serviceType: "link"
         }
       });
+      state.visualButtonRegistered = true;
     }
 
-    state.buttonsRegistered = Boolean(buttons && typeof buttons.add === "function") || Array.isArray(C.utilities.queue);
+    state.buttonsRegistered = state.classicButtonRegistered || state.visualButtonRegistered;
     return state.buttonsRegistered;
   }
 
@@ -858,6 +883,55 @@
     return false;
   }
 
+  function scheduleIntegrationRetry() {
+    window.clearTimeout(state.integrationTimer);
+
+    const buttonsReady = registerEditorButtons();
+    const pasteReady = registerPasteEvent();
+
+    if (buttonsReady && pasteReady) {
+      return;
+    }
+
+    state.integrationAttempts += 1;
+    if (state.integrationAttempts >= 80) {
+      console.warn("[FDEmbedLink] editor non agganciato completamente", diagnostics());
+      return;
+    }
+
+    state.integrationTimer = window.setTimeout(scheduleIntegrationRetry, state.integrationAttempts < 20 ? 250 : 1000);
+  }
+
+  function diagnostics() {
+    const C = commons();
+    const utilities = C && C.utilities ? C.utilities : null;
+    const replierForm = utilities && utilities.replierForm ? utilities.replierForm : null;
+    const textareaApi = replierForm && replierForm.textarea ? replierForm.textarea : null;
+    const buttons = replierForm && replierForm.buttons ? replierForm.buttons : null;
+
+    return {
+      app: APP_TITLE,
+      configured: isConfigured(),
+      host: location.hostname,
+      allowedLocation: isAllowedForumLocation(),
+      commonsReady: Boolean(C),
+      utilitiesReady: Boolean(utilities),
+      replierFormReady: Boolean(replierForm),
+      classicButtonApiReady: Boolean(buttons && typeof buttons.add === "function"),
+      visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
+      textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
+      domTextareaReady: Boolean(getEditorTextarea()),
+      user: getUser(),
+      state: {
+        initialized: state.initialized,
+        classicButtonRegistered: state.classicButtonRegistered,
+        visualButtonRegistered: state.visualButtonRegistered,
+        pasteRegistered: state.pasteRegistered,
+        integrationAttempts: state.integrationAttempts
+      }
+    };
+  }
+
   function init() {
     if (state.initialized) {
       return;
@@ -872,14 +946,7 @@
     document.addEventListener("click", handleDocumentClick);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
-    const buttonsReady = registerEditorButtons();
-    const pasteReady = registerPasteEvent();
-    if (!buttonsReady || !pasteReady) {
-      window.setTimeout(() => {
-        registerEditorButtons();
-        registerPasteEvent();
-      }, 500);
-    }
+    scheduleIntegrationRetry();
     confirmPublishedEmbeds();
   }
 
@@ -889,7 +956,8 @@
     openUrlModal,
     handlePaste,
     buildHtml: renderCardHtml,
-    confirmPublishedEmbeds
+    confirmPublishedEmbeds,
+    diagnostics
   };
 
   window.FDEmbedLink = api;
