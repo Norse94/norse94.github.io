@@ -20,6 +20,7 @@
     buttonsRegistered: false,
     classicButtonRegistered: false,
     visualButtonRegistered: false,
+    editorFallbackRegistered: false,
     pasteRegistered: false,
     pasteDisabled: false,
     pasteText: "",
@@ -883,23 +884,91 @@
     return false;
   }
 
+  function registerEditorFallbackButton() {
+    const existing = document.querySelector("[data-fd-embed-fallback-button]");
+    if (existing) {
+      existing.hidden = !getEditorTextarea();
+      state.editorFallbackRegistered = true;
+      return true;
+    }
+
+    if (!getEditorTextarea()) {
+      return false;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "fd-embed-editor-fallback fd-embed-editor-fallback--floating";
+    wrapper.setAttribute("data-fd-embed-fallback", "");
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "fd-embed-editor-fallback__button";
+    button.setAttribute("data-fd-embed-fallback-button", "");
+    button.textContent = APP_TITLE;
+    button.addEventListener("click", () => {
+      openUrlModal("");
+    });
+
+    wrapper.appendChild(button);
+    document.body.appendChild(wrapper);
+    state.editorFallbackRegistered = true;
+    return true;
+  }
+
+  function isVisibleElement(element) {
+    if (!element || element.hidden) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(element);
+    if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+      return false;
+    }
+
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function findVisibleTextButton(text) {
+    const selector = "button, a, input[type='button'], input[type='submit'], [role='button']";
+    return Array.from(document.querySelectorAll(selector)).some((element) => {
+      const value = element.tagName === "INPUT" ? element.value : element.textContent;
+      return !element.matches("[data-fd-embed-fallback-button]") &&
+        normalizeSpace(value) === text &&
+        isVisibleElement(element);
+    });
+  }
+
   function scheduleIntegrationRetry() {
     window.clearTimeout(state.integrationTimer);
 
     const buttonsReady = registerEditorButtons();
     const pasteReady = registerPasteEvent();
+    const fallbackReady = registerEditorFallbackButton();
+    const entryReady = buttonsReady || fallbackReady;
 
-    if (buttonsReady && pasteReady) {
+    if (state.classicButtonRegistered && state.visualButtonRegistered && pasteReady) {
       return;
     }
 
     state.integrationAttempts += 1;
     if (state.integrationAttempts >= 80) {
-      console.warn("[FDEmbedLink] editor non agganciato completamente", diagnostics());
+      const details = diagnostics();
+      if (!entryReady || !pasteReady) {
+        console.warn("[FDEmbedLink] editor non agganciato completamente", details);
+      } else if (!state.visualButtonRegistered) {
+        console.info("[FDEmbedLink] editor classico agganciato; coda visuale non disponibile in questa pagina", details);
+      }
       return;
     }
 
     state.integrationTimer = window.setTimeout(scheduleIntegrationRetry, state.integrationAttempts < 20 ? 250 : 1000);
+  }
+
+  function refreshIntegration() {
+    state.integrationAttempts = 0;
+    scheduleIntegrationRetry();
+    return diagnostics();
   }
 
   function diagnostics() {
@@ -908,6 +977,7 @@
     const replierForm = utilities && utilities.replierForm ? utilities.replierForm : null;
     const textareaApi = replierForm && replierForm.textarea ? replierForm.textarea : null;
     const buttons = replierForm && replierForm.buttons ? replierForm.buttons : null;
+    const fallbackButton = document.querySelector("[data-fd-embed-fallback-button]");
 
     return {
       app: APP_TITLE,
@@ -918,14 +988,19 @@
       utilitiesReady: Boolean(utilities),
       replierFormReady: Boolean(replierForm),
       classicButtonApiReady: Boolean(buttons && typeof buttons.add === "function"),
+      classicButtonRegistered: state.classicButtonRegistered,
+      classicButtonVisible: findVisibleTextButton(APP_TITLE),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
+      fallbackButtonReady: Boolean(fallbackButton),
+      fallbackButtonVisible: isVisibleElement(fallbackButton),
       user: getUser(),
       state: {
         initialized: state.initialized,
         classicButtonRegistered: state.classicButtonRegistered,
         visualButtonRegistered: state.visualButtonRegistered,
+        editorFallbackRegistered: state.editorFallbackRegistered,
         pasteRegistered: state.pasteRegistered,
         integrationAttempts: state.integrationAttempts
       }
@@ -957,7 +1032,8 @@
     handlePaste,
     buildHtml: renderCardHtml,
     confirmPublishedEmbeds,
-    diagnostics
+    diagnostics,
+    refreshIntegration
   };
 
   window.FDEmbedLink = api;
