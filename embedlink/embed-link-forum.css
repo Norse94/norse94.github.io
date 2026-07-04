@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.32 - cover picker left margin */
+/* FD EMBED LINK build 2026-07-04.33 - card alignment reset */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -102,6 +102,7 @@
   background: var(--fd-embed-bg);
   box-shadow: var(--fd-embed-shadow);
   color: var(--fd-embed-ink);
+  text-align: left;
 }
 
 .fd-embed-link__media {
@@ -125,20 +126,26 @@
 .fd-embed-link__body {
   display: grid;
   align-content: start;
+  justify-items: stretch;
   gap: 9px;
   min-width: 0;
   padding: 14px 15px 15px;
+  text-align: left;
 }
 
 .fd-embed-link__source {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  justify-self: stretch;
   gap: 7px;
+  width: 100%;
   min-width: 0;
   color: var(--fd-embed-accent);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
+  text-align: left;
 }
 
 .fd-embed-link__source-mark {
@@ -157,12 +164,14 @@
 
 .fd-embed-link__title {
   display: block;
+  justify-self: stretch;
   min-width: 0;
   color: var(--fd-embed-ink);
   font-size: 18px;
   font-weight: 700;
   line-height: 1.22;
   text-decoration: none;
+  text-align: left;
   overflow-wrap: anywhere;
 }
 
@@ -175,11 +184,13 @@
 
 .fd-embed-link__excerpt {
   display: -webkit-box;
+  justify-self: stretch;
   margin: 0;
   overflow: hidden;
   color: var(--fd-embed-muted);
   font-size: 14px;
   line-height: 1.45;
+  text-align: left;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -189,10 +200,14 @@
   flex-wrap: wrap;
   gap: 6px 10px;
   align-items: center;
+  justify-content: flex-start;
+  justify-self: stretch;
+  width: 100%;
   min-width: 0;
   padding-top: 2px;
   color: #465157;
   font-size: 12px;
+  text-align: left;
 }
 
 .fd-embed-link__author,
