@@ -25,6 +25,8 @@
     pasteDisabled: false,
     pasteText: "",
     preview: null,
+    localModal: null,
+    fallbackClickCount: 0,
     integrationAttempts: 0,
     integrationTimer: 0
   };
@@ -55,6 +57,12 @@
   }
 
   function closeModal() {
+    if (state.localModal && state.localModal.parentNode) {
+      state.localModal.parentNode.removeChild(state.localModal);
+      state.localModal = null;
+      return;
+    }
+
     const C = commons();
     if (C && C.modal && typeof C.modal.close === "function") {
       C.modal.close();
@@ -64,7 +72,7 @@
   function showModal(title, content, footer, className) {
     const C = commons();
     if (!C || !C.modal || typeof C.modal.set !== "function") {
-      return 0;
+      return showLocalModal(title, content, footer, className);
     }
 
     return C.modal.set({
@@ -73,6 +81,30 @@
       content,
       footer
     }, true);
+  }
+
+  function showLocalModal(title, content, footer, className) {
+    closeModal();
+
+    const overlay = document.createElement("div");
+    overlay.className = "fd-embed-local-modal";
+    overlay.setAttribute("data-fd-embed-local-modal", "");
+
+    overlay.innerHTML = [
+      "<div class=\"fd-embed-local-modal__backdrop\" data-fd-embed-action=\"url-cancel\"></div>",
+      `<section class="fd-embed-local-modal__dialog ${escapeAttr(className || "")}" role="dialog" aria-modal="true" aria-label="${escapeAttr(title)}">`,
+      "  <header class=\"fd-embed-local-modal__header\">",
+      `    <strong>${escapeHtml(title)}</strong>`,
+      "    <button class=\"fd-embed-local-modal__close\" type=\"button\" data-fd-embed-action=\"url-cancel\" aria-label=\"Chiudi\">x</button>",
+      "  </header>",
+      `  <div class="fd-embed-local-modal__body">${content || ""}</div>`,
+      `  <footer class="fd-embed-local-modal__footer">${footer || ""}</footer>`,
+      "</section>"
+    ].join("\n");
+
+    document.body.appendChild(overlay);
+    state.localModal = overlay;
+    return -1;
   }
 
   function escapeHtml(value) {
@@ -775,6 +807,12 @@
     event.preventDefault();
     const action = actionButton.getAttribute("data-fd-embed-action");
 
+    if (action === "fallback-open") {
+      state.fallbackClickCount += 1;
+      openUrlModal("");
+      return;
+    }
+
     if (action === "url-cancel" || action === "preview-cancel") {
       closeModal();
       return;
@@ -887,6 +925,7 @@
   function registerEditorFallbackButton() {
     const existing = document.querySelector("[data-fd-embed-fallback-button]");
     if (existing) {
+      bindFallbackButton(existing);
       existing.hidden = !getEditorTextarea();
       state.editorFallbackRegistered = true;
       return true;
@@ -904,15 +943,24 @@
     button.type = "button";
     button.className = "fd-embed-editor-fallback__button";
     button.setAttribute("data-fd-embed-fallback-button", "");
+    button.setAttribute("data-fd-embed-action", "fallback-open");
     button.textContent = APP_TITLE;
-    button.addEventListener("click", () => {
-      openUrlModal("");
-    });
+    bindFallbackButton(button);
 
     wrapper.appendChild(button);
     document.body.appendChild(wrapper);
     state.editorFallbackRegistered = true;
     return true;
+  }
+
+  function bindFallbackButton(button) {
+    button.setAttribute("data-fd-embed-action", "fallback-open");
+    button.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      state.fallbackClickCount += 1;
+      openUrlModal("");
+    };
   }
 
   function isVisibleElement(element) {
@@ -990,6 +1038,8 @@
       classicButtonApiReady: Boolean(buttons && typeof buttons.add === "function"),
       classicButtonRegistered: state.classicButtonRegistered,
       classicButtonVisible: findVisibleTextButton(APP_TITLE),
+      modalApiReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
+      localModalOpen: Boolean(state.localModal && state.localModal.parentNode),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
@@ -1002,6 +1052,7 @@
         visualButtonRegistered: state.visualButtonRegistered,
         editorFallbackRegistered: state.editorFallbackRegistered,
         pasteRegistered: state.pasteRegistered,
+        fallbackClickCount: state.fallbackClickCount,
         integrationAttempts: state.integrationAttempts
       }
     };
