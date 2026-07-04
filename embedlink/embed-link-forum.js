@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.29 */
+/* FD EMBED LINK build 2026-07-04.30 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.29",
+    version: "2026-07-04.30",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -679,7 +679,7 @@
     const card = renderCardHtml(metadata, "", selected.url, { compact: false })
       .replace("<img class=\"fd-embed-link__image\"", "<img data-fd-embed-preview-image class=\"fd-embed-link__image\"");
     const images = metadata.images.length ? [
-      "<div class=\"fd-embed-field fd-embed-cover-picker\">",
+      "<div class=\"fd-embed-field fd-embed-cover-picker el-img-preview-container\">",
       "  <strong>Scegli l'immagine di copertina:</strong>",
       "  <div class=\"fd-embed-images\">",
       metadata.images.map((image, index) => {
@@ -825,7 +825,7 @@
       };
 
       closeModal();
-      showModal("Anteprima " + APP_TITLE, renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview cs-modal-w50");
+      showModal("Anteprima " + APP_TITLE, renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
     } catch (error) {
       showUrlError(error.message || "Impossibile generare l'anteprima.");
     }

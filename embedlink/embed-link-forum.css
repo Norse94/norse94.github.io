@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.29 - native preview footer buttons */
+/* FD EMBED LINK build 2026-07-04.30 - preview image container class */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -287,6 +287,11 @@
 
 .fd-embed-cover-picker {
   text-align: left;
+}
+
+.el-modal .cs-modal-body .el-img-preview-container {
+  text-align: start;
+  margin: 0 -2% 12px;
 }
 
 .fd-embed-cover-picker strong {
