@@ -1,12 +1,12 @@
-/* FD EMBED LINK build 2026-07-04.14 */
+/* FD EMBED LINK build 2026-07-04.16 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.14",
+    version: "2026-07-04.16",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
-    allowedForumHost: "difesa.forumfree.it",
+    allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
     requestTimeoutMs: 12000,
     pendingStorageKey: "fd_embed_link_pending_v1",
@@ -21,10 +21,7 @@
     initialized: false,
     buttonsRegistered: false,
     classicButtonRegistered: false,
-    classicButtonAddAttempts: 0,
     visualButtonRegistered: false,
-    editorInlineButtonRegistered: false,
-    editorFallbackRegistered: false,
     pasteRegistered: false,
     textareaApiPasteRegistered: false,
     pasteTargetCount: 0,
@@ -34,9 +31,6 @@
     commonsModal: null,
     localModal: null,
     localModalOpenedAt: 0,
-    fallbackClickCount: 0,
-    lastFallbackActivationAt: 0,
-    lastInlineInsertTarget: "",
     lastOpenAttempt: null,
     lastModalError: "",
     integrationAttempts: 0,
@@ -354,7 +348,7 @@
 
   function isAllowedForumLocation() {
     const host = location.hostname.toLowerCase();
-    const allowedHost = CONFIG.allowedForumHost.toLowerCase();
+    const allowedHosts = CONFIG.allowedForumHosts.map((item) => item.toLowerCase());
     const C = commons();
     const forum = C && C.forum ? C.forum : {};
 
@@ -362,11 +356,11 @@
       return true;
     }
 
-    if (host === allowedHost || host === "www." + allowedHost) {
+    if (allowedHosts.some((allowedHost) => host === allowedHost || host === "www." + allowedHost)) {
       return true;
     }
 
-    return forum.subdomain === "difesa" && forum.domain === "forumfree.it";
+    return allowedHosts.includes(String(forum.subdomain || "").toLowerCase() + "." + String(forum.domain || "").toLowerCase());
   }
 
   function getForumContext() {
@@ -392,7 +386,7 @@
     }
 
     if (!isAllowedForumLocation()) {
-      toast("error", APP_TITLE, "Questo script e configurato per " + CONFIG.allowedForumHost + ".");
+      toast("error", APP_TITLE, "Questo script e configurato per " + CONFIG.allowedForumHosts.join(", ") + ".");
       return false;
     }
 
@@ -418,79 +412,6 @@
       "textarea"
     ].join(",")));
     return [...new Set(items)];
-  }
-
-  function getEditorRoot(textarea) {
-    if (!textarea || !textarea.closest) {
-      return document.body;
-    }
-
-    return textarea.closest("form") ||
-      textarea.closest("[id*='reply'], [class*='reply'], [id*='editor'], [class*='editor']") ||
-      textarea.parentElement ||
-      document.body;
-  }
-
-  function isBeforeElement(candidate, reference) {
-    if (!candidate || !reference || candidate === reference) {
-      return false;
-    }
-
-    if (typeof candidate.compareDocumentPosition !== "function" || !window.Node) {
-      return true;
-    }
-
-    return Boolean(candidate.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING);
-  }
-
-  function describeElement(element) {
-    if (!element) {
-      return "";
-    }
-
-    const tag = String(element.tagName || "element").toLowerCase();
-    const id = element.id ? "#" + element.id : "";
-    const classes = element.classList && element.classList.length
-      ? "." + Array.from(element.classList).slice(0, 4).join(".")
-      : "";
-    return tag + id + classes;
-  }
-
-  function findEditorToolbar(textarea) {
-    const root = getEditorRoot(textarea);
-    if (!root || !root.querySelectorAll) {
-      return null;
-    }
-
-    const selectors = [
-      ".sceditor-toolbar",
-      ".wysibb-toolbar",
-      ".note-toolbar",
-      ".cke_top .cke_toolbox",
-      ".cke_top",
-      ".bbcode-toolbar",
-      ".bbcode-buttons",
-      ".format-buttons",
-      ".editor-toolbar",
-      ".editorButtons",
-      ".editor_buttons",
-      ".editortoolbar",
-      ".codebuttons",
-      "#codebuttons",
-      "#buttons",
-      "[data-editor-toolbar]"
-    ].join(",");
-
-    const textareaForm = textarea.closest ? textarea.closest("form") : null;
-    const candidates = Array.from(root.querySelectorAll(selectors)).filter((candidate) => {
-      return candidate !== textarea &&
-        !candidate.closest("[data-fd-embed-inline-wrapper]") &&
-        (!textareaForm || candidate.closest("form") === textareaForm) &&
-        isBeforeElement(candidate, textarea);
-    });
-
-    const visibleCandidates = candidates.filter(isVisibleElement);
-    return visibleCandidates[visibleCandidates.length - 1] || candidates[candidates.length - 1] || null;
   }
 
   function getEditorText() {
@@ -1161,19 +1082,6 @@
     event.preventDefault();
     const action = actionButton.getAttribute("data-fd-embed-action");
 
-    if (action === "fallback-open") {
-      event.stopPropagation();
-      state.fallbackClickCount += 1;
-      openUrlModal("");
-      return;
-    }
-
-    if (action === "editor-open") {
-      event.stopPropagation();
-      openUrlModal("");
-      return;
-    }
-
     if (action === "url-cancel" || action === "preview-cancel") {
       if (state.localModal && Date.now() - state.localModalOpenedAt < 700) {
         return;
@@ -1214,27 +1122,6 @@
     }
   }
 
-  function handleFallbackActivation(event) {
-    if (event.type !== "click") {
-      return;
-    }
-
-    const target = event.target && event.target.closest ? event.target.closest("[data-fd-embed-fallback-button]") : null;
-    if (!target) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    const now = Date.now();
-    if (now - state.lastFallbackActivationAt < 650) {
-      return;
-    }
-    state.lastFallbackActivationAt = now;
-    state.fallbackClickCount += 1;
-    openUrlModal("");
-  }
-
   function handleSubmitCapture(event) {
     const target = event.target;
     if (target && target.matches && target.matches('input[name="submit_post"], button[name="submit_post"]')) {
@@ -1242,12 +1129,18 @@
     }
   }
 
-  function registerEditorButtons() {
-    if (state.classicButtonRegistered && state.visualButtonRegistered && findVisibleNativeEditorButton(APP_TITLE)) {
-      state.buttonsRegistered = true;
-      return true;
-    }
+  function removeLegacyEditorButtons() {
+    document.querySelectorAll([
+      "[data-fd-embed-fallback]",
+      "[data-fd-embed-fallback-button]",
+      "[data-fd-embed-inline-wrapper]",
+      "[data-fd-embed-inline-button]"
+    ].join(",")).forEach((element) => {
+      element.remove();
+    });
+  }
 
+  function registerEditorButtons() {
     const C = commons();
     if (!C || !C.utilities) {
       return false;
@@ -1255,7 +1148,6 @@
 
     const replierForm = C.utilities.replierForm || {};
     const buttons = replierForm.buttons;
-    const nativeButtonVisible = findVisibleNativeEditorButton(APP_TITLE);
     const buttonConfig = {
       title: APP_TITLE,
       event: async () => {
@@ -1264,12 +1156,10 @@
       allowCustomEditors: false
     };
 
-    if (buttons && typeof buttons.add === "function" &&
-        (!state.classicButtonRegistered || (!nativeButtonVisible && state.classicButtonAddAttempts < 8))) {
+    if (!state.classicButtonRegistered && buttons && typeof buttons.add === "function") {
       try {
         buttons.add(buttonConfig);
         state.classicButtonRegistered = true;
-        state.classicButtonAddAttempts += 1;
       } catch (error) {
         state.lastModalError = error && error.message ? error.message : String(error || "");
       }
@@ -1286,7 +1176,7 @@
       state.visualButtonRegistered = true;
     }
 
-    state.buttonsRegistered = state.classicButtonRegistered || state.visualButtonRegistered || state.editorInlineButtonRegistered;
+    state.buttonsRegistered = state.classicButtonRegistered || state.visualButtonRegistered;
     return state.buttonsRegistered;
   }
 
@@ -1316,165 +1206,6 @@
     return false;
   }
 
-  function createEditorOpenButton(kind) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = kind === "toolbar"
-      ? "fd-embed-editor-inline__button fd-embed-editor-inline__button--toolbar"
-      : "fd-embed-editor-inline__button";
-    button.setAttribute("data-fd-embed-inline-button", "");
-    button.setAttribute("data-fd-embed-action", "editor-open");
-    button.setAttribute("aria-label", APP_TITLE);
-    button.title = APP_TITLE;
-    button.textContent = APP_TITLE;
-    bindEditorOpenButton(button);
-    applyInlineButtonStyles(button);
-    return button;
-  }
-
-  function bindEditorOpenButton(button) {
-    button.onclick = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openUrlModal("");
-    };
-  }
-
-  function applyInlineWrapperStyles(wrapper) {
-    wrapper.style.cssText = [
-      "display:flex",
-      "justify-content:flex-start",
-      "align-items:center",
-      "gap:6px",
-      "margin:8px 0"
-    ].join(";");
-  }
-
-  function applyInlineButtonStyles(button) {
-    button.style.cssText = [
-      "min-height:32px",
-      "padding:6px 11px",
-      "border:1px solid #17685b",
-      "border-radius:6px",
-      "background:#17685b",
-      "color:#fff",
-      "font:inherit",
-      "font-size:13px",
-      "font-weight:700",
-      "line-height:1.2",
-      "cursor:pointer",
-      "box-shadow:none"
-    ].join(";");
-  }
-
-  function registerEditorInlineButtons() {
-    let inserted = false;
-
-    for (const textarea of getEditorTextareas()) {
-      if (!textarea || !textarea.isConnected) {
-        continue;
-      }
-
-      const toolbar = findEditorToolbar(textarea);
-      if (!toolbar) {
-        continue;
-      }
-
-      const existing = toolbar.querySelector("[data-fd-embed-inline-button]");
-
-      if (existing) {
-        bindEditorOpenButton(existing);
-        applyInlineButtonStyles(existing);
-        inserted = true;
-        continue;
-      }
-
-      const button = createEditorOpenButton("toolbar");
-      toolbar.appendChild(button);
-      state.lastInlineInsertTarget = describeElement(toolbar);
-      inserted = true;
-    }
-
-    state.editorInlineButtonRegistered = inserted || Boolean(document.querySelector("[data-fd-embed-inline-button]"));
-    return state.editorInlineButtonRegistered;
-  }
-
-  function hasVisibleInlineButton() {
-    return Array.from(document.querySelectorAll("[data-fd-embed-inline-button]")).some(isVisibleElement);
-  }
-
-  function registerEditorFallbackButton() {
-    const existing = document.querySelector("[data-fd-embed-fallback-button]");
-    if (existing) {
-      bindFallbackButton(existing);
-      applyFallbackButtonStyles(existing);
-      existing.hidden = !getEditorTextarea() || hasVisibleInlineButton();
-      state.editorFallbackRegistered = true;
-      return true;
-    }
-
-    if (!getEditorTextarea() || hasVisibleInlineButton()) {
-      return false;
-    }
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "fd-embed-editor-fallback fd-embed-editor-fallback--floating";
-    wrapper.setAttribute("data-fd-embed-fallback", "");
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "fd-embed-editor-fallback__button";
-    button.setAttribute("data-fd-embed-fallback-button", "");
-    button.setAttribute("data-fd-embed-action", "fallback-open");
-    button.textContent = APP_TITLE;
-    bindFallbackButton(button);
-    applyFallbackButtonStyles(button);
-
-    wrapper.appendChild(button);
-    document.body.appendChild(wrapper);
-    applyFallbackWrapperStyles(wrapper);
-    state.editorFallbackRegistered = true;
-    return true;
-  }
-
-  function applyFallbackWrapperStyles(wrapper) {
-    wrapper.style.cssText = [
-      "position:fixed",
-      "right:12px",
-      "bottom:12px",
-      "z-index:2147483000",
-      "display:flex",
-      "margin:0"
-    ].join(";");
-  }
-
-  function applyFallbackButtonStyles(button) {
-    button.style.cssText = [
-      "min-height:38px",
-      "padding:8px 12px",
-      "border:1px solid #17685b",
-      "border-radius:6px",
-      "background:#17685b",
-      "color:#fff",
-      "font:inherit",
-      "font-size:13px",
-      "font-weight:700",
-      "line-height:1.2",
-      "cursor:pointer",
-      "box-shadow:0 6px 18px rgba(21,24,25,.18)"
-    ].join(";");
-  }
-
-  function bindFallbackButton(button) {
-    button.setAttribute("data-fd-embed-action", "fallback-open");
-    button.onclick = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      state.fallbackClickCount += 1;
-      openUrlModal("");
-    };
-  }
-
   function isVisibleElement(element) {
     if (!element || element.hidden) {
       return false;
@@ -1502,9 +1233,7 @@
   function findVisibleNativeEditorButton(text) {
     const selector = "button, a, input[type='button'], input[type='submit'], [role='button']";
     return Array.from(document.querySelectorAll(selector)).some((element) => {
-      return !element.matches("[data-fd-embed-fallback-button]") &&
-        !element.matches("[data-fd-embed-inline-button]") &&
-        elementLabelMatches(element, text) &&
+      return elementLabelMatches(element, text) &&
         isVisibleElement(element);
     });
   }
@@ -1513,18 +1242,16 @@
     window.clearTimeout(state.integrationTimer);
 
     const buttonsReady = registerEditorButtons();
-    const inlineButtonReady = registerEditorInlineButtons();
     const pasteReady = registerPasteEvent();
-    const fallbackReady = registerEditorFallbackButton();
 
-    if (state.classicButtonRegistered && state.visualButtonRegistered && pasteReady) {
+    if (buttonsReady && pasteReady) {
       return;
     }
 
     state.integrationAttempts += 1;
     if (state.integrationAttempts === 80 || state.integrationAttempts % 120 === 0) {
       const details = diagnostics();
-      if (!(buttonsReady || inlineButtonReady || fallbackReady) || !pasteReady) {
+      if (!buttonsReady || !pasteReady) {
         console.warn("[FDEmbedLink] editor non agganciato completamente", details);
       } else if (!state.visualButtonRegistered) {
         console.info("[FDEmbedLink] editor classico agganciato; coda visuale non disponibile in questa pagina", details);
@@ -1544,18 +1271,14 @@
     if (!state.integrationInterval) {
       state.integrationInterval = window.setInterval(() => {
         registerEditorButtons();
-        registerEditorInlineButtons();
         registerPasteEvent();
-        registerEditorFallbackButton();
       }, 2000);
     }
 
     if (!state.integrationObserver && document.body && window.MutationObserver) {
       state.integrationObserver = new MutationObserver(() => {
         registerEditorButtons();
-        registerEditorInlineButtons();
         registerPasteEvent();
-        registerEditorFallbackButton();
       });
       state.integrationObserver.observe(document.body, {
         childList: true,
@@ -1570,8 +1293,6 @@
     const replierForm = utilities && utilities.replierForm ? utilities.replierForm : null;
     const textareaApi = replierForm && replierForm.textarea ? replierForm.textarea : null;
     const buttons = replierForm && replierForm.buttons ? replierForm.buttons : null;
-    const fallbackButton = document.querySelector("[data-fd-embed-fallback-button]");
-    const inlineButton = document.querySelector("[data-fd-embed-inline-button]");
     const localModal = state.localModal || document.querySelector("[data-fd-embed-local-modal]");
 
     return {
@@ -1585,11 +1306,7 @@
       replierFormReady: Boolean(replierForm),
       classicButtonApiReady: Boolean(buttons && typeof buttons.add === "function"),
       classicButtonRegistered: state.classicButtonRegistered,
-      classicButtonAddAttempts: state.classicButtonAddAttempts,
       classicButtonVisible: findVisibleNativeEditorButton(APP_TITLE),
-      editorInlineButtonReady: Boolean(inlineButton),
-      editorInlineButtonVisible: hasVisibleInlineButton(),
-      lastInlineInsertTarget: state.lastInlineInsertTarget,
       modalCreateReady: Boolean(C && C.modal && typeof C.modal.create === "function"),
       modalSetReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
       modalApiReady: hasAnyModalApi(),
@@ -1602,20 +1319,14 @@
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
       domTextareaCount: getEditorTextareas().length,
-      fallbackButtonReady: Boolean(fallbackButton),
-      fallbackButtonVisible: isVisibleElement(fallbackButton),
       user: getUser(),
       state: {
         initialized: state.initialized,
         classicButtonRegistered: state.classicButtonRegistered,
-        classicButtonAddAttempts: state.classicButtonAddAttempts,
         visualButtonRegistered: state.visualButtonRegistered,
-        editorInlineButtonRegistered: state.editorInlineButtonRegistered,
-        editorFallbackRegistered: state.editorFallbackRegistered,
         pasteRegistered: state.pasteRegistered,
         textareaApiPasteRegistered: state.textareaApiPasteRegistered,
         pasteTargetCount: state.pasteTargetCount,
-        fallbackClickCount: state.fallbackClickCount,
         integrationAttempts: state.integrationAttempts,
         integrationIntervalActive: Boolean(state.integrationInterval),
         integrationObserverActive: Boolean(state.integrationObserver)
@@ -1634,8 +1345,8 @@
     }
 
     state.initialized = true;
+    removeLegacyEditorButtons();
     document.addEventListener("click", handleDocumentClick);
-    document.addEventListener("click", handleFallbackActivation, true);
     document.addEventListener("paste", handlePaste, true);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
