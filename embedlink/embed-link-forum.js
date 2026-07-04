@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.38 */
+/* FD EMBED LINK build 2026-07-05.2 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.38",
+    version: "2026-07-05.2",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -626,12 +626,8 @@
     const inputId = ID_PREFIX + "url";
     return [
       "<div class=\"fd-embed-form\">",
-      "  <div class=\"fd-embed-field\">",
-      `    <label for="${inputId}">URL articolo</label>`,
-      `    <input class="fd-embed-input" id="${inputId}" type="url" value="${escapeAttr(initialUrl || "")}" placeholder="https://example.com/articolo">`,
-      "    <p class=\"fd-embed-hint\">Inserisci un link http o https. I link diretti a immagini non vengono trasformati in Embed Link.</p>",
-      "    <p class=\"fd-embed-error\" data-fd-embed-error hidden></p>",
-      "  </div>",
+      `  <input class="fd-embed-input" id="${inputId}" type="url" value="${escapeAttr(initialUrl || "")}" placeholder="https://example.com/articolo">`,
+      "  <p class=\"fd-embed-error\" data-fd-embed-error hidden></p>",
       "</div>"
     ].join("\n");
   }
