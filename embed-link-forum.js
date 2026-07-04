@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.8 */
+/* FD EMBED LINK build 2026-07-04.9 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.8",
+    version: "2026-07-04.9",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHost: "difesa.forumfree.it",
     maxImages: 5,
@@ -28,6 +28,7 @@
     pasteText: "",
     preview: null,
     localModal: null,
+    localModalOpenedAt: 0,
     fallbackClickCount: 0,
     lastFallbackActivationAt: 0,
     lastOpenAttempt: null,
@@ -116,6 +117,7 @@
     document.body.appendChild(overlay);
     applyLocalModalStyles(overlay);
     state.localModal = overlay;
+    state.localModalOpenedAt = Date.now();
     return -1;
   }
 
@@ -955,12 +957,16 @@
     const action = actionButton.getAttribute("data-fd-embed-action");
 
     if (action === "fallback-open") {
+      event.stopPropagation();
       state.fallbackClickCount += 1;
       openUrlModal("");
       return;
     }
 
     if (action === "url-cancel" || action === "preview-cancel") {
+      if (state.localModal && Date.now() - state.localModalOpenedAt < 700) {
+        return;
+      }
       closeModal();
       return;
     }
@@ -998,6 +1004,10 @@
   }
 
   function handleFallbackActivation(event) {
+    if (event.type !== "click") {
+      return;
+    }
+
     const target = event.target && event.target.closest ? event.target.closest("[data-fd-embed-fallback-button]") : null;
     if (!target) {
       return;
@@ -1239,9 +1249,6 @@
 
     state.initialized = true;
     document.addEventListener("click", handleDocumentClick);
-    document.addEventListener("pointerdown", handleFallbackActivation, true);
-    document.addEventListener("mousedown", handleFallbackActivation, true);
-    document.addEventListener("touchstart", handleFallbackActivation, true);
     document.addEventListener("click", handleFallbackActivation, true);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
