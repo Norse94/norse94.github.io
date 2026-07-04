@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.9.2 */
+/* FD EMBED LINK build 2026-07-04.10 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.9",
+    version: "2026-07-04.10",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHost: "difesa.forumfree.it",
     maxImages: 5,
@@ -907,6 +907,7 @@
       return true;
     }
 
+    event.stopPropagation();
     event.preventDefault();
     state.pasteText = text.trim();
     showModal("Link incollato", renderPasteModal(state.pasteText), renderPasteFooter(), "cs-modal-w50");
@@ -1044,14 +1045,16 @@
 
     const replierForm = C.utilities.replierForm || {};
     const buttons = replierForm.buttons;
+    const buttonConfig = {
+      title: APP_TITLE,
+      event: async () => {
+        await openUrlModal("");
+      },
+      allowCustomEditors: false
+    };
+
     if (!state.classicButtonRegistered && buttons && typeof buttons.add === "function") {
-      buttons.add({
-        title: APP_TITLE,
-        event: async () => {
-          await openUrlModal("");
-        },
-        allowCustomEditors: false
-      });
+      buttons.add(buttonConfig);
       state.classicButtonRegistered = true;
     }
 
@@ -1059,10 +1062,7 @@
       C.utilities.queue.push({
         tag: "ve:externals:add",
         event: {
-          title: APP_TITLE,
-          event: () => {
-            openUrlModal("");
-          },
+          ...buttonConfig,
           serviceType: "link"
         }
       });
