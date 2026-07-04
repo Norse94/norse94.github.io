@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.5 */
+/* FD EMBED LINK build 2026-07-05.7 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.5",
+    version: "2026-07-05.7",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -607,6 +607,62 @@
       text.includes(markerClass);
   }
 
+  function contentHasPendingEmbed(content, embedId, pendingItem) {
+    if (contentHasEmbedId(content, embedId)) {
+      return true;
+    }
+
+    return contentHasPendingEmbedUrl(content, pendingItem);
+  }
+
+  function contentHasPendingEmbedUrl(content, pendingItem) {
+    const text = String(content || "");
+    if (!text.includes("fd-embed-link")) {
+      return false;
+    }
+
+    return getPendingUrls(pendingItem).some((url) => (
+      text.includes(url) ||
+      text.includes(escapeHtml(url)) ||
+      text.includes(encodeURI(url))
+    ));
+  }
+
+  function pickUrlFallbackEmbedIds(content, ids, pending, allowedIds) {
+    const matches = ids.filter((id) => {
+      if (allowedIds && allowedIds.indexOf(id) === -1) {
+        return false;
+      }
+      return contentHasPendingEmbedUrl(content, pending[id]);
+    });
+
+    if (!matches.length) {
+      return [];
+    }
+
+    const byUrl = {};
+    matches.forEach((id) => {
+      const key = getPendingUrls(pending[id])[0] || id;
+      const current = byUrl[key];
+      if (!current || Number(pending[id].createdAt || 0) > Number(pending[current].createdAt || 0)) {
+        byUrl[key] = id;
+      }
+    });
+
+    return Object.keys(byUrl).map((key) => byUrl[key]);
+  }
+
+  function getPendingUrls(pendingItem) {
+    const urls = [];
+    ["sourceUrl", "finalUrl", "canonicalUrl"].forEach((key) => {
+      const value = pendingItem && pendingItem[key] ? String(pendingItem[key]) : "";
+      if (value && urls.indexOf(value) === -1) {
+        urls.push(value);
+      }
+    });
+    return urls;
+  }
+
   function formatDisplayDate(value) {
     if (!value) {
       return "";
@@ -879,6 +935,8 @@
       id: embedId,
       publishToken,
       sourceUrl: metadata.sourceUrl,
+      finalUrl: metadata.finalUrl,
+      canonicalUrl: metadata.canonicalUrl,
       userId: getUser().id,
       createdAt: Date.now()
     };
@@ -888,7 +946,7 @@
   function rememberSubmitEmbeds() {
     const text = getEditorText();
     const pending = getPendingEmbeds();
-    const ids = Object.keys(pending).filter((id) => contentHasEmbedId(text, id));
+    const ids = Object.keys(pending).filter((id) => contentHasPendingEmbed(text, id, pending[id]));
 
     if (!ids.length) {
       return;
@@ -984,6 +1042,14 @@
 
     const user = getUser();
     const remaining = { ...pending };
+    const submitInfo = (() => {
+      try {
+        return JSON.parse(sessionStorage.getItem(CONFIG.submitStorageKey) || "{}") || {};
+      } catch (_error) {
+        return {};
+      }
+    })();
+    const submittedIds = Array.isArray(submitInfo.ids) ? submitInfo.ids : [];
 
     for (const post of C.location.posts) {
       if (user.id && post.author && post.author.id && Number(post.author.id) !== user.id) {
@@ -991,7 +1057,10 @@
       }
 
       const html = String(post.content || "") + " " + (post.nativeElement ? post.nativeElement.innerHTML : "");
-      const foundIds = ids.filter((id) => contentHasEmbedId(html, id));
+      let foundIds = ids.filter((id) => contentHasEmbedId(html, id));
+      if (!foundIds.length) {
+        foundIds = pickUrlFallbackEmbedIds(html, ids, pending, submittedIds.length ? submittedIds : null);
+      }
       if (!foundIds.length) {
         continue;
       }

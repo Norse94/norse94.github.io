@@ -131,6 +131,32 @@
     return (left || []).filter((item) => rightSet.has(item));
   }
 
+  function getPendingUrls(pendingItem) {
+    const urls = [];
+    ["sourceUrl", "finalUrl", "canonicalUrl"].forEach((key) => {
+      const value = pendingItem && pendingItem[key] ? String(pendingItem[key]) : "";
+      if (value && urls.indexOf(value) === -1) {
+        urls.push(value);
+      }
+    });
+    return urls;
+  }
+
+  function findPendingIdsByUrlInText(pending, text) {
+    const haystack = String(text || "");
+    if (!haystack.includes("fd-embed-link")) {
+      return [];
+    }
+
+    return objectKeys(pending).filter((id) => {
+      return getPendingUrls(pending[id]).some((url) => (
+        haystack.includes(url) ||
+        haystack.includes(escapeHtml(url)) ||
+        haystack.includes(encodeURI(url))
+      ));
+    });
+  }
+
   async function readRequestBody(input) {
     if (!input) {
       return "";
@@ -290,6 +316,8 @@
     const submittedInDom = intersect(submittedIds, report.domEmbedIds);
     const pendingInDom = intersect(report.pendingBeforeIds, report.domEmbedIds);
     const pendingInCommonsPosts = intersect(report.pendingBeforeIds, report.commonsPostEmbedIds);
+    const domNotPending = report.domEmbedIds.filter((id) => report.pendingBeforeIds.indexOf(id) === -1);
+    const pendingMatchedByUrl = report.pendingMatchedByUrl || [];
     const maybeAlreadyConfirmed = submittedIds.length > 0 && submittedStillPending.length === 0 && submittedInDom.length > 0;
     let message = "";
 
@@ -299,6 +327,10 @@
       message = "Richiesta publish inviata, ma i pending locali non sono cambiati.";
     } else if (maybeAlreadyConfirmed) {
       message = "Probabile conferma gia eseguita al caricamento pagina: l'ID inviato e nel DOM ma non e piu nei pending.";
+    } else if (domNotPending.length) {
+      message = "Nel DOM ci sono marker embed, ma nessuno corrisponde ai pending in sessione. Probabile codice di esempio/vecchio UUID senza publishToken.";
+    } else if (pendingMatchedByUrl.length) {
+      message = "Il marker non corrisponde, ma almeno un pending combacia via URL. Carica la build 2026-07-05.7 o successiva per confermare con fallback URL.";
     } else if (!pendingInDom.length && !pendingInCommonsPosts.length) {
       message = "I pending rimasti non sono presenti nel post corrente: sembrano vecchi/stale o appartengono ad altri post.";
     } else {
@@ -318,6 +350,8 @@
       submittedInDom,
       pendingInDom,
       pendingInCommonsPosts,
+      domNotPending,
+      pendingMatchedByUrl,
       maybeAlreadyConfirmed,
       message
     };
@@ -547,6 +581,8 @@
     const submitInfo = readStorageJson(submitKey);
     const domEmbedIdsBefore = findDomEmbedIds();
     const commonsPostsBefore = inspectForumPosts();
+    const pageHtmlBefore = String(document.body ? document.body.innerHTML : "");
+    const pendingMatchedByUrlBefore = findPendingIdsByUrlInText(pendingBefore, pageHtmlBefore);
     const diagnosticsBefore = typeof api.diagnostics === "function" ? api.diagnostics() : null;
     const probe = installNetworkProbe(config.edgeEndpoint, options);
 
@@ -582,6 +618,7 @@
       domEmbedIds: domEmbedIdsBefore,
       commonsPosts: commonsPostsBefore,
       commonsPostEmbedIds: commonsPostsBefore.reduce((ids, post) => ids.concat(post.embedIds), []),
+      pendingMatchedByUrl: pendingMatchedByUrlBefore,
       networkEvents: probe.events,
       thrownError
     };
