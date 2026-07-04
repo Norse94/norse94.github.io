@@ -1,5 +1,5 @@
 /*
- * FD EMBED LINK - verifica automatica publish/beacon
+ * FD EMBED LINK - verifica automatica publish/beacon 1
  *
  * Uso:
  * 1. Pubblica un post che contiene un Embed Link appena generato.
