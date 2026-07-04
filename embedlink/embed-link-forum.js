@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.25 */
+/* FD EMBED LINK build 2026-07-04.27 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.25",
+    version: "2026-07-04.27",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -677,8 +677,8 @@
     const card = renderCardHtml(metadata, "", selected.url, { compact: false })
       .replace("<img class=\"fd-embed-link__image\"", "<img data-fd-embed-preview-image class=\"fd-embed-link__image\"");
     const images = metadata.images.length ? [
-      "<div class=\"fd-embed-field\">",
-      "  <strong>Immagine di copertina</strong>",
+      "<div class=\"fd-embed-field fd-embed-cover-picker\">",
+      "  <strong>Scegli l'immagine di copertina:</strong>",
       "  <div class=\"fd-embed-images\">",
       metadata.images.map((image, index) => {
         const checked = index === selected.index ? " checked" : "";
@@ -705,8 +705,8 @@
   function renderPreviewFooter() {
     return [
       "<div class=\"fd-embed-actions\">",
-      "  <button class=\"fd-embed-button\" type=\"button\" data-fd-embed-action=\"preview-cancel\">Annulla</button>",
-      "  <button class=\"fd-embed-button fd-embed-button--primary\" type=\"button\" data-fd-embed-action=\"preview-insert\">Inserisci</button>",
+      "  <button class=\"fd-embed-button fd-embed-button--preview-cancel\" type=\"button\" data-fd-embed-action=\"preview-cancel\">Annulla</button>",
+      "  <button class=\"fd-embed-button fd-embed-button--preview-insert\" type=\"button\" data-fd-embed-action=\"preview-insert\">Inserisci</button>",
       "</div>"
     ].join("\n");
   }

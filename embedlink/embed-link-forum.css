@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.25 - preview modal centered overlay */
+/* FD EMBED LINK build 2026-07-04.27 - preview picker alignment */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -285,17 +285,28 @@
   max-width: 100%;
 }
 
+.fd-embed-cover-picker {
+  text-align: left;
+}
+
+.fd-embed-cover-picker strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
 .fd-embed-images {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .fd-embed-image-choice {
   position: relative;
   display: block;
-  flex: 0 0 56px;
-  width: 56px;
+  flex: 0 0 92px;
+  width: 92px;
   min-width: 0;
   border: 2px solid transparent;
   border-radius: 6px;
@@ -353,6 +364,30 @@
   color: #7a4f15;
 }
 
+.fd-embed-button--preview-cancel {
+  border-color: #007bff;
+  background: #ffffff;
+  color: #007bff;
+}
+
+.fd-embed-button--preview-cancel:hover,
+.fd-embed-button--preview-cancel:focus-visible {
+  background: #007bff;
+  color: #ffffff;
+}
+
+.fd-embed-button--preview-insert {
+  border-color: #28a745;
+  background: #ffffff;
+  color: #28a745;
+}
+
+.fd-embed-button--preview-insert:hover,
+.fd-embed-button--preview-insert:focus-visible {
+  background: #28a745;
+  color: #ffffff;
+}
+
 @media (min-width: 700px) {
   .fd-embed-modal-preview .modal-dialog,
   .fd-embed-modal-preview .cs-modal-dialog,
@@ -361,8 +396,8 @@
   }
 
   .fd-embed-image-choice {
-    flex-basis: 62px;
-    width: 62px;
+    flex-basis: 92px;
+    width: 92px;
   }
 
   .fd-embed-link__title {
