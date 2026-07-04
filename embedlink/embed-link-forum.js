@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.36 */
+/* FD EMBED LINK build 2026-07-04.37 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.36",
+    version: "2026-07-04.37",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -644,13 +644,8 @@
     ].join("\n");
   }
 
-  function renderPasteModal(url) {
-    return [
-      "<div class=\"fd-embed-form\">",
-      "  <p class=\"fd-embed-hint\">Hai incollato un link puro. Vuoi trasformarlo in una card embed?</p>",
-      `  <input class="fd-embed-input" type="text" value="${escapeAttr(url)}" readonly>`,
-      "</div>"
-    ].join("\n");
+  function renderPasteModal(_url) {
+    return "";
   }
 
   function renderPasteFooter() {
@@ -728,7 +723,7 @@
     }
 
     try {
-      const modalId = showModal(APP_TITLE, renderUrlModal(initialUrl), renderUrlFooter(), "cs-modal-w60");
+      const modalId = showModal("Inserisci l'URL per l'Embed Card", renderUrlModal(initialUrl), renderUrlFooter(), "cs-modal-w60");
       markOpenStep("show-modal-called", { modalId });
       const input = await waitForElement("#" + ID_PREFIX + "url", 500);
       if (input) {
@@ -816,7 +811,7 @@
       };
 
       closeModal();
-      showModal("Anteprima " + APP_TITLE, renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
+      showModal("Anteprima Embed Card", renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
     } catch (error) {
       showUrlError(error.message || "Impossibile generare l'anteprima.");
     }
@@ -1013,7 +1008,7 @@
     event.stopPropagation();
     event.preventDefault();
     state.pasteText = text.trim();
-    showModal("Link incollato", renderPasteModal(state.pasteText), renderPasteFooter(), "cs-modal-w50");
+    showModal("Vuoi creare un Embed Card?", renderPasteModal(state.pasteText), renderPasteFooter(), "fd-embed-modal-paste cs-modal-w50");
     return false;
   }
 

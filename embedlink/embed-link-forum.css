@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.36 - native modal footer buttons */
+/* FD EMBED LINK build 2026-07-04.37 - modal titles and paste body */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -71,6 +71,11 @@
   min-height: 0;
   overflow: auto;
   padding: 14px;
+}
+
+.fd-embed-local-modal__dialog.fd-embed-modal-paste .fd-embed-local-modal__body,
+.fd-embed-modal-paste .cs-modal-body {
+  display: none;
 }
 
 .fd-embed-local-modal__close {
