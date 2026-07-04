@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.37 */
+/* FD EMBED LINK build 2026-07-04.38 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.37",
+    version: "2026-07-04.38",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -14,6 +14,7 @@
   };
 
   const APP_TITLE = CONFIG.appTitle;
+  const EDITOR_BUTTON_TITLE = "Embed Link";
   const IMAGE_URL_RE = /\.(?:jpe?g|png|gif|webp|avif|svg)(?:[?#].*)?$/i;
   const ID_PREFIX = "fd-embed-link-";
 
@@ -628,7 +629,7 @@
       "  <div class=\"fd-embed-field\">",
       `    <label for="${inputId}">URL articolo</label>`,
       `    <input class="fd-embed-input" id="${inputId}" type="url" value="${escapeAttr(initialUrl || "")}" placeholder="https://example.com/articolo">`,
-      "    <p class=\"fd-embed-hint\">Inserisci un link http o https. I link diretti a immagini non vengono trasformati in card.</p>",
+      "    <p class=\"fd-embed-hint\">Inserisci un link http o https. I link diretti a immagini non vengono trasformati in Embed Link.</p>",
       "    <p class=\"fd-embed-error\" data-fd-embed-error hidden></p>",
       "  </div>",
       "</div>"
@@ -680,7 +681,7 @@
       }).join("\n"),
       "  </div>",
       "</div>"
-    ].join("\n") : "<p class=\"fd-embed-hint\">Nessuna immagine valida trovata. La card verra inserita senza copertina.</p>";
+    ].join("\n") : "<p class=\"fd-embed-hint\">Nessuna immagine valida trovata. L'Embed Link verra inserito senza copertina.</p>";
 
     return [
       "<div class=\"fd-embed-preview\">",
@@ -723,7 +724,7 @@
     }
 
     try {
-      const modalId = showModal("Inserisci l'URL per l'Embed Card", renderUrlModal(initialUrl), renderUrlFooter(), "cs-modal-w60");
+      const modalId = showModal("Inserisci l'URL per l'Embed Link", renderUrlModal(initialUrl), renderUrlFooter(), "fd-embed-modal-preview cs-modal-w50");
       markOpenStep("show-modal-called", { modalId });
       const input = await waitForElement("#" + ID_PREFIX + "url", 500);
       if (input) {
@@ -811,7 +812,7 @@
       };
 
       closeModal();
-      showModal("Anteprima Embed Card", renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
+      showModal("Anteprima Embed Link", renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
     } catch (error) {
       showUrlError(error.message || "Impossibile generare l'anteprima.");
     }
@@ -1008,7 +1009,7 @@
     event.stopPropagation();
     event.preventDefault();
     state.pasteText = text.trim();
-    showModal("Vuoi creare un Embed Card?", renderPasteModal(state.pasteText), renderPasteFooter(), "fd-embed-modal-paste cs-modal-w50");
+    showModal("Vuoi inserire un Embed Link?", renderPasteModal(state.pasteText), renderPasteFooter(), "fd-embed-modal-paste fd-embed-modal-preview cs-modal-w50");
     return false;
   }
 
@@ -1143,7 +1144,7 @@
     const replierForm = C.utilities.replierForm || {};
     const buttons = replierForm.buttons;
     const buttonConfig = {
-      title: APP_TITLE,
+      title: EDITOR_BUTTON_TITLE,
       event: async () => {
         await openUrlModal("");
       },
@@ -1301,7 +1302,7 @@
       replierFormReady: Boolean(replierForm),
       classicButtonApiReady: Boolean(buttons && typeof buttons.add === "function"),
       classicButtonRegistered: state.classicButtonRegistered,
-      classicButtonVisible: findVisibleNativeEditorButton(APP_TITLE),
+      classicButtonVisible: findVisibleNativeEditorButton(EDITOR_BUTTON_TITLE),
       modalCreateReady: Boolean(C && C.modal && typeof C.modal.create === "function"),
       modalSetReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
       modalApiReady: hasAnyModalApi(),
