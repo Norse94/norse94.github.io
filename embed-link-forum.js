@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.10 */
+/* FD EMBED LINK build 2026-07-04.11 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.10",
+    version: "2026-07-04.11",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHost: "difesa.forumfree.it",
     maxImages: 5,
@@ -27,6 +27,7 @@
     pasteDisabled: false,
     pasteText: "",
     preview: null,
+    commonsModal: null,
     localModal: null,
     localModalOpenedAt: 0,
     fallbackClickCount: 0,
@@ -63,6 +64,23 @@
   }
 
   function closeModal() {
+    if (state.commonsModal) {
+      const modal = state.commonsModal;
+      state.commonsModal = null;
+      if (typeof modal.hide === "function") {
+        modal.hide();
+        return;
+      }
+      if (typeof modal.close === "function") {
+        modal.close();
+        return;
+      }
+      if (typeof modal.toggle === "function") {
+        modal.toggle();
+        return;
+      }
+    }
+
     if (state.localModal && state.localModal.parentNode) {
       state.localModal.parentNode.removeChild(state.localModal);
       state.localModal = null;
@@ -78,16 +96,45 @@
   function showModal(title, content, footer, className) {
     try {
       const C = commons();
-      if (!C || !C.modal || typeof C.modal.set !== "function") {
+      if (!C || !C.modal) {
         return showLocalModal(title, content, footer, className);
       }
 
-      return C.modal.set({
-        class: ["fd-embed-modal", "cs-modal-text-left", className || "cs-modal-w60"],
-        title,
-        content,
-        footer
-      }, true);
+      if (typeof C.modal.create === "function") {
+        closeModal();
+        const created = C.modal.create({
+          className: ["fd-embed-modal", "cs-modal-text-left", className || "cs-modal-w60"],
+          title,
+          content,
+          footer,
+          events: {
+            "hide-end": () => {
+              state.commonsModal = null;
+            }
+          }
+        });
+        state.commonsModal = created;
+        if (created && typeof created.show === "function") {
+          created.show();
+          return "create.show";
+        }
+        if (created && typeof created.toggle === "function") {
+          created.toggle();
+          return "create.toggle";
+        }
+        return "create";
+      }
+
+      if (typeof C.modal.set === "function") {
+        return C.modal.set({
+          class: ["fd-embed-modal", "cs-modal-text-left", className || "cs-modal-w60"],
+          title,
+          content,
+          footer
+        }, true);
+      }
+
+      return showLocalModal(title, content, footer, className);
     } catch (error) {
       state.lastModalError = error instanceof Error ? error.message : String(error);
       console.error("[FDEmbedLink] apertura modal fallita", error);
@@ -360,8 +407,13 @@
     const C = commons();
     if (C && C.utilities && C.utilities.replierForm && C.utilities.replierForm.textarea &&
         typeof C.utilities.replierForm.textarea.addContent === "function") {
-      C.utilities.replierForm.textarea.addContent(content);
-      return true;
+      try {
+        C.utilities.replierForm.textarea.addContent({ prefix: content });
+        return true;
+      } catch (_error) {
+        C.utilities.replierForm.textarea.addContent(content);
+        return true;
+      }
     }
 
     const textarea = getEditorTextarea();
@@ -663,7 +715,7 @@
     try {
       const modalId = showModal(APP_TITLE, renderUrlModal(initialUrl), renderUrlFooter(), "cs-modal-w60");
       markOpenStep("show-modal-called", { modalId });
-      const input = document.getElementById(ID_PREFIX + "url");
+      const input = await waitForElement("#" + ID_PREFIX + "url", 500);
       if (input) {
         markOpenStep("url-input-found");
         input.focus();
@@ -673,7 +725,7 @@
 
       markOpenStep("url-input-not-found", {
         localModalOpen: Boolean(state.localModal && state.localModal.parentNode),
-        modalApiReady: Boolean(commons() && commons().modal && typeof commons().modal.set === "function")
+        modalApiReady: hasAnyModalApi()
       });
       openUrlPromptFallback(initialUrl, "url-input-not-found");
     } catch (error) {
@@ -682,6 +734,38 @@
       console.error("[FDEmbedLink] openUrlModal failed", error);
       openUrlPromptFallback(initialUrl, "open-url-modal-error");
     }
+  }
+
+  function waitForElement(selector, timeoutMs) {
+    const existing = document.querySelector(selector);
+    if (existing) {
+      return Promise.resolve(existing);
+    }
+
+    return new Promise((resolve) => {
+      const startedAt = Date.now();
+      const tick = () => {
+        const found = document.querySelector(selector);
+        if (found) {
+          resolve(found);
+          return;
+        }
+        if (Date.now() - startedAt >= timeoutMs) {
+          resolve(null);
+          return;
+        }
+        window.setTimeout(tick, 25);
+      };
+      tick();
+    });
+  }
+
+  function hasAnyModalApi() {
+    const C = commons();
+    return Boolean(C && C.modal && (
+      typeof C.modal.create === "function" ||
+      typeof C.modal.set === "function"
+    ));
   }
 
   async function openPreviewForUrl(rawUrl) {
@@ -1214,7 +1298,10 @@
       classicButtonApiReady: Boolean(buttons && typeof buttons.add === "function"),
       classicButtonRegistered: state.classicButtonRegistered,
       classicButtonVisible: findVisibleTextButton(APP_TITLE),
-      modalApiReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
+      modalCreateReady: Boolean(C && C.modal && typeof C.modal.create === "function"),
+      modalSetReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
+      modalApiReady: hasAnyModalApi(),
+      commonsModalOpen: Boolean(state.commonsModal),
       localModalOpen: Boolean(localModal && localModal.parentNode),
       localModalVisible: isVisibleElement(localModal),
       lastModalError: state.lastModalError,
