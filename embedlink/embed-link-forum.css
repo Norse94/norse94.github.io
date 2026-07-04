@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.33 - card alignment reset */
+/* FD EMBED LINK build 2026-07-04.34 - compact post card markup */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -103,6 +103,10 @@
   box-shadow: var(--fd-embed-shadow);
   color: var(--fd-embed-ink);
   text-align: left;
+}
+
+.fd-embed-link br {
+  display: none;
 }
 
 .fd-embed-link__media {

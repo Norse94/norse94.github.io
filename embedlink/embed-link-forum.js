@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.33 */
+/* FD EMBED LINK build 2026-07-04.34 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.33",
+    version: "2026-07-04.34",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -557,49 +557,40 @@
     const compactClass = options.compact ? " fd-embed-link--compact" : "";
     const noImageClass = selectedImageUrl ? "" : " fd-embed-link--no-image";
     const idAttr = embedId ? ` data-fd-embed-id="${escapeAttr(embedId)}"` : "";
-    const imageBlock = selectedImageUrl ? [
-      `  <a class="fd-embed-link__media" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow">`,
-      `    <img class="fd-embed-link__image" src="${escapeAttr(selectedImageUrl)}" alt="">`,
-      "  </a>"
-    ].join("\n") : "";
-    const sourceBlock = domain ? [
-      "    <div class=\"fd-embed-link__source\">",
-      "      <span class=\"fd-embed-link__source-mark\" aria-hidden=\"true\"></span>",
-      `      <span class="fd-embed-link__source-text">${escapeHtml(domain)}</span>`,
-      "    </div>"
-    ].join("\n") : "";
-    const excerptBlock = description ? `    <p class="fd-embed-link__excerpt">${escapeHtml(description)}</p>` : "";
+    const imageBlock = selectedImageUrl
+      ? `<a class="fd-embed-link__media" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow"><img class="fd-embed-link__image" src="${escapeAttr(selectedImageUrl)}" alt=""></a>`
+      : "";
+    const sourceBlock = domain
+      ? `<div class="fd-embed-link__source"><span class="fd-embed-link__source-mark" aria-hidden="true"></span><span class="fd-embed-link__source-text">${escapeHtml(domain)}</span></div>`
+      : "";
+    const excerptBlock = description ? `<p class="fd-embed-link__excerpt">${escapeHtml(description)}</p>` : "";
     const metaParts = [];
 
     if (author) {
-      metaParts.push(`      <span class="fd-embed-link__author">${escapeHtml(author)}</span>`);
+      metaParts.push(`<span class="fd-embed-link__author">${escapeHtml(author)}</span>`);
     }
 
     if (author && displayDate) {
-      metaParts.push("      <span class=\"fd-embed-link__dot\" aria-hidden=\"true\"></span>");
+      metaParts.push("<span class=\"fd-embed-link__dot\" aria-hidden=\"true\"></span>");
     }
 
     if (displayDate) {
-      metaParts.push(`      <time class="fd-embed-link__date" datetime="${escapeAttr(toIsoDate(publishedAt))}">${escapeHtml(displayDate)}</time>`);
+      metaParts.push(`<span class="fd-embed-link__date" data-datetime="${escapeAttr(toIsoDate(publishedAt))}">${escapeHtml(displayDate)}</span>`);
     }
 
-    const metaBlock = metaParts.length ? [
-      "    <div class=\"fd-embed-link__meta\">",
-      metaParts.join("\n"),
-      "    </div>"
-    ].join("\n") : "";
+    const metaBlock = metaParts.length ? `<div class="fd-embed-link__meta">${metaParts.join("")}</div>` : "";
 
     return [
       `<div class="fd-embed-link${compactClass}${noImageClass}"${idAttr}>`,
       imageBlock,
-      "  <div class=\"fd-embed-link__body\">",
+      "<div class=\"fd-embed-link__body\">",
       sourceBlock,
-      `    <a class="fd-embed-link__title" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(title)}</a>`,
+      `<a class="fd-embed-link__title" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(title)}</a>`,
       excerptBlock,
       metaBlock,
-      "  </div>",
+      "</div>",
       "</div>"
-    ].filter(Boolean).join("\n");
+    ].filter(Boolean).join("");
   }
 
   function formatDisplayDate(value) {
