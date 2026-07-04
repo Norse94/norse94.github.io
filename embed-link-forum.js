@@ -27,6 +27,8 @@
     preview: null,
     localModal: null,
     fallbackClickCount: 0,
+    lastOpenAttempt: null,
+    lastModalError: "",
     integrationAttempts: 0,
     integrationTimer: 0
   };
@@ -70,17 +72,23 @@
   }
 
   function showModal(title, content, footer, className) {
-    const C = commons();
-    if (!C || !C.modal || typeof C.modal.set !== "function") {
-      return showLocalModal(title, content, footer, className);
-    }
+    try {
+      const C = commons();
+      if (!C || !C.modal || typeof C.modal.set !== "function") {
+        return showLocalModal(title, content, footer, className);
+      }
 
-    return C.modal.set({
-      class: ["fd-embed-modal", "cs-modal-text-left", className || "cs-modal-w60"],
-      title,
-      content,
-      footer
-    }, true);
+      return C.modal.set({
+        class: ["fd-embed-modal", "cs-modal-text-left", className || "cs-modal-w60"],
+        title,
+        content,
+        footer
+      }, true);
+    } catch (error) {
+      state.lastModalError = error instanceof Error ? error.message : String(error);
+      console.error("[FDEmbedLink] apertura modal fallita", error);
+      return 0;
+    }
   }
 
   function showLocalModal(title, content, footer, className) {
@@ -191,6 +199,32 @@
         "cursor:pointer"
       ].join(";");
     }
+  }
+
+  function markOpenStep(step, extra) {
+    if (!state.lastOpenAttempt) {
+      state.lastOpenAttempt = {
+        startedAt: new Date().toISOString(),
+        steps: []
+      };
+    }
+
+    state.lastOpenAttempt.steps.push({
+      step,
+      at: new Date().toISOString(),
+      ...(extra || {})
+    });
+  }
+
+  function openUrlPromptFallback(initialUrl, reason) {
+    markOpenStep("prompt-fallback", { reason });
+    const value = window.prompt(APP_TITLE + "\nInserisci URL articolo", initialUrl || "");
+    if (!value) {
+      markOpenStep("prompt-cancelled");
+      return;
+    }
+    markOpenStep("prompt-confirmed", { value });
+    openPreviewForUrl(value);
   }
 
   function escapeHtml(value) {
@@ -609,15 +643,39 @@
   }
 
   async function openUrlModal(initialUrl) {
+    state.lastOpenAttempt = {
+      startedAt: new Date().toISOString(),
+      initialUrl: initialUrl || "",
+      steps: []
+    };
+    markOpenStep("open-url-modal-called");
+
     if (!assertCanUse()) {
+      markOpenStep("assert-can-use-failed");
       return;
     }
 
-    showModal(APP_TITLE, renderUrlModal(initialUrl), renderUrlFooter(), "cs-modal-w60");
-    const input = document.getElementById(ID_PREFIX + "url");
-    if (input) {
-      input.focus();
-      input.select();
+    try {
+      const modalId = showModal(APP_TITLE, renderUrlModal(initialUrl), renderUrlFooter(), "cs-modal-w60");
+      markOpenStep("show-modal-called", { modalId });
+      const input = document.getElementById(ID_PREFIX + "url");
+      if (input) {
+        markOpenStep("url-input-found");
+        input.focus();
+        input.select();
+        return;
+      }
+
+      markOpenStep("url-input-not-found", {
+        localModalOpen: Boolean(state.localModal && state.localModal.parentNode),
+        modalApiReady: Boolean(commons() && commons().modal && typeof commons().modal.set === "function")
+      });
+      openUrlPromptFallback(initialUrl, "url-input-not-found");
+    } catch (error) {
+      state.lastModalError = error instanceof Error ? error.message : String(error);
+      markOpenStep("open-url-modal-error", { error: state.lastModalError });
+      console.error("[FDEmbedLink] openUrlModal failed", error);
+      openUrlPromptFallback(initialUrl, "open-url-modal-error");
     }
   }
 
@@ -1128,6 +1186,8 @@
       modalApiReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
       localModalOpen: Boolean(localModal && localModal.parentNode),
       localModalVisible: isVisibleElement(localModal),
+      lastModalError: state.lastModalError,
+      lastOpenAttempt: state.lastOpenAttempt,
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
