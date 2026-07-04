@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.13 */
+/* FD EMBED LINK build 2026-07-04.14 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.13",
+    version: "2026-07-04.14",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHost: "difesa.forumfree.it",
     maxImages: 5,
@@ -478,14 +478,14 @@
       ".codebuttons",
       "#codebuttons",
       "#buttons",
-      "[data-editor-toolbar]",
-      "[id*='toolbar']",
-      "[class*='toolbar']"
+      "[data-editor-toolbar]"
     ].join(",");
 
+    const textareaForm = textarea.closest ? textarea.closest("form") : null;
     const candidates = Array.from(root.querySelectorAll(selectors)).filter((candidate) => {
       return candidate !== textarea &&
         !candidate.closest("[data-fd-embed-inline-wrapper]") &&
+        (!textareaForm || candidate.closest("form") === textareaForm) &&
         isBeforeElement(candidate, textarea);
     });
 
@@ -1371,17 +1371,16 @@
     let inserted = false;
 
     for (const textarea of getEditorTextareas()) {
-      if (!textarea || !textarea.isConnected || textarea.closest("[data-fd-embed-inline-wrapper]")) {
+      if (!textarea || !textarea.isConnected) {
         continue;
       }
 
       const toolbar = findEditorToolbar(textarea);
-      const previous = textarea.previousElementSibling;
-      const existing = toolbar && toolbar.querySelector
-        ? toolbar.querySelector("[data-fd-embed-inline-button]")
-        : previous && previous.matches && previous.matches("[data-fd-embed-inline-wrapper]")
-          ? previous.querySelector("[data-fd-embed-inline-button]")
-          : null;
+      if (!toolbar) {
+        continue;
+      }
+
+      const existing = toolbar.querySelector("[data-fd-embed-inline-button]");
 
       if (existing) {
         bindEditorOpenButton(existing);
@@ -1390,26 +1389,10 @@
         continue;
       }
 
-      if (toolbar) {
-        const button = createEditorOpenButton("toolbar");
-        toolbar.appendChild(button);
-        state.lastInlineInsertTarget = describeElement(toolbar);
-        inserted = true;
-        continue;
-      }
-
-      if (textarea.parentNode) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "fd-embed-editor-inline";
-        wrapper.setAttribute("data-fd-embed-inline-wrapper", "");
-
-        const button = createEditorOpenButton("inline");
-        wrapper.appendChild(button);
-        textarea.parentNode.insertBefore(wrapper, textarea);
-        applyInlineWrapperStyles(wrapper);
-        state.lastInlineInsertTarget = "before " + describeElement(textarea);
-        inserted = true;
-      }
+      const button = createEditorOpenButton("toolbar");
+      toolbar.appendChild(button);
+      state.lastInlineInsertTarget = describeElement(toolbar);
+      inserted = true;
     }
 
     state.editorInlineButtonRegistered = inserted || Boolean(document.querySelector("[data-fd-embed-inline-button]"));
