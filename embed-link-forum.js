@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.7 */
+/* FD EMBED LINK build 2026-07-04.8 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.7",
+    version: "2026-07-04.8",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHost: "difesa.forumfree.it",
     maxImages: 5,
@@ -29,6 +29,7 @@
     preview: null,
     localModal: null,
     fallbackClickCount: 0,
+    lastFallbackActivationAt: 0,
     lastOpenAttempt: null,
     lastModalError: "",
     integrationAttempts: 0,
@@ -996,6 +997,23 @@
     }
   }
 
+  function handleFallbackActivation(event) {
+    const target = event.target && event.target.closest ? event.target.closest("[data-fd-embed-fallback-button]") : null;
+    if (!target) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    const now = Date.now();
+    if (now - state.lastFallbackActivationAt < 650) {
+      return;
+    }
+    state.lastFallbackActivationAt = now;
+    state.fallbackClickCount += 1;
+    openUrlModal("");
+  }
+
   function handleSubmitCapture(event) {
     const target = event.target;
     if (target && target.matches && target.matches('input[name="submit_post"], button[name="submit_post"]')) {
@@ -1176,6 +1194,7 @@
 
     return {
       app: APP_TITLE,
+      version: CONFIG.version,
       configured: isConfigured(),
       host: location.hostname,
       allowedLocation: isAllowedForumLocation(),
@@ -1220,6 +1239,10 @@
 
     state.initialized = true;
     document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("pointerdown", handleFallbackActivation, true);
+    document.addEventListener("mousedown", handleFallbackActivation, true);
+    document.addEventListener("touchstart", handleFallbackActivation, true);
+    document.addEventListener("click", handleFallbackActivation, true);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
     scheduleIntegrationRetry();
