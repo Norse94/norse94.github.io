@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.31 */
+/* FD EMBED LINK build 2026-07-04.32 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.31",
+    version: "2026-07-04.32",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
