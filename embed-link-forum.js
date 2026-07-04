@@ -1,8 +1,10 @@
+/* FD EMBED LINK build 2026-07-04.7 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
+    version: "2026-07-04.7",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHost: "difesa.forumfree.it",
     maxImages: 5,
@@ -1225,6 +1227,7 @@
   }
 
   const api = {
+    version: CONFIG.version,
     config: CONFIG,
     init,
     openUrlModal,
