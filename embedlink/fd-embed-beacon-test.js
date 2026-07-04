@@ -73,8 +73,15 @@
     const ids = [];
     const seen = new Set();
     const regex = /data-fd-embed-id\s*=\s*["']([^"']+)["']/g;
+    const classRegex = /fd-embed-link-id-([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/gi;
     let match;
     while ((match = regex.exec(String(text || "")))) {
+      if (!seen.has(match[1])) {
+        seen.add(match[1]);
+        ids.push(match[1]);
+      }
+    }
+    while ((match = classRegex.exec(String(text || "")))) {
       if (!seen.has(match[1])) {
         seen.add(match[1]);
         ids.push(match[1]);
@@ -101,9 +108,22 @@
   }
 
   function findDomEmbedIds() {
-    return Array.prototype.slice.call(document.querySelectorAll("[data-fd-embed-id]"))
-      .map((item) => item.getAttribute("data-fd-embed-id"))
-      .filter(Boolean);
+    const ids = [];
+    const seen = new Set();
+    Array.prototype.slice.call(document.querySelectorAll("[data-fd-embed-id]")).forEach((item) => {
+      const id = item.getAttribute("data-fd-embed-id");
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        ids.push(id);
+      }
+    });
+    findEmbedIdsInText(document.body ? document.body.innerHTML : "").forEach((id) => {
+      if (!seen.has(id)) {
+        seen.add(id);
+        ids.push(id);
+      }
+    });
+    return ids;
   }
 
   function intersect(left, right) {

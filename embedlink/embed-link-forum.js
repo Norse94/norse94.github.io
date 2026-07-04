@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.4 */
+/* FD EMBED LINK build 2026-07-05.5 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.4",
+    version: "2026-07-05.5",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -557,6 +557,7 @@
     const displayDate = formatDisplayDate(publishedAt);
     const compactClass = options.compact ? " fd-embed-link--compact" : "";
     const noImageClass = selectedImageUrl ? "" : " fd-embed-link--no-image";
+    const markerClass = embedId ? " " + getEmbedMarkerClass(embedId) : "";
     const idAttr = embedId ? ` data-fd-embed-id="${escapeAttr(embedId)}"` : "";
     const imageBlock = selectedImageUrl
       ? `<a class="fd-embed-link__media" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow"><img class="fd-embed-link__image" src="${escapeAttr(selectedImageUrl)}" alt=""></a>`
@@ -582,7 +583,7 @@
     const metaBlock = metaParts.length ? `<div class="fd-embed-link__meta">${metaParts.join("")}</div>` : "";
 
     return [
-      `<div class="fd-embed-link${compactClass}${noImageClass}"${idAttr}>`,
+      `<div class="fd-embed-link${compactClass}${noImageClass}${markerClass}"${idAttr}>`,
       imageBlock,
       "<div class=\"fd-embed-link__body\">",
       sourceBlock,
@@ -592,6 +593,18 @@
       "</div>",
       "</div>"
     ].filter(Boolean).join("");
+  }
+
+  function getEmbedMarkerClass(embedId) {
+    return "fd-embed-link-id-" + String(embedId || "").replace(/[^a-zA-Z0-9_-]/g, "-");
+  }
+
+  function contentHasEmbedId(content, embedId) {
+    const text = String(content || "");
+    const markerClass = getEmbedMarkerClass(embedId);
+    return text.includes(`data-fd-embed-id="${embedId}"`) ||
+      text.includes(`data-fd-embed-id='${embedId}'`) ||
+      text.includes(markerClass);
   }
 
   function formatDisplayDate(value) {
@@ -875,7 +888,7 @@
   function rememberSubmitEmbeds() {
     const text = getEditorText();
     const pending = getPendingEmbeds();
-    const ids = Object.keys(pending).filter((id) => text.includes(`data-fd-embed-id="${id}"`) || text.includes(`data-fd-embed-id='${id}'`));
+    const ids = Object.keys(pending).filter((id) => contentHasEmbedId(text, id));
 
     if (!ids.length) {
       return;
@@ -978,7 +991,7 @@
       }
 
       const html = String(post.content || "") + " " + (post.nativeElement ? post.nativeElement.innerHTML : "");
-      const foundIds = ids.filter((id) => html.includes(`data-fd-embed-id="${id}"`) || html.includes(`data-fd-embed-id='${id}'`));
+      const foundIds = ids.filter((id) => contentHasEmbedId(html, id));
       if (!foundIds.length) {
         continue;
       }
