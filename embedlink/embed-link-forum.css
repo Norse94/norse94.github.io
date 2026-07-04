@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.34 - compact post card markup */
+/* FD EMBED LINK build 2026-07-04.36 - native modal footer buttons */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -389,29 +389,6 @@
 .fd-embed-modal-preview .fd-embed-actions {
   width: 100%;
   justify-content: flex-end;
-}
-
-.fd-embed-button {
-  min-height: 34px;
-  padding: 7px 12px;
-  border: 1px solid #bfc8c4;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #151819;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.fd-embed-button--primary {
-  border-color: #17685b;
-  background: #17685b;
-  color: #ffffff;
-}
-
-.fd-embed-button--warning {
-  border-color: #9d6c28;
-  color: #7a4f15;
 }
 
 @media (min-width: 700px) {
