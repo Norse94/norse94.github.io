@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.27 */
+/* FD EMBED LINK build 2026-07-04.29 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.27",
+    version: "2026-07-04.29",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -147,7 +147,9 @@
 
   function getModalClasses(className, fallbackClassName) {
     const widthClasses = String(className || fallbackClassName || "").split(/\s+/).filter(Boolean);
-    return ["fd-embed-modal", "cs-modal-text-left"].concat(widthClasses);
+    const hasTextAlignment = widthClasses.some((item) => /^cs-modal-text-(?:left|center|right)$/.test(item));
+    const baseClasses = hasTextAlignment ? ["fd-embed-modal"] : ["fd-embed-modal", "cs-modal-text-left"];
+    return baseClasses.concat(widthClasses);
   }
 
   function showLocalModal(title, content, footer, className) {
@@ -704,9 +706,9 @@
 
   function renderPreviewFooter() {
     return [
-      "<div class=\"fd-embed-actions\">",
-      "  <button class=\"fd-embed-button fd-embed-button--preview-cancel\" type=\"button\" data-fd-embed-action=\"preview-cancel\">Annulla</button>",
-      "  <button class=\"fd-embed-button fd-embed-button--preview-insert\" type=\"button\" data-fd-embed-action=\"preview-insert\">Inserisci</button>",
+      "<div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
+      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"preview-cancel\">Annulla</button>",
+      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-green cs-modal-close el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"preview-insert\">Inserisci</button>",
       "</div>"
     ].join("\n");
   }

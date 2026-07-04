@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.27 - preview picker alignment */
+/* FD EMBED LINK build 2026-07-04.29 - native preview footer buttons */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -341,6 +341,11 @@
   justify-content: flex-end;
 }
 
+.fd-embed-modal-preview .fd-embed-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
 .fd-embed-button {
   min-height: 34px;
   padding: 7px 12px;
@@ -362,30 +367,6 @@
 .fd-embed-button--warning {
   border-color: #9d6c28;
   color: #7a4f15;
-}
-
-.fd-embed-button--preview-cancel {
-  border-color: #007bff;
-  background: #ffffff;
-  color: #007bff;
-}
-
-.fd-embed-button--preview-cancel:hover,
-.fd-embed-button--preview-cancel:focus-visible {
-  background: #007bff;
-  color: #ffffff;
-}
-
-.fd-embed-button--preview-insert {
-  border-color: #28a745;
-  background: #ffffff;
-  color: #28a745;
-}
-
-.fd-embed-button--preview-insert:hover,
-.fd-embed-button--preview-insert:focus-visible {
-  background: #28a745;
-  color: #ffffff;
 }
 
 @media (min-width: 700px) {
