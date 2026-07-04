@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.22 */
+/* FD EMBED LINK build 2026-07-04.23 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.22",
+    version: "2026-07-04.23",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -1152,7 +1152,8 @@
       title: APP_TITLE,
       event: async () => {
         await openUrlModal("");
-      }
+      },
+      allowCustomEditors: false
     };
 
     if (!state.classicButtonRegistered && buttons && typeof buttons.add === "function") {
@@ -1170,7 +1171,6 @@
         tag: "ve:externals:add",
         event: {
           ...buttonConfig,
-          allowCustomEditors: false,
           serviceType: "link"
         }
       });
