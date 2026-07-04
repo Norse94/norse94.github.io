@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-04.24 - preview modal mobile first */
+/* FD EMBED LINK build 2026-07-04.25 - preview modal centered overlay */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -31,6 +31,22 @@
 
 .fd-embed-local-modal__dialog.fd-embed-modal-preview {
   width: min(560px, 100%);
+}
+
+.cs-modal.fd-embed-modal-preview,
+.fd-embed-modal-preview.cs-modal {
+  --cs-modal-max-width: 560px;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.fd-embed-modal-preview .cs-modal-content {
+  width: min(560px, calc(100% - 16px));
 }
 
 .fd-embed-local-modal__header,
@@ -338,7 +354,6 @@
 }
 
 @media (min-width: 700px) {
-  .fd-embed-modal-preview,
   .fd-embed-modal-preview .modal-dialog,
   .fd-embed-modal-preview .cs-modal-dialog,
   .fd-embed-modal-preview .cs-modal-content {
