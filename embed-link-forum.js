@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-04.11 */
+/* FD EMBED LINK build 2026-07-04.12 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-04.11",
+    version: "2026-07-04.12",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHost: "difesa.forumfree.it",
     maxImages: 5,
@@ -24,6 +24,8 @@
     visualButtonRegistered: false,
     editorFallbackRegistered: false,
     pasteRegistered: false,
+    textareaApiPasteRegistered: false,
+    pasteTargetCount: 0,
     pasteDisabled: false,
     pasteText: "",
     preview: null,
@@ -35,7 +37,10 @@
     lastOpenAttempt: null,
     lastModalError: "",
     integrationAttempts: 0,
-    integrationTimer: 0
+    integrationTimer: 0,
+    integrationInterval: 0,
+    integrationObserver: null,
+    pasteTargets: new WeakSet()
   };
 
   function commons() {
@@ -395,7 +400,21 @@
     return document.querySelector("textarea[name='Post']") ||
       document.querySelector("textarea[name='post']") ||
       document.querySelector("textarea[name='message']") ||
+      document.querySelector("textarea[id*='Post']") ||
+      document.querySelector("textarea[id*='post']") ||
       document.querySelector("textarea");
+  }
+
+  function getEditorTextareas() {
+    const items = Array.from(document.querySelectorAll([
+      "textarea[name='Post']",
+      "textarea[name='post']",
+      "textarea[name='message']",
+      "textarea[id*='Post']",
+      "textarea[id*='post']",
+      "textarea"
+    ].join(",")));
+    return [...new Set(items)];
   }
 
   function getEditorText() {
@@ -979,6 +998,10 @@
   }
 
   function handlePaste(event) {
+    if (!isEditorPasteEvent(event)) {
+      return true;
+    }
+
     if (state.pasteDisabled || !assertCanUse()) {
       return true;
     }
@@ -996,6 +1019,27 @@
     state.pasteText = text.trim();
     showModal("Link incollato", renderPasteModal(state.pasteText), renderPasteFooter(), "cs-modal-w50");
     return false;
+  }
+
+  function isEditorPasteEvent(event) {
+    const target = event && event.target;
+    const textarea = getEditorTextarea();
+
+    if (!target || !target.closest) {
+      return Boolean(textarea);
+    }
+
+    if (textarea && (target === textarea || target.closest("textarea") === textarea)) {
+      return true;
+    }
+
+    if (target.closest("[contenteditable='true'], [contenteditable=''], .wysibb-body, .note-editable, .sceditor-container, .cke_editable")) {
+      return true;
+    }
+
+    const submit = document.querySelector('input[name="submit_post"], button[name="submit_post"]');
+    const form = submit && submit.closest ? submit.closest("form") : null;
+    return Boolean(form && form.contains(target));
   }
 
   function handleImageChoice(target) {
@@ -1158,21 +1202,24 @@
   }
 
   function registerPasteEvent() {
-    if (state.pasteRegistered) {
-      return true;
-    }
-
     const C = commons();
     const textarea = C && C.utilities && C.utilities.replierForm && C.utilities.replierForm.textarea;
-    if (textarea && typeof textarea.addEvent === "function") {
+    if (!state.textareaApiPasteRegistered && textarea && typeof textarea.addEvent === "function") {
       textarea.addEvent("paste", handlePaste);
-      state.pasteRegistered = true;
-      return true;
+      state.textareaApiPasteRegistered = true;
     }
 
-    const fallback = getEditorTextarea();
-    if (fallback) {
-      fallback.addEventListener("paste", handlePaste);
+    let boundAny = false;
+    for (const item of getEditorTextareas()) {
+      if (!state.pasteTargets.has(item)) {
+        item.addEventListener("paste", handlePaste, true);
+        state.pasteTargets.add(item);
+        state.pasteTargetCount += 1;
+      }
+      boundAny = true;
+    }
+
+    if (state.textareaApiPasteRegistered || boundAny) {
       state.pasteRegistered = true;
       return true;
     }
@@ -1184,6 +1231,7 @@
     const existing = document.querySelector("[data-fd-embed-fallback-button]");
     if (existing) {
       bindFallbackButton(existing);
+      applyFallbackButtonStyles(existing);
       existing.hidden = !getEditorTextarea();
       state.editorFallbackRegistered = true;
       return true;
@@ -1204,11 +1252,41 @@
     button.setAttribute("data-fd-embed-action", "fallback-open");
     button.textContent = APP_TITLE;
     bindFallbackButton(button);
+    applyFallbackButtonStyles(button);
 
     wrapper.appendChild(button);
     document.body.appendChild(wrapper);
+    applyFallbackWrapperStyles(wrapper);
     state.editorFallbackRegistered = true;
     return true;
+  }
+
+  function applyFallbackWrapperStyles(wrapper) {
+    wrapper.style.cssText = [
+      "position:fixed",
+      "right:12px",
+      "bottom:12px",
+      "z-index:2147483000",
+      "display:flex",
+      "margin:0"
+    ].join(";");
+  }
+
+  function applyFallbackButtonStyles(button) {
+    button.style.cssText = [
+      "min-height:38px",
+      "padding:8px 12px",
+      "border:1px solid #17685b",
+      "border-radius:6px",
+      "background:#17685b",
+      "color:#fff",
+      "font:inherit",
+      "font-size:13px",
+      "font-weight:700",
+      "line-height:1.2",
+      "cursor:pointer",
+      "box-shadow:0 6px 18px rgba(21,24,25,.18)"
+    ].join(";");
   }
 
   function bindFallbackButton(button) {
@@ -1251,30 +1329,50 @@
     const buttonsReady = registerEditorButtons();
     const pasteReady = registerPasteEvent();
     const fallbackReady = registerEditorFallbackButton();
-    const entryReady = buttonsReady || fallbackReady;
 
     if (state.classicButtonRegistered && state.visualButtonRegistered && pasteReady) {
       return;
     }
 
     state.integrationAttempts += 1;
-    if (state.integrationAttempts >= 80) {
+    if (state.integrationAttempts === 80 || state.integrationAttempts % 120 === 0) {
       const details = diagnostics();
-      if (!entryReady || !pasteReady) {
+      if (!(buttonsReady || fallbackReady) || !pasteReady) {
         console.warn("[FDEmbedLink] editor non agganciato completamente", details);
       } else if (!state.visualButtonRegistered) {
         console.info("[FDEmbedLink] editor classico agganciato; coda visuale non disponibile in questa pagina", details);
       }
-      return;
     }
 
-    state.integrationTimer = window.setTimeout(scheduleIntegrationRetry, state.integrationAttempts < 20 ? 250 : 1000);
+    state.integrationTimer = window.setTimeout(scheduleIntegrationRetry, state.integrationAttempts < 20 ? 250 : 1500);
   }
 
   function refreshIntegration() {
     state.integrationAttempts = 0;
     scheduleIntegrationRetry();
     return diagnostics();
+  }
+
+  function startIntegrationWatcher() {
+    if (!state.integrationInterval) {
+      state.integrationInterval = window.setInterval(() => {
+        registerEditorButtons();
+        registerPasteEvent();
+        registerEditorFallbackButton();
+      }, 2000);
+    }
+
+    if (!state.integrationObserver && document.body && window.MutationObserver) {
+      state.integrationObserver = new MutationObserver(() => {
+        registerEditorButtons();
+        registerPasteEvent();
+        registerEditorFallbackButton();
+      });
+      state.integrationObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
   }
 
   function diagnostics() {
@@ -1309,6 +1407,7 @@
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
+      domTextareaCount: getEditorTextareas().length,
       fallbackButtonReady: Boolean(fallbackButton),
       fallbackButtonVisible: isVisibleElement(fallbackButton),
       user: getUser(),
@@ -1318,8 +1417,12 @@
         visualButtonRegistered: state.visualButtonRegistered,
         editorFallbackRegistered: state.editorFallbackRegistered,
         pasteRegistered: state.pasteRegistered,
+        textareaApiPasteRegistered: state.textareaApiPasteRegistered,
+        pasteTargetCount: state.pasteTargetCount,
         fallbackClickCount: state.fallbackClickCount,
-        integrationAttempts: state.integrationAttempts
+        integrationAttempts: state.integrationAttempts,
+        integrationIntervalActive: Boolean(state.integrationInterval),
+        integrationObserverActive: Boolean(state.integrationObserver)
       }
     };
   }
@@ -1337,8 +1440,10 @@
     state.initialized = true;
     document.addEventListener("click", handleDocumentClick);
     document.addEventListener("click", handleFallbackActivation, true);
+    document.addEventListener("paste", handlePaste, true);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
+    startIntegrationWatcher();
     scheduleIntegrationRetry();
     confirmPublishedEmbeds();
   }
