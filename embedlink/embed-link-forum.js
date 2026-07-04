@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.2 */
+/* FD EMBED LINK build 2026-07-05.4 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.2",
+    version: "2026-07-05.4",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -890,18 +890,71 @@
   }
 
   function buildPostUrl(post) {
-    const postId = post && post.id;
+    const postId = getPostId(post);
+    const topicId = getForumContext().topicId;
     const element = post && post.nativeElement;
-    const base = window.location.origin + window.location.pathname + window.location.search;
 
     if (element && postId) {
-      const link = element.querySelector(`a[href*="#entry${postId}"], a[href*="entry${postId}"]`);
-      if (link && link.href) {
-        return link.href;
+      const preferredLink = element.querySelector(`.lt.Sub a[href*="?t="][href*="#entry${postId}"]`);
+      if (preferredLink && preferredLink.href) {
+        return normalizePostUrl(preferredLink.href, topicId, postId);
+      }
+
+      const anchorLink = element.querySelector(`a[href*="?t="][href*="#entry${postId}"], a[href*="entry${postId}"]`);
+      if (anchorLink && anchorLink.href) {
+        return normalizePostUrl(anchorLink.href, topicId, postId);
       }
     }
 
-    return postId ? base + "#entry" + postId : window.location.href;
+    if (topicId && postId) {
+      return window.location.origin + "/?t=" + encodeURIComponent(String(topicId)) + "#entry" + encodeURIComponent(String(postId));
+    }
+
+    return postId ? window.location.href.split("#")[0] + "#entry" + postId : window.location.href;
+  }
+
+  function getPostId(post) {
+    const directId = Number(post && post.id || 0);
+    if (directId) {
+      return directId;
+    }
+
+    const element = post && post.nativeElement;
+    if (!element) {
+      return 0;
+    }
+
+    const candidates = [
+      element,
+      element.closest ? element.closest("li[id]") : null,
+      element.querySelector ? element.querySelector("li[id]") : null
+    ];
+
+    for (const candidate of candidates) {
+      const rawId = candidate && candidate.id ? String(candidate.id) : "";
+      const match = rawId.match(/^e?(\d+)$/i) || rawId.match(/(\d+)/);
+      if (match) {
+        return Number(match[1]) || 0;
+      }
+    }
+
+    return 0;
+  }
+
+  function normalizePostUrl(rawUrl, topicId, postId) {
+    try {
+      const url = new URL(rawUrl, window.location.origin);
+      const resolvedTopicId = topicId || Number(url.searchParams.get("t") || 0);
+      if (resolvedTopicId && postId) {
+        return url.origin + "/?t=" + encodeURIComponent(String(resolvedTopicId)) + "#entry" + encodeURIComponent(String(postId));
+      }
+      return url.href;
+    } catch (_error) {
+      if (topicId && postId) {
+        return window.location.origin + "/?t=" + encodeURIComponent(String(topicId)) + "#entry" + encodeURIComponent(String(postId));
+      }
+      return window.location.href;
+    }
   }
 
   async function confirmPublishedEmbeds() {
@@ -937,7 +990,7 @@
 
       try {
         await publishEmbeds(embeds, {
-          id: post.id || null,
+          id: getPostId(post) || null,
           topicId: getForumContext().topicId,
           url: buildPostUrl(post)
         });
