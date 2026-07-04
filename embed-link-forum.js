@@ -103,8 +103,94 @@
     ].join("\n");
 
     document.body.appendChild(overlay);
+    applyLocalModalStyles(overlay);
     state.localModal = overlay;
     return -1;
+  }
+
+  function applyLocalModalStyles(overlay) {
+    const backdrop = overlay.querySelector(".fd-embed-local-modal__backdrop");
+    const dialog = overlay.querySelector(".fd-embed-local-modal__dialog");
+    const header = overlay.querySelector(".fd-embed-local-modal__header");
+    const body = overlay.querySelector(".fd-embed-local-modal__body");
+    const footer = overlay.querySelector(".fd-embed-local-modal__footer");
+    const close = overlay.querySelector(".fd-embed-local-modal__close");
+
+    overlay.style.cssText = [
+      "position:fixed",
+      "inset:0",
+      "z-index:2147483647",
+      "display:grid",
+      "place-items:center",
+      "box-sizing:border-box",
+      "padding:16px"
+    ].join(";");
+
+    if (backdrop) {
+      backdrop.style.cssText = [
+        "position:absolute",
+        "inset:0",
+        "background:rgba(21,24,25,.58)"
+      ].join(";");
+    }
+
+    if (dialog) {
+      dialog.style.cssText = [
+        "position:relative",
+        "z-index:1",
+        "width:min(680px,100%)",
+        "max-height:min(760px,calc(100vh - 32px))",
+        "display:grid",
+        "grid-template-rows:auto minmax(0,1fr) auto",
+        "overflow:hidden",
+        "box-sizing:border-box",
+        "border-radius:8px",
+        "background:#fff",
+        "color:#151819",
+        "box-shadow:0 18px 48px rgba(21,24,25,.32)"
+      ].join(";");
+    }
+
+    if (header) {
+      header.style.cssText = [
+        "display:flex",
+        "align-items:center",
+        "justify-content:space-between",
+        "gap:12px",
+        "padding:12px 14px",
+        "border-bottom:1px solid #d7ded8"
+      ].join(";");
+    }
+
+    if (body) {
+      body.style.cssText = [
+        "min-height:0",
+        "overflow:auto",
+        "padding:14px",
+        "box-sizing:border-box"
+      ].join(";");
+    }
+
+    if (footer) {
+      footer.style.cssText = [
+        "padding:12px 14px",
+        "border-top:1px solid #d7ded8"
+      ].join(";");
+    }
+
+    if (close) {
+      close.style.cssText = [
+        "width:30px",
+        "height:30px",
+        "border:1px solid #bfc8c4",
+        "border-radius:6px",
+        "background:#fff",
+        "color:#151819",
+        "font:inherit",
+        "font-weight:700",
+        "cursor:pointer"
+      ].join(";");
+    }
   }
 
   function escapeHtml(value) {
@@ -1026,6 +1112,7 @@
     const textareaApi = replierForm && replierForm.textarea ? replierForm.textarea : null;
     const buttons = replierForm && replierForm.buttons ? replierForm.buttons : null;
     const fallbackButton = document.querySelector("[data-fd-embed-fallback-button]");
+    const localModal = state.localModal || document.querySelector("[data-fd-embed-local-modal]");
 
     return {
       app: APP_TITLE,
@@ -1039,7 +1126,8 @@
       classicButtonRegistered: state.classicButtonRegistered,
       classicButtonVisible: findVisibleTextButton(APP_TITLE),
       modalApiReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
-      localModalOpen: Boolean(state.localModal && state.localModal.parentNode),
+      localModalOpen: Boolean(localModal && localModal.parentNode),
+      localModalVisible: isVisibleElement(localModal),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
