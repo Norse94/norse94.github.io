@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.32 */
+/* FD EMBED LINK build 2026-07-05.33 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.32",
+    version: "2026-07-05.33",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -675,6 +675,12 @@
       const unavailable = [];
 
       verifiable.forEach((item) => {
+        const currentPagePublication = findCurrentPagePublication(item);
+        if (currentPagePublication) {
+          present.push(currentPagePublication);
+          return;
+        }
+
         const post = postsById[String(item.postId)];
         if (!post || typeof post.content !== "string") {
           unavailable.push(presenceDetail(item, "unavailable", "post non restituito da api.php"));
@@ -737,6 +743,47 @@
     } catch (_error) {
       return false;
     }
+  }
+
+  function findCurrentPagePublication(item) {
+    if (!item || !item.id || typeof document === "undefined") {
+      return null;
+    }
+
+    const marker = Array.from(document.querySelectorAll("[data-fd-embed-id], .fd-embed-link"))
+      .find((element) => contentHasEmbedId(element.outerHTML || "", item.id));
+    if (!marker) {
+      return null;
+    }
+
+    const postElement = marker.closest ? marker.closest("li.post[id], li[id^='ee']") : null;
+    if (!postElement) {
+      return null;
+    }
+
+    const postId = postIdFromElement(postElement);
+    if (!postId) {
+      return null;
+    }
+
+    const context = getForumContext();
+    const preferredLink = postElement.querySelector(`.lt.Sub a[href*="?t="][href*="#entry${postId}"]`);
+    const anchorLink = preferredLink || postElement.querySelector(`a[href*="?t="][href*="#entry${postId}"], a[href*="entry${postId}"]`);
+    const postUrl = normalizePostUrl(anchorLink && anchorLink.href ? anchorLink.href : window.location.href, context.topicId, postId);
+
+    return {
+      ...item,
+      postId,
+      postUrl,
+      topicId: context.topicId || item.topicId,
+      topicTitle: context.topicTitle || item.topicTitle
+    };
+  }
+
+  function postIdFromElement(element) {
+    const rawId = element && element.id ? String(element.id) : "";
+    const match = rawId.match(/^ee(\d+)$/i) || rawId.match(/^e?(\d+)$/i) || rawId.match(/(\d+)/);
+    return match ? Number(match[1]) || 0 : 0;
   }
 
   async function fetchForumPostsByIds(postIds) {
