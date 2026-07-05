@@ -1,16 +1,17 @@
-/* FD EMBED LINK build 2026-07-05.18.1 */
+/* FD EMBED LINK build 2026-07-05.19 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.18",
+    version: "2026-07-05.19",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
     requestTimeoutMs: 12000,
     pendingStorageKey: "fd_embed_link_pending_v1",
-    submitStorageKey: "fd_embed_link_submit_v1"
+    submitStorageKey: "fd_embed_link_submit_v1",
+    pasteInterceptionStorageKey: "fd_embed_link_paste_interception_v1"
   };
 
   const APP_TITLE = CONFIG.appTitle;
@@ -27,6 +28,7 @@
     textareaApiPasteRegistered: false,
     pasteTargetCount: 0,
     pasteDisabled: false,
+    pasteInterceptionEnabled: true,
     pasteText: "",
     preview: null,
     commonsModal: null,
@@ -307,6 +309,35 @@
 
   function normalizeSpace(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function loadPasteInterceptionPreference() {
+    try {
+      return localStorage.getItem(CONFIG.pasteInterceptionStorageKey) !== "off";
+    } catch (_error) {
+      return true;
+    }
+  }
+
+  function savePasteInterceptionPreference(enabled) {
+    state.pasteInterceptionEnabled = Boolean(enabled);
+    try {
+      localStorage.setItem(CONFIG.pasteInterceptionStorageKey, enabled ? "on" : "off");
+    } catch (_error) {
+      // Preference persistence is best-effort only.
+    }
+    updatePasteInterceptionSwitch();
+  }
+
+  function updatePasteInterceptionSwitch() {
+    const input = document.querySelector("[data-fd-embed-paste-toggle]");
+    const stateLabel = document.querySelector("[data-fd-embed-paste-state]");
+    if (input) {
+      input.checked = state.pasteInterceptionEnabled;
+    }
+    if (stateLabel) {
+      stateLabel.textContent = state.pasteInterceptionEnabled ? "On" : "Off";
+    }
   }
 
   function truncate(value, maxLength) {
@@ -748,10 +779,22 @@
   }
 
   function renderUrlFooter() {
+    const checked = state.pasteInterceptionEnabled ? " checked" : "";
+    const stateText = state.pasteInterceptionEnabled ? "On" : "Off";
     return [
-      "<div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
-      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"url-cancel\">Annulla</button>",
-      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-green el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"url-preview\">Anteprima</button>",
+      "<div class=\"fd-embed-url-footer\">",
+      "  <label class=\"fd-embed-paste-switch\">",
+      "    <span>Intercetta Link</span>",
+      "    <span class=\"fd-embed-switch-control\">",
+      `      <input type="checkbox" data-fd-embed-paste-toggle${checked}>`,
+      "      <span class=\"fd-embed-switch-track\" aria-hidden=\"true\"><span class=\"fd-embed-switch-thumb\"></span></span>",
+      `      <span class="fd-embed-switch-state" data-fd-embed-paste-state>${stateText}</span>`,
+      "    </span>",
+      "  </label>",
+      "  <div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
+      "    <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"url-cancel\">Annulla</button>",
+      "    <button class=\"cs-btn cs-btn-sm cs-btn-outer-green el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"url-preview\">Anteprima</button>",
+      "  </div>",
       "</div>"
     ].join("\n");
   }
@@ -1192,7 +1235,7 @@
       return true;
     }
 
-    if (state.pasteDisabled || !assertCanUse()) {
+    if (state.pasteDisabled || !state.pasteInterceptionEnabled || !assertCanUse()) {
       return true;
     }
 
@@ -1313,6 +1356,20 @@
     if (action === "preview-insert") {
       createAndInsertEmbed();
     }
+  }
+
+  function handleDocumentChange(event) {
+    const toggle = event.target && event.target.closest
+      ? event.target.closest("[data-fd-embed-paste-toggle]")
+      : null;
+    if (!toggle) {
+      return;
+    }
+
+    savePasteInterceptionPreference(Boolean(toggle.checked));
+    toast("info", APP_TITLE, toggle.checked
+      ? "Intercettazione link riattivata."
+      : "Intercettazione link disattivata.");
   }
 
   function handleSubmitCapture(event) {
@@ -1521,6 +1578,8 @@
         classicButtonRegistered: state.classicButtonRegistered,
         visualButtonRegistered: state.visualButtonRegistered,
         pasteRegistered: state.pasteRegistered,
+        pasteInterceptionEnabled: state.pasteInterceptionEnabled,
+        pasteTemporarilyDisabled: state.pasteDisabled,
         textareaApiPasteRegistered: state.textareaApiPasteRegistered,
         pasteTargetCount: state.pasteTargetCount,
         integrationAttempts: state.integrationAttempts,
@@ -1541,8 +1600,10 @@
     }
 
     state.initialized = true;
+    state.pasteInterceptionEnabled = loadPasteInterceptionPreference();
     removeLegacyEditorButtons();
     document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("change", handleDocumentChange);
     document.addEventListener("paste", handlePaste, true);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
