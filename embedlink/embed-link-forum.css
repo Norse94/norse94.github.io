@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-05.13 - existing link warning */
+/* FD EMBED LINK build 2026-07-05.14 - existing link warning */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -312,35 +312,29 @@
 }
 
 .fd-embed-existing {
-  display: grid;
-  gap: 6px;
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  justify-self: start;
   padding: 10px 12px;
   border: 1px solid #d9b66f;
   border-radius: 6px;
   background: #fff9ed;
   color: #5f430d;
   font-size: 13px;
+  line-height: 1.45;
   text-align: left;
 }
 
-.fd-embed-existing strong {
-  font-weight: 700;
-}
-
-.fd-embed-existing ul {
+.fd-embed-existing p {
   margin: 0;
-  padding-left: 18px;
 }
 
 .fd-embed-existing a {
-  color: #17685b;
+  color: #5f430d;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-.fd-embed-existing--inline {
-  margin-top: 10px;
 }
 
 .fd-embed-cover-picker {

@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.13 */
+/* FD EMBED LINK build 2026-07-05.14 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.13",
+    version: "2026-07-05.14",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -29,7 +29,6 @@
     pasteDisabled: false,
     pasteText: "",
     preview: null,
-    previewCache: null,
     commonsModal: null,
     localModal: null,
     localModalOpenedAt: 0,
@@ -37,8 +36,6 @@
     lastModalError: "",
     lastPreviewExistingCount: 0,
     lastPreviewExistingUrls: [],
-    duplicateCheckTimer: 0,
-    duplicateCheckSeq: 0,
     integrationAttempts: 0,
     integrationTimer: 0,
     integrationInterval: 0,
@@ -746,7 +743,6 @@
       "<div class=\"fd-embed-form\">",
       `  <input class="fd-embed-input" id="${inputId}" type="url" value="${escapeAttr(initialUrl || "")}" placeholder="https://example.com/articolo">`,
       "  <p class=\"fd-embed-error\" data-fd-embed-error hidden></p>",
-      "  <div class=\"fd-embed-existing fd-embed-existing--inline\" data-fd-embed-existing hidden></div>",
       "</div>"
     ].join("\n");
   }
@@ -761,7 +757,7 @@
   }
 
   function renderPasteModal(_url) {
-    return "<div class=\"fd-embed-existing fd-embed-existing--inline\" data-fd-embed-existing hidden></div>";
+    return "";
   }
 
   function renderPasteFooter() {
@@ -815,37 +811,12 @@
     }
 
     return [
-      "<div class=\"fd-embed-existing\">",
-      renderExistingPublicationsContent(existingPublications),
+      "<div class=\"fd-embed-existing\" role=\"note\">",
+      existingPublications.map((item) => (
+        `  <p>Sei sicuro di voler inviare questo Embed Link? Risulta gia pubblicato in <a href="${escapeAttr(item.postUrl)}" target="_blank" rel="noopener noreferrer nofollow">"${escapeHtml(item.topicTitle)}"</a></p>`
+      )).join("\n"),
       "</div>"
     ].join("\n");
-  }
-
-  function renderExistingPublicationsContent(existingPublications) {
-    return [
-      "  <strong>Questo link e gia stato pubblicato:</strong>",
-      "  <ul>",
-      existingPublications.map((item) => (
-        `    <li><a href="${escapeAttr(item.postUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(item.topicTitle)}</a></li>`
-      )).join("\n"),
-      "  </ul>"
-    ].join("\n");
-  }
-
-  function updateExistingPublicationsNotice(existingPublications) {
-    const box = document.querySelector("[data-fd-embed-existing]");
-    if (!box) {
-      return;
-    }
-
-    if (!existingPublications || !existingPublications.length) {
-      box.innerHTML = "";
-      box.hidden = true;
-      return;
-    }
-
-    box.innerHTML = renderExistingPublicationsContent(existingPublications);
-    box.hidden = false;
   }
 
   function renderPreviewFooter() {
@@ -886,7 +857,6 @@
       const input = await waitForElement("#" + ID_PREFIX + "url", 500);
       if (input) {
         markOpenStep("url-input-found");
-        bindUrlInputDuplicateCheck(input);
         input.focus();
         input.select();
         return;
@@ -937,82 +907,6 @@
     ));
   }
 
-  async function loadPreviewData(parsedUrl) {
-    const cached = state.previewCache;
-    if (cached && cached.url === parsedUrl.href) {
-      return cached.preview;
-    }
-
-    const data = await requestEdge("preview", {
-      url: parsedUrl.href,
-      forum: getForumContext(),
-      user: getUser()
-    });
-    const metadata = normalizeMetadata(data, parsedUrl.href);
-    const existingPublications = normalizeExistingPublications(data.existingPublications || data.existing_publications);
-    const preview = {
-      sourceUrl: parsedUrl.href,
-      metadata,
-      existingPublications,
-      selectedImageIndex: metadata.images.length ? 0 : -1
-    };
-
-    state.previewCache = {
-      url: parsedUrl.href,
-      preview
-    };
-    state.lastPreviewExistingCount = existingPublications.length;
-    state.lastPreviewExistingUrls = existingPublications.map((item) => item.postUrl).slice(0, 5);
-    return preview;
-  }
-
-  function bindUrlInputDuplicateCheck(input) {
-    if (!input || input.dataset.fdEmbedDuplicateCheckBound === "1") {
-      return;
-    }
-
-    input.dataset.fdEmbedDuplicateCheckBound = "1";
-    input.addEventListener("input", () => {
-      scheduleDuplicateCheck(input.value, 650);
-    });
-    input.addEventListener("blur", () => {
-      scheduleDuplicateCheck(input.value, 0);
-    });
-
-    if (input.value) {
-      scheduleDuplicateCheck(input.value, 150);
-    }
-  }
-
-  function scheduleDuplicateCheck(rawUrl, delayMs) {
-    window.clearTimeout(state.duplicateCheckTimer);
-    state.duplicateCheckTimer = window.setTimeout(() => {
-      checkExistingPublicationsForUrl(rawUrl);
-    }, Math.max(0, Number(delayMs || 0)));
-  }
-
-  async function checkExistingPublicationsForUrl(rawUrl) {
-    const parsed = parseUrl(rawUrl);
-    if (!parsed || isDirectImageUrl(parsed.href) || !assertCanUse()) {
-      updateExistingPublicationsNotice([]);
-      return;
-    }
-
-    const seq = ++state.duplicateCheckSeq;
-
-    try {
-      const preview = await loadPreviewData(parsed);
-      if (seq !== state.duplicateCheckSeq) {
-        return;
-      }
-      updateExistingPublicationsNotice(preview.existingPublications);
-    } catch (_error) {
-      if (seq === state.duplicateCheckSeq) {
-        updateExistingPublicationsNotice([]);
-      }
-    }
-  }
-
   async function openPreviewForUrl(rawUrl) {
     if (!assertCanUse()) {
       return;
@@ -1032,7 +926,22 @@
     toast("info", APP_TITLE, "Recupero anteprima in corso...");
 
     try {
-      state.preview = await loadPreviewData(parsed);
+      const data = await requestEdge("preview", {
+        url: parsed.href,
+        forum: getForumContext(),
+        user: getUser()
+      });
+      const metadata = normalizeMetadata(data, parsed.href);
+      const existingPublications = normalizeExistingPublications(data.existingPublications || data.existing_publications);
+      state.lastPreviewExistingCount = existingPublications.length;
+      state.lastPreviewExistingUrls = existingPublications.map((item) => item.postUrl).slice(0, 5);
+      const selectedImageIndex = metadata.images.length ? 0 : -1;
+      state.preview = {
+        sourceUrl: parsed.href,
+        metadata,
+        existingPublications,
+        selectedImageIndex
+      };
 
       closeModal();
       showModal("Anteprima Embed Link", renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
@@ -1299,7 +1208,6 @@
     event.preventDefault();
     state.pasteText = text.trim();
     showModal("Vuoi inserire un Embed Link?", renderPasteModal(state.pasteText), renderPasteFooter(), "fd-embed-modal-paste fd-embed-modal-preview cs-modal-w50");
-    scheduleDuplicateCheck(state.pasteText, 0);
     return false;
   }
 
