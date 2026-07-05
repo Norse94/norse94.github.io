@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.11 */
+/* FD EMBED LINK build 2026-07-05.12 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.11",
+    version: "2026-07-05.12",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -34,6 +34,8 @@
     localModalOpenedAt: 0,
     lastOpenAttempt: null,
     lastModalError: "",
+    lastPreviewExistingCount: 0,
+    lastPreviewExistingUrls: [],
     integrationAttempts: 0,
     integrationTimer: 0,
     integrationInterval: 0,
@@ -926,6 +928,8 @@
       });
       const metadata = normalizeMetadata(data, parsed.href);
       const existingPublications = normalizeExistingPublications(data.existingPublications || data.existing_publications);
+      state.lastPreviewExistingCount = existingPublications.length;
+      state.lastPreviewExistingUrls = existingPublications.map((item) => item.postUrl).slice(0, 5);
       const selectedImageIndex = metadata.images.length ? 0 : -1;
       state.preview = {
         sourceUrl: parsed.href,
@@ -1500,6 +1504,8 @@
       localModalVisible: isVisibleElement(localModal),
       lastModalError: state.lastModalError,
       lastOpenAttempt: state.lastOpenAttempt,
+      lastPreviewExistingCount: state.lastPreviewExistingCount,
+      lastPreviewExistingUrls: state.lastPreviewExistingUrls,
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
