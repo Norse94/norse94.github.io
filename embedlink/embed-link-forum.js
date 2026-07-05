@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /* FD EMBED LINK build 2026-07-05.20 */
+=======
+/* FD EMBED LINK build 2026-07-05.19.2 */
+>>>>>>> 8c7915a6a0993134ca00784f4a736760f269d0cc
 (() => {
   "use strict";
 
