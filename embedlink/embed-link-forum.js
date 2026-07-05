@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.19 */
+/* FD EMBED LINK build 2026-07-05.20 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.19",
+    version: "2026-07-05.20",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -303,8 +303,44 @@
       .replace(/'/g, "&#39;");
   }
 
+  function escapeText(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   function escapeAttr(value) {
     return escapeHtml(value).replace(/`/g, "&#96;");
+  }
+
+  function decodeTextEntities(value) {
+    let text = String(value == null ? "" : value);
+
+    for (let index = 0; index < 3; index += 1) {
+      const decoded = text
+        .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number(code)))
+        .replace(/&#x([0-9a-f]+);/gi, (_match, code) => String.fromCodePoint(parseInt(code, 16)))
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, "\"")
+        .replace(/&apos;/g, "'")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&rsquo;/g, "'")
+        .replace(/&lsquo;/g, "'")
+        .replace(/&rdquo;/g, "\"")
+        .replace(/&ldquo;/g, "\"")
+        .replace(/&ndash;/g, "-")
+        .replace(/&mdash;/g, "-");
+
+      if (decoded === text) {
+        return decoded;
+      }
+      text = decoded;
+    }
+
+    return text;
   }
 
   function normalizeSpace(value) {
@@ -566,9 +602,9 @@
       finalUrl,
       canonicalUrl: metadata.canonicalUrl || metadata.canonical_url || finalUrl,
       domain: metadata.domain || metadata.sourceDomain || metadata.source_domain || getDomain(finalUrl),
-      title: metadata.title || finalUrl,
-      description: metadata.description || metadata.excerpt || "",
-      author: metadata.author || "",
+      title: decodeTextEntities(metadata.title || finalUrl),
+      description: decodeTextEntities(metadata.description || metadata.excerpt || ""),
+      author: decodeTextEntities(metadata.author || ""),
       publishedAt: metadata.publishedAt || metadata.published_at || metadata.articlePublishedAt || "",
       images
     };
@@ -640,13 +676,13 @@
       ? `<a class="fd-embed-link__media" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow"><img class="fd-embed-link__image" src="${escapeAttr(selectedImageUrl)}" alt=""></a>`
       : "";
     const sourceBlock = domain
-      ? `<div class="fd-embed-link__source"><span class="fd-embed-link__source-mark" aria-hidden="true"></span><span class="fd-embed-link__source-text">${escapeHtml(domain)}</span></div>`
+      ? `<div class="fd-embed-link__source"><span class="fd-embed-link__source-mark" aria-hidden="true"></span><span class="fd-embed-link__source-text">${escapeText(domain)}</span></div>`
       : "";
-    const excerptBlock = description ? `<p class="fd-embed-link__excerpt">${escapeHtml(description)}</p>` : "";
+    const excerptBlock = description ? `<p class="fd-embed-link__excerpt">${escapeText(description)}</p>` : "";
     const metaParts = [];
 
     if (author) {
-      metaParts.push(`<span class="fd-embed-link__author">${escapeHtml(author)}</span>`);
+      metaParts.push(`<span class="fd-embed-link__author">${escapeText(author)}</span>`);
     }
 
     if (author && displayDate) {
@@ -654,7 +690,7 @@
     }
 
     if (displayDate) {
-      metaParts.push(`<span class="fd-embed-link__date" data-datetime="${escapeAttr(toIsoDate(publishedAt))}">${escapeHtml(displayDate)}</span>`);
+      metaParts.push(`<span class="fd-embed-link__date" data-datetime="${escapeAttr(toIsoDate(publishedAt))}">${escapeText(displayDate)}</span>`);
     }
 
     const metaBlock = metaParts.length ? `<div class="fd-embed-link__meta">${metaParts.join("")}</div>` : "";
@@ -664,7 +700,7 @@
       imageBlock,
       "<div class=\"fd-embed-link__body\">",
       sourceBlock,
-      `<a class="fd-embed-link__title" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(title)}</a>`,
+      `<a class="fd-embed-link__title" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow">${escapeText(title)}</a>`,
       excerptBlock,
       metaBlock,
       "</div>",
