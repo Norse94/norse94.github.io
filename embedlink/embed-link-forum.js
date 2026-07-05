@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.26 */
+/* FD EMBED LINK build 2026-07-05.28 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.26",
+    version: "2026-07-05.28",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -38,6 +38,10 @@
     lastModalError: "",
     lastPreviewExistingCount: 0,
     lastPreviewExistingUrls: [],
+    lastPresenceCheck: null,
+    lastPresenceReport: null,
+    submitFallbackUsed: 0,
+    lastSubmitFallbackPostId: 0,
     integrationAttempts: 0,
     integrationTimer: 0,
     integrationInterval: 0,
@@ -629,13 +633,234 @@
       const postUrl = item && (item.postUrl || item.post_url) ? String(item.postUrl || item.post_url) : "";
       const topicTitle = item && (item.topicTitle || item.topic_title) ? String(item.topicTitle || item.topic_title) : "";
       return {
+        id: item && item.id ? String(item.id) : "",
         postUrl,
         topicTitle: topicTitle || "Discussione",
+        sourceUrl: item && (item.sourceUrl || item.source_url) ? String(item.sourceUrl || item.source_url) : "",
+        finalUrl: item && (item.finalUrl || item.final_url) ? String(item.finalUrl || item.final_url) : "",
+        canonicalUrl: item && (item.canonicalUrl || item.canonical_url) ? String(item.canonicalUrl || item.canonical_url) : "",
         postId: item && (item.postId || item.post_id) || null,
         topicId: item && (item.topicId || item.topic_id) || null,
         confirmedAt: item && (item.confirmedAt || item.confirmed_at) || ""
       };
     }).filter((item) => item.postUrl);
+  }
+
+  async function verifyExistingPublications(existingPublications, metadata) {
+    if (!existingPublications || !existingPublications.length) {
+      state.lastPresenceCheck = { checked: 0, present: 0, missing: 0, unverified: 0 };
+      return [];
+    }
+
+    const verifiable = existingPublications.filter((item) => canVerifyExistingPublication(item));
+    const unverified = existingPublications.filter((item) => !canVerifyExistingPublication(item));
+    if (!verifiable.length) {
+      state.lastPresenceCheck = {
+        checked: 0,
+        present: 0,
+        missing: 0,
+        unverified: unverified.length
+      };
+      return existingPublications;
+    }
+
+    try {
+      const postsById = await fetchForumPostsByIds(verifiable.map((item) => Number(item.postId)));
+      const present = [];
+      const missing = [];
+      const unavailable = [];
+
+      verifiable.forEach((item) => {
+        const post = postsById[String(item.postId)];
+        if (!post || typeof post.content !== "string") {
+          unavailable.push(item);
+          return;
+        }
+
+        if (contentHasExistingPublication(post.content, item, metadata)) {
+          present.push(enrichPublicationFromForumPost(item, post));
+        } else {
+          missing.push(enrichPublicationFromForumPost(item, post));
+        }
+      });
+
+      const reportItems = present.map((item) => ({ ...item, presence: "present" }))
+        .concat(missing.map((item) => ({ ...item, presence: "missing" })));
+      if (reportItems.length) {
+        reportPublicationPresence(reportItems);
+      }
+
+      state.lastPresenceCheck = {
+        checked: verifiable.length,
+        present: present.length,
+        missing: missing.length,
+        unverified: unverified.length + unavailable.length
+      };
+
+      return unverified.concat(unavailable, present);
+    } catch (error) {
+      console.warn("[FDEmbedLink] existing publication presence check failed", error);
+      state.lastPresenceCheck = {
+        checked: 0,
+        present: 0,
+        missing: 0,
+        unverified: existingPublications.length,
+        error: error && error.message ? error.message : String(error)
+      };
+      return existingPublications;
+    }
+  }
+
+  function canVerifyExistingPublication(item) {
+    if (!item || !item.id || !item.postId || !item.postUrl) {
+      return false;
+    }
+
+    try {
+      const url = new URL(item.postUrl, window.location.origin);
+      return url.origin === window.location.origin;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  async function fetchForumPostsByIds(postIds) {
+    const ids = [...new Set(postIds.map((id) => Number(id || 0)).filter(Boolean))];
+    const postsById = {};
+
+    for (let index = 0; index < ids.length; index += 20) {
+      const chunk = ids.slice(index, index + 20);
+      const url = window.location.origin + "/api.php?p=" + encodeURIComponent(chunk.join(",")) + "&cookie=1";
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          accept: "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("API ForumFree non disponibile (" + response.status + ").");
+      }
+
+      const data = await response.json();
+      chunk.forEach((postId) => {
+        const item = data && data["p" + postId];
+        if (item && typeof item === "object") {
+          postsById[String(postId)] = item;
+        }
+      });
+    }
+
+    return postsById;
+  }
+
+  function enrichPublicationFromForumPost(item, post) {
+    const info = post && post.info ? post.info : {};
+    const topicTitle = normalizeSpace(info.topic_title || "");
+    return {
+      ...item,
+      topicTitle: topicTitle || item.topicTitle,
+      topicId: info.topic_id || item.topicId
+    };
+  }
+
+  function contentHasExistingPublication(content, publication, metadata) {
+    const text = String(content || "");
+    if (publication.id && contentHasEmbedId(text, publication.id)) {
+      return true;
+    }
+
+    if (!text.includes("fd-embed-link")) {
+      return false;
+    }
+
+    const urls = getExistingPublicationUrls(publication, metadata);
+    if (typeof DOMParser === "function") {
+      try {
+        const doc = new DOMParser().parseFromString(text, "text/html");
+        return Array.from(doc.querySelectorAll(".fd-embed-link")).some((card) => {
+          const html = card.innerHTML || "";
+          return urls.some((url) => contentContainsUrl(html, url));
+        });
+      } catch (_error) {
+        // Fall back to the string check below.
+      }
+    }
+
+    return urls.some((url) => (
+      text.includes("fd-embed-link") &&
+      contentContainsUrl(text, url)
+    ));
+  }
+
+  function contentContainsUrl(content, url) {
+    const text = String(content || "");
+    return (
+      text.includes(url) ||
+      text.includes(escapeHtml(url)) ||
+      text.includes(encodeURI(url))
+    );
+  }
+
+  function getExistingPublicationUrls(publication, metadata) {
+    const urls = [];
+    [
+      publication && publication.sourceUrl,
+      publication && publication.finalUrl,
+      publication && publication.canonicalUrl,
+      metadata && metadata.sourceUrl,
+      metadata && metadata.finalUrl,
+      metadata && metadata.canonicalUrl
+    ].forEach((value) => {
+      const url = value ? String(value) : "";
+      if (url && urls.indexOf(url) === -1) {
+        urls.push(url);
+      }
+    });
+    return urls;
+  }
+
+  async function reportPublicationPresence(publications) {
+    const payload = publications
+      .filter((item) => item && item.id && item.postUrl && (item.presence === "present" || item.presence === "missing"))
+      .map((item) => ({
+        id: item.id,
+        postUrl: item.postUrl,
+        postId: item.postId || null,
+        topicTitle: item.topicTitle || "",
+        presence: item.presence
+      }));
+
+    if (!payload.length) {
+      return;
+    }
+
+    state.lastPresenceReport = {
+      sent: payload.length,
+      at: new Date().toISOString()
+    };
+
+    try {
+      const result = await requestEdge("presence", {
+        publications: payload,
+        user: getUser()
+      }, { keepalive: true });
+      state.lastPresenceReport = {
+        sent: payload.length,
+        ok: true,
+        result,
+        at: new Date().toISOString()
+      };
+    } catch (error) {
+      console.warn("[FDEmbedLink] presence report failed", error);
+      state.lastPresenceReport = {
+        sent: payload.length,
+        ok: false,
+        error: error && error.message ? error.message : String(error),
+        at: new Date().toISOString()
+      };
+    }
   }
 
   function normalizeImages(images) {
@@ -747,6 +972,11 @@
       return false;
     }
 
+    return contentHasPendingUrl(text, pendingItem);
+  }
+
+  function contentHasPendingUrl(content, pendingItem) {
+    const text = String(content || "");
     return getPendingUrls(pendingItem).some((url) => (
       text.includes(url) ||
       text.includes(escapeHtml(url)) ||
@@ -760,6 +990,30 @@
         return false;
       }
       return contentHasPendingEmbedUrl(content, pending[id]);
+    });
+
+    if (!matches.length) {
+      return [];
+    }
+
+    const byUrl = {};
+    matches.forEach((id) => {
+      const key = getPendingUrls(pending[id])[0] || id;
+      const current = byUrl[key];
+      if (!current || Number(pending[id].createdAt || 0) > Number(pending[current].createdAt || 0)) {
+        byUrl[key] = id;
+      }
+    });
+
+    return Object.keys(byUrl).map((key) => byUrl[key]);
+  }
+
+  function pickPlainUrlFallbackEmbedIds(content, ids, pending, allowedIds) {
+    const matches = ids.filter((id) => {
+      if (allowedIds && allowedIds.indexOf(id) === -1) {
+        return false;
+      }
+      return contentHasPendingUrl(content, pending[id]);
     });
 
     if (!matches.length) {
@@ -1026,7 +1280,10 @@
         user: getUser()
       });
       const metadata = normalizeMetadata(data, parsed.href);
-      const existingPublications = normalizeExistingPublications(data.existingPublications || data.existing_publications);
+      const existingPublications = await verifyExistingPublications(
+        normalizeExistingPublications(data.existingPublications || data.existing_publications),
+        metadata
+      );
       state.lastPreviewExistingCount = existingPublications.length;
       state.lastPreviewExistingUrls = existingPublications.map((item) => item.postUrl).slice(0, 5);
       const selectedImageIndex = metadata.images.length ? 0 : -1;
@@ -1113,12 +1370,44 @@
       return;
     }
 
+    const currentPostId = getPostIdFromUrl();
     sessionStorage.setItem(CONFIG.submitStorageKey, JSON.stringify({
       ids,
+      p: currentPostId,
+      action: currentPostId ? "update" : "create",
       topicId: getForumContext().topicId,
+      lastPostId: getLastKnownPostId(),
       userId: getUser().id,
       createdAt: Date.now()
     }));
+  }
+
+  function getSubmitInfo() {
+    try {
+      return JSON.parse(sessionStorage.getItem(CONFIG.submitStorageKey) || "{}") || {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function isFreshSubmitInfo(submitInfo) {
+    const createdAt = Number(submitInfo && submitInfo.createdAt || 0);
+    return Boolean(createdAt && Date.now() - createdAt < 30 * 60 * 1000);
+  }
+
+  function getPostIdFromUrl() {
+    try {
+      return Number(new URL(window.location.href).searchParams.get("p") || 0);
+    } catch (_error) {
+      const match = String(window.location.search || "").match(/[?&]p=(\d+)/);
+      return match ? Number(match[1]) : 0;
+    }
+  }
+
+  function getLastKnownPostId() {
+    const C = commons();
+    const posts = C && C.location && Array.isArray(C.location.posts) ? C.location.posts : [];
+    return posts.reduce((max, post) => Math.max(max, getPostId(post) || 0), 0);
   }
 
   function buildPostUrl(post) {
@@ -1143,6 +1432,19 @@
     }
 
     return postId ? window.location.href.split("#")[0] + "#entry" + postId : window.location.href;
+  }
+
+  function getPostHtml(post) {
+    return String(post && post.content || "") + " " + (post && post.nativeElement ? post.nativeElement.innerHTML : "");
+  }
+
+  function getPostAuthorId(post) {
+    return Number(post && post.author && post.author.id || 0);
+  }
+
+  function isOwnPost(post, user) {
+    const authorId = getPostAuthorId(post);
+    return !(user.id && authorId && authorId !== user.id);
   }
 
   function getPostId(post) {
@@ -1171,6 +1473,29 @@
     }
 
     return 0;
+  }
+
+  function findSubmittedFallbackPost(posts, submitInfo, user) {
+    if (!isFreshSubmitInfo(submitInfo)) {
+      return null;
+    }
+
+    const submittedPostId = Number(submitInfo.p || 0);
+    if (submittedPostId) {
+      return posts.find((post) => getPostId(post) === submittedPostId && isOwnPost(post, user)) || null;
+    }
+
+    const lastPostId = Number(submitInfo.lastPostId || 0);
+    const ownPosts = posts.filter((post) => isOwnPost(post, user) && getPostId(post));
+    const newerPosts = ownPosts
+      .filter((post) => getPostId(post) > lastPostId)
+      .sort((a, b) => getPostId(b) - getPostId(a));
+
+    if (newerPosts.length) {
+      return newerPosts[0];
+    }
+
+    return ownPosts.length ? ownPosts[ownPosts.length - 1] : null;
   }
 
   function normalizePostUrl(rawUrl, topicId, postId) {
@@ -1203,24 +1528,23 @@
 
     const user = getUser();
     const remaining = { ...pending };
-    const submitInfo = (() => {
-      try {
-        return JSON.parse(sessionStorage.getItem(CONFIG.submitStorageKey) || "{}") || {};
-      } catch (_error) {
-        return {};
-      }
-    })();
+    const submitInfo = getSubmitInfo();
     const submittedIds = Array.isArray(submitInfo.ids) ? submitInfo.ids : [];
 
     for (const post of C.location.posts) {
-      if (user.id && post.author && post.author.id && Number(post.author.id) !== user.id) {
+      if (!isOwnPost(post, user)) {
         continue;
       }
 
-      const html = String(post.content || "") + " " + (post.nativeElement ? post.nativeElement.innerHTML : "");
-      let foundIds = ids.filter((id) => contentHasEmbedId(html, id));
+      const activeIds = Object.keys(remaining);
+      if (!activeIds.length) {
+        break;
+      }
+
+      const html = getPostHtml(post);
+      let foundIds = activeIds.filter((id) => contentHasEmbedId(html, id));
       if (!foundIds.length) {
-        foundIds = pickUrlFallbackEmbedIds(html, ids, pending, submittedIds.length ? submittedIds : null);
+        foundIds = pickUrlFallbackEmbedIds(html, activeIds, pending, submittedIds.length ? submittedIds : null);
       }
       if (!foundIds.length) {
         continue;
@@ -1248,7 +1572,41 @@
       }
     }
 
+    const remainingIds = Object.keys(remaining);
+    const fallbackPost = remainingIds.length ? findSubmittedFallbackPost(C.location.posts, submitInfo, user) : null;
+    if (fallbackPost) {
+      const html = getPostHtml(fallbackPost);
+      const foundIds = pickPlainUrlFallbackEmbedIds(html, remainingIds, pending, submittedIds.length ? submittedIds : null);
+      if (foundIds.length) {
+        const embeds = foundIds.map((id) => ({
+          id,
+          publishToken: pending[id].publishToken
+        }));
+
+        try {
+          const context = getForumContext();
+          await publishEmbeds(embeds, {
+            id: getPostId(fallbackPost) || null,
+            topicId: context.topicId,
+            topicTitle: context.topicTitle,
+            url: buildPostUrl(fallbackPost)
+          });
+
+          state.submitFallbackUsed += 1;
+          state.lastSubmitFallbackPostId = getPostId(fallbackPost) || 0;
+          for (const id of foundIds) {
+            delete remaining[id];
+          }
+        } catch (error) {
+          console.warn("[FDEmbedLink] submit fallback publish failed", error);
+        }
+      }
+    }
+
     setPendingEmbeds(remaining);
+    if (submittedIds.length && submittedIds.every((id) => !remaining[id])) {
+      sessionStorage.removeItem(CONFIG.submitStorageKey);
+    }
   }
 
   async function publishEmbeds(embeds, post) {
@@ -1621,6 +1979,9 @@
       lastOpenAttempt: state.lastOpenAttempt,
       lastPreviewExistingCount: state.lastPreviewExistingCount,
       lastPreviewExistingUrls: state.lastPreviewExistingUrls,
+      lastPresenceCheck: state.lastPresenceCheck,
+      lastPresenceReport: state.lastPresenceReport,
+      submitInfo: getSubmitInfo(),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
       domTextareaReady: Boolean(getEditorTextarea()),
@@ -1635,6 +1996,8 @@
         pasteTemporarilyDisabled: state.pasteDisabled,
         textareaApiPasteRegistered: state.textareaApiPasteRegistered,
         pasteTargetCount: state.pasteTargetCount,
+        submitFallbackUsed: state.submitFallbackUsed,
+        lastSubmitFallbackPostId: state.lastSubmitFallbackPostId,
         integrationAttempts: state.integrationAttempts,
         integrationIntervalActive: Boolean(state.integrationInterval),
         integrationObserverActive: Boolean(state.integrationObserver)

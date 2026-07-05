@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FD EMBED LINK Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f8;
+      --surface: #ffffff;
+      --surface-soft: #eef4f2;
+      --text: #172022;
+      --muted: #637174;
+      --line: #d8e0df;
+      --green: #17745f;
+      --blue: #246bba;
+      --yellow: #b78310;
+      --red: #c93d35;
+      --violet: #7251a5;
+      --shadow: 0 12px 28px rgba(29, 42, 46, .08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+
+    .app {
+      min-height: 100vh;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 255, 255, .96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar__inner {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .status-pill.is-ok {
+      border-color: rgba(23, 116, 95, .28);
+      color: var(--green);
+    }
+
+    .status-pill.is-error {
+      border-color: rgba(201, 61, 53, .28);
+      color: var(--red);
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field {
+      display: grid;
+      gap: 4px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .input,
+    .select {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 7px 9px;
+      outline: none;
+    }
+
+    .input:focus,
+    .select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(36, 107, 186, .12);
+    }
+
+    .actions {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 7px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn:hover {
+      border-color: #aebdbc;
+      background: #f8fbfb;
+    }
+
+    .btn-primary {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #125f4d;
+      border-color: #125f4d;
+    }
+
+    .btn-danger {
+      border-color: rgba(201, 61, 53, .42);
+      color: var(--red);
+    }
+
+    .btn-danger:hover {
+      border-color: var(--red);
+      background: #fff4f2;
+    }
+
+    .range-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .range-buttons .btn {
+      min-height: 32px;
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+
+    .range-buttons .btn.is-active {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #eef5ff;
+    }
+
+    .main {
+      display: grid;
+      gap: 14px;
+      padding: 14px 12px 28px;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .notice {
+      display: none;
+      border-left: 6px solid var(--red);
+      background: #ffdddd;
+      padding: 10px 12px;
+      color: var(--text);
+    }
+
+    .notice.is-visible {
+      display: block;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .kpi {
+      min-height: 92px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .kpi span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .kpi strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 26px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .kpi small {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel__head h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .panel__body {
+      padding: 12px;
+    }
+
+    .chart {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(24px, 1fr);
+      align-items: end;
+      gap: 6px;
+      min-height: 160px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .bar-day {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 6px;
+      min-width: 28px;
+      height: 154px;
+    }
+
+    .bar-stack {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      gap: 3px;
+      height: 126px;
+    }
+
+    .bar {
+      width: 9px;
+      min-height: 2px;
+      border-radius: 4px 4px 0 0;
+      background: var(--blue);
+    }
+
+    .bar.is-published {
+      background: var(--green);
+    }
+
+    .bar-label {
+      color: var(--muted);
+      font-size: 10px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--blue);
+    }
+
+    .dot.is-green {
+      background: var(--green);
+    }
+
+    .grid-two {
+      display: grid;
+      gap: 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 680px;
+    }
+
+    th,
+    td {
+      padding: 10px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    td {
+      font-size: 13px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .thumb {
+      width: 54px;
+      height: 38px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.published {
+      border-color: rgba(23, 116, 95, .28);
+      color: var(--green);
+      background: #eef8f4;
+    }
+
+    .badge.pending {
+      border-color: rgba(183, 131, 16, .34);
+      color: var(--yellow);
+      background: #fff8df;
+    }
+
+    .badge.failed,
+    .badge.expired {
+      border-color: rgba(201, 61, 53, .3);
+      color: var(--red);
+      background: #fff2f0;
+    }
+
+    .badge.removed {
+      border-color: rgba(183, 131, 16, .34);
+      color: #92400e;
+      background: #fffbeb;
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .rank-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .rank-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .rank-item strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .rank-item small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 12px 0;
+    }
+
+    @media (min-width: 760px) {
+      .topbar__inner {
+        grid-template-columns: 1fr;
+        padding: 14px 18px;
+      }
+
+      .toolbar {
+        grid-template-columns: 1.2fr repeat(5, minmax(120px, 1fr)) auto;
+        align-items: end;
+      }
+
+      .kpis {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .main {
+        padding: 18px 18px 34px;
+      }
+
+      .grid-two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1100px) {
+      .kpis {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar__inner">
+        <div class="brand">
+          <h1>FD EMBED LINK Dashboard</h1>
+          <span id="status" class="status-pill">Non caricata</span>
+        </div>
+        <div class="toolbar">
+          <div class="field">
+            <label for="token">Token admin</label>
+            <input id="token" class="input" type="password" autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="from">Da</label>
+            <input id="from" class="input" type="date">
+          </div>
+          <div class="field">
+            <label for="to">A</label>
+            <input id="to" class="input" type="date">
+          </div>
+          <div class="field">
+            <label for="statusFilter">Stato</label>
+            <select id="statusFilter" class="select">
+              <option value="">Tutti</option>
+              <option value="published">Published</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+              <option value="expired">Expired</option>
+              <option value="removed">Removed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="domainFilter">Dominio</label>
+            <input id="domainFilter" class="input" type="search" placeholder="aresdifesa.it">
+          </div>
+          <div class="field">
+            <label for="search">Cerca</label>
+            <input id="search" class="input" type="search" placeholder="titolo, URL, topic">
+          </div>
+          <div class="actions">
+            <button id="refresh" class="btn btn-primary" type="button">Aggiorna</button>
+            <button id="clearToken" class="btn btn-danger" type="button">Esci</button>
+          </div>
+        </div>
+        <div class="range-buttons" aria-label="Intervallo rapido">
+          <button class="btn" type="button" data-range="today">Oggi</button>
+          <button class="btn is-active" type="button" data-range="7">7 giorni</button>
+          <button class="btn" type="button" data-range="30">30 giorni</button>
+          <button class="btn" type="button" data-range="all">Tutto</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div id="notice" class="notice"></div>
+
+      <section class="kpis" id="kpis"></section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h2>Utilizzo nel tempo</h2>
+          <div class="legend">
+            <span><i class="dot"></i>Generati</span>
+            <span><i class="dot is-green"></i>Pubblicati</span>
+          </div>
+        </div>
+        <div class="panel__body">
+          <div id="timeline" class="chart"></div>
+        </div>
+      </section>
+
+      <div class="grid-two">
+        <section class="panel">
+          <div class="panel__head">
+            <h2>Discussioni piu attive</h2>
+          </div>
+          <div class="panel__body">
+            <ul id="topTopics" class="rank-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
+            <h2>Domini piu linkati</h2>
+          </div>
+          <div class="panel__body">
+            <ul id="topDomains" class="rank-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
+            <h2>Utenti piu attivi</h2>
+          </div>
+          <div class="panel__body">
+            <ul id="topUsers" class="rank-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
+            <h2>Link riutilizzati</h2>
+          </div>
+          <div class="panel__body">
+            <ul id="reusedLinks" class="rank-list"></ul>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h2>Pending vecchi</h2>
+        </div>
+        <div class="panel__body table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Titolo</th>
+                <th>Dominio</th>
+                <th>Utente</th>
+                <th>Discussione</th>
+                <th>Eta</th>
+              </tr>
+            </thead>
+            <tbody id="stalePending"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h2>Cronologia</h2>
+          <span id="historyCount" class="muted"></span>
+        </div>
+        <div class="panel__body table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Img</th>
+                <th>Articolo</th>
+                <th>Fonte</th>
+                <th>Utente</th>
+                <th>Discussione</th>
+                <th>Stato</th>
+                <th>Creato</th>
+                <th>Pubblicato</th>
+              </tr>
+            </thead>
+            <tbody id="history"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const CONFIG = {
+        endpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
+        tokenStorageKey: "fd_embed_dashboard_token",
+        rangeStorageKey: "fd_embed_dashboard_range"
+      };
+
+      const state = {
+        range: localStorage.getItem(CONFIG.rangeStorageKey) || "7",
+        loading: false,
+        data: null
+      };
+
+      const els = {
+        status: document.getElementById("status"),
+        notice: document.getElementById("notice"),
+        token: document.getElementById("token"),
+        from: document.getElementById("from"),
+        to: document.getElementById("to"),
+        statusFilter: document.getElementById("statusFilter"),
+        domainFilter: document.getElementById("domainFilter"),
+        search: document.getElementById("search"),
+        refresh: document.getElementById("refresh"),
+        clearToken: document.getElementById("clearToken"),
+        kpis: document.getElementById("kpis"),
+        timeline: document.getElementById("timeline"),
+        topTopics: document.getElementById("topTopics"),
+        topDomains: document.getElementById("topDomains"),
+        topUsers: document.getElementById("topUsers"),
+        reusedLinks: document.getElementById("reusedLinks"),
+        stalePending: document.getElementById("stalePending"),
+        history: document.getElementById("history"),
+        historyCount: document.getElementById("historyCount")
+      };
+
+      function init() {
+        els.token.value = localStorage.getItem(CONFIG.tokenStorageKey) || "";
+        applyRange(state.range);
+        bindEvents();
+        if (els.token.value) {
+          loadDashboard();
+        }
+      }
+
+      function bindEvents() {
+        els.refresh.addEventListener("click", loadDashboard);
+        els.clearToken.addEventListener("click", () => {
+          localStorage.removeItem(CONFIG.tokenStorageKey);
+          els.token.value = "";
+          setStatus("Token rimosso", "");
+        });
+
+        document.querySelectorAll("[data-range]").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.range = button.getAttribute("data-range") || "7";
+            localStorage.setItem(CONFIG.rangeStorageKey, state.range);
+            applyRange(state.range);
+            loadDashboard();
+          });
+        });
+
+        [els.statusFilter, els.domainFilter, els.search, els.from, els.to].forEach((input) => {
+          input.addEventListener("change", loadDashboard);
+        });
+        els.search.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            loadDashboard();
+          }
+        });
+      }
+
+      function applyRange(range) {
+        const today = new Date();
+        const to = formatInputDate(today);
+        let from = "";
+
+        if (range === "today") {
+          from = to;
+        } else if (range !== "all") {
+          const days = Number(range || 7);
+          const start = new Date(today);
+          start.setDate(start.getDate() - Math.max(0, days - 1));
+          from = formatInputDate(start);
+        }
+
+        els.from.value = from;
+        els.to.value = range === "all" ? "" : to;
+        document.querySelectorAll("[data-range]").forEach((button) => {
+          button.classList.toggle("is-active", button.getAttribute("data-range") === range);
+        });
+      }
+
+      async function loadDashboard() {
+        const token = els.token.value.trim();
+        if (!token) {
+          showNotice("Inserisci il token admin.");
+          return;
+        }
+
+        localStorage.setItem(CONFIG.tokenStorageKey, token);
+        setLoading(true);
+        hideNotice();
+
+        try {
+          const response = await fetch(CONFIG.endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              action: "dashboard",
+              dashboardToken: token,
+              filters: collectFilters()
+            })
+          });
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok || data.ok === false) {
+            throw new Error(data.error || "Dashboard non disponibile.");
+          }
+
+          state.data = data;
+          renderDashboard(data);
+          setStatus("Aggiornata " + formatTime(data.generatedAt), "ok");
+        } catch (error) {
+          showNotice(error.message || "Errore caricamento dashboard.");
+          setStatus("Errore", "error");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function collectFilters() {
+        return {
+          from: els.from.value,
+          to: els.to.value,
+          status: els.statusFilter.value,
+          domain: els.domainFilter.value.trim(),
+          search: els.search.value.trim(),
+          limit: 150
+        };
+      }
+
+      function renderDashboard(data) {
+        renderKpis(data.overview || {});
+        renderTimeline(data.daily || []);
+        renderRankList(els.topTopics, data.topTopics || [], topicItem);
+        renderRankList(els.topDomains, data.topDomains || [], domainItem);
+        renderRankList(els.topUsers, data.topUsers || [], userItem);
+        renderRankList(els.reusedLinks, data.reusedLinks || [], reusedItem);
+        renderStalePending(data.stalePending || []);
+        renderHistory(data.history || []);
+      }
+
+      function renderKpis(overview) {
+        const items = [
+          ["Generati", overview.generated_total, "totale record"],
+          ["Pubblicati", overview.published_total, "confermati nei post"],
+          ["Pending", overview.pending_total, "non confermati"],
+          ["Falliti", overview.failed_total, "errori salvati"],
+          ["Rimossi", overview.removed_total, "non piu presenti"],
+          ["Tasso", formatPercent(overview.publication_rate), "published / generated"],
+          ["Discussioni", overview.topic_total, "topic tracciati"],
+          ["Domini", overview.source_domain_total, "fonti diverse"],
+          ["Media/topic", overview.avg_published_per_topic || "0", "embed pubblicati"]
+        ];
+
+        els.kpis.innerHTML = items.map(([label, value, hint]) => `
+          <article class="kpi">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value == null ? "0" : value)}</strong>
+            <small>${escapeHtml(hint)}</small>
+          </article>
+        `).join("");
+      }
+
+      function renderTimeline(rows) {
+        if (!rows.length) {
+          els.timeline.innerHTML = `<div class="empty">Nessun dato nel periodo.</div>`;
+          return;
+        }
+
+        const max = Math.max(1, ...rows.flatMap((row) => [
+          Number(row.generated_total || 0),
+          Number(row.published_total || 0)
+        ]));
+
+        els.timeline.innerHTML = rows.map((row) => {
+          const generated = Number(row.generated_total || 0);
+          const published = Number(row.published_total || 0);
+          return `
+            <div class="bar-day" title="${escapeAttr(formatDate(row.day))}: ${generated} generati, ${published} pubblicati">
+              <div class="bar-stack">
+                <i class="bar" style="height:${barHeight(generated, max)}%"></i>
+                <i class="bar is-published" style="height:${barHeight(published, max)}%"></i>
+              </div>
+              <span class="bar-label">${escapeHtml(shortDate(row.day))}</span>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderRankList(target, rows, renderItem) {
+        if (!rows.length) {
+          target.innerHTML = `<li class="empty">Nessun dato.</li>`;
+          return;
+        }
+        target.innerHTML = rows.map(renderItem).join("");
+      }
+
+      function topicItem(row) {
+        const title = row.topic_title || "Discussione";
+        const domains = Array.isArray(row.source_domains) ? row.source_domains.slice(0, 4).join(", ") : "";
+        const link = row.latest_post_url
+          ? `<a href="${escapeAttr(row.latest_post_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)}</a>`
+          : escapeHtml(title);
+        return `
+          <li class="rank-item">
+            <span><strong>${link}</strong><small>${escapeHtml(domains || row.forum_domain || "")}</small></span>
+            <span class="badge published">${escapeHtml(row.embed_total || 0)}</span>
+          </li>
+        `;
+      }
+
+      function domainItem(row) {
+        return `
+          <li class="rank-item">
+            <span><strong>${escapeHtml(row.source_domain || "Dominio")}</strong><small>${escapeHtml(row.topic_total || 0)} discussioni</small></span>
+            <span class="badge">${escapeHtml(row.embed_total || 0)}</span>
+          </li>
+        `;
+      }
+
+      function userItem(row) {
+        return `
+          <li class="rank-item">
+            <span><strong>${escapeHtml(row.forum_username || "Utente")}</strong><small>ID ${escapeHtml(row.forum_user_id || "")}</small></span>
+            <span class="badge">${escapeHtml(row.embed_total || 0)}</span>
+          </li>
+        `;
+      }
+
+      function reusedItem(row) {
+        return `
+          <li class="rank-item">
+            <span><strong>${escapeHtml(row.title || row.normalized_url || "Link")}</strong><small>${escapeHtml(row.source_domain || "")}</small></span>
+            <span class="badge">${escapeHtml(row.embed_total || 0)}</span>
+          </li>
+        `;
+      }
+
+      function renderStalePending(rows) {
+        if (!rows.length) {
+          els.stalePending.innerHTML = `<tr><td colspan="5" class="empty">Nessun pending oltre 24 ore.</td></tr>`;
+          return;
+        }
+
+        els.stalePending.innerHTML = rows.map((row) => `
+          <tr>
+            <td><a href="${escapeAttr(row.source_url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.title || row.source_url || "Link")}</a></td>
+            <td>${escapeHtml(row.source_domain || "")}</td>
+            <td>${escapeHtml(row.forum_username || row.forum_user_id || "")}</td>
+            <td>${escapeHtml(row.topic_title || row.topic_id || "")}</td>
+            <td>${escapeHtml(formatDuration(row.age_seconds))}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderHistory(rows) {
+        els.historyCount.textContent = rows.length ? rows.length + " risultati" : "";
+
+        if (!rows.length) {
+          els.history.innerHTML = `<tr><td colspan="8" class="empty">Nessun record trovato.</td></tr>`;
+          return;
+        }
+
+        els.history.innerHTML = rows.map((row) => {
+          const article = row.final_url || row.source_url || "#";
+          const topic = row.post_url
+            ? `<a href="${escapeAttr(row.post_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.topic_title || "Post")}</a>`
+            : escapeHtml(row.topic_title || "");
+          return `
+            <tr>
+              <td>${row.selected_image_url ? `<img class="thumb" src="${escapeAttr(row.selected_image_url)}" alt="">` : ""}</td>
+              <td><a href="${escapeAttr(article)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.title || article)}</a><br><span class="muted">${escapeHtml(row.author || "")}</span></td>
+              <td>${escapeHtml(row.source_domain || "")}</td>
+              <td>${escapeHtml(row.forum_username || row.forum_user_id || "")}</td>
+              <td>${topic}</td>
+              <td><span class="badge ${escapeAttr(row.status || "")}">${escapeHtml(row.status || "")}</span></td>
+              <td>${escapeHtml(formatDateTime(row.created_at))}</td>
+              <td>${escapeHtml(formatDateTime(row.confirmed_at))}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function barHeight(value, max) {
+        if (!value) {
+          return 2;
+        }
+        return Math.max(5, Math.round((value / max) * 100));
+      }
+
+      function setLoading(loading) {
+        state.loading = loading;
+        els.refresh.disabled = loading;
+        els.refresh.textContent = loading ? "Carico..." : "Aggiorna";
+      }
+
+      function setStatus(text, type) {
+        els.status.textContent = text;
+        els.status.classList.toggle("is-ok", type === "ok");
+        els.status.classList.toggle("is-error", type === "error");
+      }
+
+      function showNotice(message) {
+        els.notice.textContent = message;
+        els.notice.classList.add("is-visible");
+      }
+
+      function hideNotice() {
+        els.notice.textContent = "";
+        els.notice.classList.remove("is-visible");
+      }
+
+      function formatInputDate(date) {
+        return date.toISOString().slice(0, 10);
+      }
+
+      function formatPercent(value) {
+        const number = Number(value || 0);
+        return Number.isFinite(number) ? number.toFixed(1) + "%" : "0.0%";
+      }
+
+      function formatDate(value) {
+        if (!value) {
+          return "";
+        }
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("it-IT");
+      }
+
+      function shortDate(value) {
+        if (!value) {
+          return "";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return String(value).slice(5);
+        }
+        return date.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
+      }
+
+      function formatDateTime(value) {
+        if (!value) {
+          return "";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return String(value);
+        }
+        return date.toLocaleString("it-IT", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      }
+
+      function formatTime(value) {
+        const date = new Date(value || Date.now());
+        return date.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+      }
+
+      function formatDuration(seconds) {
+        const value = Number(seconds || 0);
+        const days = Math.floor(value / 86400);
+        const hours = Math.floor((value % 86400) / 3600);
+        if (days > 0) {
+          return days + "g " + hours + "h";
+        }
+        return hours + "h";
+      }
+
+      function escapeHtml(value) {
+        return String(value == null ? "" : value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replace(/`/g, "&#96;");
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
