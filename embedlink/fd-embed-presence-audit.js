@@ -1,4 +1,4 @@
-/* FD EMBED LINK presence audit build 2026-07-05.1 */
+/* FD EMBED LINK presence audit build 2026-07-05.2 */
 (() => {
   "use strict";
 
@@ -456,31 +456,7 @@
       return true;
     }
 
-    if (!text.includes("fd-embed-link")) {
-      return false;
-    }
-
-    const urls = [row.sourceUrl, row.finalUrl, row.canonicalUrl].filter(Boolean);
-    if (typeof DOMParser === "function") {
-      try {
-        const doc = new DOMParser().parseFromString(text, "text/html");
-        return Array.from(doc.querySelectorAll(".fd-embed-link")).some((card) => {
-          const html = card.innerHTML || "";
-          return urls.some((url) => contentContainsUrl(html, url));
-        });
-      } catch (_error) {
-        // Fall back to text search.
-      }
-    }
-
-    return urls.some((url) => contentContainsUrl(text, url));
-  }
-
-  function contentContainsUrl(content, url) {
-    const text = String(content || "");
-    return text.includes(url) ||
-      text.includes(escapeHtml(url)) ||
-      text.includes(encodeURI(url));
+    return false;
   }
 
   function isSameOriginPost(postUrl) {

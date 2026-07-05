@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.29.1 */
+/* FD EMBED LINK build 2026-07-05.30 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.29",
+    version: "2026-07-05.30",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -765,60 +765,13 @@
     };
   }
 
-  function contentHasExistingPublication(content, publication, metadata) {
+  function contentHasExistingPublication(content, publication, _metadata) {
     const text = String(content || "");
     if (publication.id && contentHasEmbedId(text, publication.id)) {
       return true;
     }
 
-    if (!text.includes("fd-embed-link")) {
-      return false;
-    }
-
-    const urls = getExistingPublicationUrls(publication, metadata);
-    if (typeof DOMParser === "function") {
-      try {
-        const doc = new DOMParser().parseFromString(text, "text/html");
-        return Array.from(doc.querySelectorAll(".fd-embed-link")).some((card) => {
-          const html = card.innerHTML || "";
-          return urls.some((url) => contentContainsUrl(html, url));
-        });
-      } catch (_error) {
-        // Fall back to the string check below.
-      }
-    }
-
-    return urls.some((url) => (
-      text.includes("fd-embed-link") &&
-      contentContainsUrl(text, url)
-    ));
-  }
-
-  function contentContainsUrl(content, url) {
-    const text = String(content || "");
-    return (
-      text.includes(url) ||
-      text.includes(escapeHtml(url)) ||
-      text.includes(encodeURI(url))
-    );
-  }
-
-  function getExistingPublicationUrls(publication, metadata) {
-    const urls = [];
-    [
-      publication && publication.sourceUrl,
-      publication && publication.finalUrl,
-      publication && publication.canonicalUrl,
-      metadata && metadata.sourceUrl,
-      metadata && metadata.finalUrl,
-      metadata && metadata.canonicalUrl
-    ].forEach((value) => {
-      const url = value ? String(value) : "";
-      if (url && urls.indexOf(url) === -1) {
-        urls.push(url);
-      }
-    });
-    return urls;
+    return false;
   }
 
   async function reportPublicationPresence(publications) {
