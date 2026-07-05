@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.28 */
+/* FD EMBED LINK build 2026-07-05.29 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.28",
+    version: "2026-07-05.29",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -687,7 +687,7 @@
       const reportItems = present.map((item) => ({ ...item, presence: "present" }))
         .concat(missing.map((item) => ({ ...item, presence: "missing" })));
       if (reportItems.length) {
-        reportPublicationPresence(reportItems);
+        await reportPublicationPresence(reportItems);
       }
 
       state.lastPresenceCheck = {
@@ -838,6 +838,8 @@
 
     state.lastPresenceReport = {
       sent: payload.length,
+      missing: payload.filter((item) => item.presence === "missing").length,
+      present: payload.filter((item) => item.presence === "present").length,
       at: new Date().toISOString()
     };
 
@@ -848,14 +850,21 @@
       }, { keepalive: true });
       state.lastPresenceReport = {
         sent: payload.length,
+        missing: payload.filter((item) => item.presence === "missing").length,
+        present: payload.filter((item) => item.presence === "present").length,
         ok: true,
         result,
+        updated: Array.isArray(result && result.results)
+          ? result.results.filter((item) => item && item.updated).length
+          : 0,
         at: new Date().toISOString()
       };
     } catch (error) {
       console.warn("[FDEmbedLink] presence report failed", error);
       state.lastPresenceReport = {
         sent: payload.length,
+        missing: payload.filter((item) => item.presence === "missing").length,
+        present: payload.filter((item) => item.presence === "present").length,
         ok: false,
         error: error && error.message ? error.message : String(error),
         at: new Date().toISOString()
