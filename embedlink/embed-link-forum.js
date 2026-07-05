@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.34 */
+/* FD EMBED LINK build 2026-07-05.35 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.34",
+    version: "2026-07-05.35",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -673,6 +673,7 @@
       const present = [];
       const missing = [];
       const unavailable = [];
+      const unavailableMissing = [];
 
       verifiable.forEach((item) => {
         const currentPagePublication = findCurrentPagePublication(item);
@@ -684,6 +685,7 @@
         const post = postsById[String(item.postId)];
         if (!post || typeof post.content !== "string") {
           unavailable.push(presenceDetail(item, "unavailable", "post non restituito da api.php"));
+          unavailableMissing.push(item);
           return;
         }
 
@@ -701,7 +703,8 @@
       });
 
       const reportItems = present.map((item) => ({ ...item, presence: "present" }))
-        .concat(missing.map((item) => ({ ...item, presence: "missing" })));
+        .concat(missing.map((item) => ({ ...item, presence: "missing" })))
+        .concat(unavailableMissing.map((item) => ({ ...item, presence: "missing" })));
       if (reportItems.length) {
         await reportPublicationPresence(reportItems);
       }
