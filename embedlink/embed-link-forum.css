@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-05.11 - existing link warning */
+/* FD EMBED LINK build 2026-07-05.13 - existing link warning */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -337,6 +337,10 @@
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.fd-embed-existing--inline {
+  margin-top: 10px;
 }
 
 .fd-embed-cover-picker {
