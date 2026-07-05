@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.31 */
+/* FD EMBED LINK build 2026-07-05.32 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.31",
+    version: "2026-07-05.32",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -39,6 +39,7 @@
     lastPreviewExistingCount: 0,
     lastPreviewExistingUrls: [],
     lastPresenceCheck: null,
+    lastPresenceDetails: [],
     lastPresenceReport: null,
     submitFallbackUsed: 0,
     lastSubmitFallbackPostId: 0,
@@ -634,6 +635,7 @@
       const topicTitle = item && (item.topicTitle || item.topic_title) ? String(item.topicTitle || item.topic_title) : "";
       return {
         id: item && item.id ? String(item.id) : "",
+        status: item && item.status ? String(item.status) : "",
         postUrl,
         topicTitle: topicTitle || "Discussione",
         sourceUrl: item && (item.sourceUrl || item.source_url) ? String(item.sourceUrl || item.source_url) : "",
@@ -643,12 +645,13 @@
         topicId: item && (item.topicId || item.topic_id) || null,
         confirmedAt: item && (item.confirmedAt || item.confirmed_at) || ""
       };
-    }).filter((item) => item.postUrl);
+    }).filter((item) => item.postUrl && (!item.status || item.status === "published"));
   }
 
   async function verifyExistingPublications(existingPublications, metadata) {
     if (!existingPublications || !existingPublications.length) {
       state.lastPresenceCheck = { checked: 0, present: 0, missing: 0, unverified: 0 };
+      state.lastPresenceDetails = [];
       return [];
     }
 
@@ -661,6 +664,7 @@
         missing: 0,
         unverified: unverified.length
       };
+      state.lastPresenceDetails = unverified.map((item) => presenceDetail(item, "unverified", "record non verificabile"));
       return [];
     }
 
@@ -673,7 +677,13 @@
       verifiable.forEach((item) => {
         const post = postsById[String(item.postId)];
         if (!post || typeof post.content !== "string") {
-          unavailable.push(item);
+          unavailable.push(presenceDetail(item, "unavailable", "post non restituito da api.php"));
+          return;
+        }
+
+        const consistencyError = forumPostConsistencyError(item, post);
+        if (consistencyError) {
+          unavailable.push(presenceDetail(item, "unavailable", consistencyError));
           return;
         }
 
@@ -696,6 +706,10 @@
         missing: missing.length,
         unverified: unverified.length + unavailable.length
       };
+      state.lastPresenceDetails = unverified.map((item) => presenceDetail(item, "unverified", "record non verificabile"))
+        .concat(unavailable)
+        .concat(missing.map((item) => presenceDetail(item, "missing", "marker UUID non trovato")))
+        .concat(present.map((item) => presenceDetail(item, "present", "marker UUID trovato")));
 
       return present;
     } catch (error) {
@@ -707,6 +721,7 @@
         unverified: existingPublications.length,
         error: error && error.message ? error.message : String(error)
       };
+      state.lastPresenceDetails = existingPublications.map((item) => presenceDetail(item, "unverified", "errore verifica"));
       return [];
     }
   }
@@ -762,6 +777,42 @@
       ...item,
       topicTitle: topicTitle || item.topicTitle,
       topicId: info.topic_id || item.topicId
+    };
+  }
+
+  function forumPostConsistencyError(item, post) {
+    const info = post && post.info ? post.info : {};
+    const expected = forumIdsFromPostUrl(item.postUrl);
+    const actualTopicId = Number(info.topic_id || 0);
+    if (expected.topicId && actualTopicId && actualTopicId !== expected.topicId) {
+      return "topic_id API diverso dal post_url";
+    }
+
+    return "";
+  }
+
+  function forumIdsFromPostUrl(postUrl) {
+    try {
+      const url = new URL(postUrl, window.location.origin);
+      const topicId = Number(url.searchParams.get("t") || 0);
+      const entryMatch = String(url.hash || "").match(/^#entry(\d+)$/);
+      return {
+        topicId: Number.isFinite(topicId) ? topicId : 0,
+        postId: entryMatch ? Number(entryMatch[1]) : 0
+      };
+    } catch (_error) {
+      return { topicId: 0, postId: 0 };
+    }
+  }
+
+  function presenceDetail(item, presence, reason) {
+    return {
+      id: item && item.id ? item.id : "",
+      presence,
+      reason,
+      postId: item && item.postId ? item.postId : null,
+      postUrl: item && item.postUrl ? item.postUrl : "",
+      topicTitle: item && item.topicTitle ? item.topicTitle : ""
     };
   }
 
@@ -1942,6 +1993,7 @@
       lastPreviewExistingCount: state.lastPreviewExistingCount,
       lastPreviewExistingUrls: state.lastPreviewExistingUrls,
       lastPresenceCheck: state.lastPresenceCheck,
+      lastPresenceDetails: state.lastPresenceDetails,
       lastPresenceReport: state.lastPresenceReport,
       submitInfo: getSubmitInfo(),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
