@@ -1,9 +1,10 @@
-/* FD EMBED LINK presence audit build 2026-07-05.2 */
+/* FD EMBED LINK presence audit build 2026-07-05.3 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK Presence Audit",
+    build: "2026-07-05.3",
     endpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     tokenStorageKey: "fd_embed_dashboard_token_v1",
     chunkSize: 20,
@@ -193,7 +194,7 @@
     root.id = "fd-presence-audit";
     root.innerHTML = `
       <header class="fdpa-head">
-        <strong>FD EMBED LINK Presence Audit</strong>
+        <strong>FD EMBED LINK Presence Audit <small>build ${escapeHtml(CONFIG.build)}</small></strong>
         <button class="fdpa-close" type="button" data-fdpa-close title="Chiudi">x</button>
       </header>
       <div class="fdpa-controls">
@@ -327,9 +328,10 @@
         }
 
         const enriched = enrichFromPost(row, post);
-        return contentHasPublication(post.content, row)
-          ? { ...enriched, presence: "present" }
-          : { ...enriched, presence: "missing" };
+        const matchedMarker = publicationMarker(post.content, row);
+        return matchedMarker
+          ? { ...enriched, presence: "present", matchedMarker }
+          : { ...enriched, presence: "missing", matchedMarker: "" };
       });
 
       const counts = countResults();
@@ -449,14 +451,24 @@
   }
 
   function contentHasPublication(content, row) {
+    return Boolean(publicationMarker(content, row));
+  }
+
+  function publicationMarker(content, row) {
     const text = String(content || "");
-    if (text.includes('data-fd-embed-id="' + row.id + '"') ||
-        text.includes("data-fd-embed-id='" + row.id + "'") ||
-        text.includes("fd-embed-link-id-" + row.id)) {
-      return true;
+    const markers = [
+      'data-fd-embed-id="' + row.id + '"',
+      "data-fd-embed-id='" + row.id + "'",
+      "fd-embed-link-id-" + row.id
+    ];
+
+    for (const marker of markers) {
+      if (text.includes(marker)) {
+        return marker;
+      }
     }
 
-    return false;
+    return "";
   }
 
   function isSameOriginPost(postUrl) {
@@ -535,6 +547,7 @@
   function exportJson() {
     const data = {
       app: CONFIG.appTitle,
+      build: CONFIG.build,
       ranAt: new Date().toISOString(),
       url: window.location.href,
       rows: state.rows,

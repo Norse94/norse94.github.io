@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.30 */
+/* FD EMBED LINK build 2026-07-05.31 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.30",
+    version: "2026-07-05.31",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -661,7 +661,7 @@
         missing: 0,
         unverified: unverified.length
       };
-      return existingPublications;
+      return [];
     }
 
     try {
@@ -697,7 +697,7 @@
         unverified: unverified.length + unavailable.length
       };
 
-      return unverified.concat(unavailable, present);
+      return present;
     } catch (error) {
       console.warn("[FDEmbedLink] existing publication presence check failed", error);
       state.lastPresenceCheck = {
@@ -707,7 +707,7 @@
         unverified: existingPublications.length,
         error: error && error.message ? error.message : String(error)
       };
-      return existingPublications;
+      return [];
     }
   }
 
