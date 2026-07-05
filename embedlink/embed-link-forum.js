@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.35 */
+/* FD EMBED LINK build 2026-07-05.36 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.35",
+    version: "2026-07-05.36",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -997,7 +997,7 @@
     const metaBlock = metaParts.length ? `<div class="fd-embed-link__meta">${metaParts.join("")}</div>` : "";
 
     return [
-      `<div class="fd-embed-link${compactClass}${noImageClass}${markerClass}"${idAttr}>`,
+      `<div class="fd-embed-link${compactClass}${noImageClass}${markerClass}" data-editable="false"${idAttr}>`,
       imageBlock,
       "<div class=\"fd-embed-link__body\">",
       sourceBlock,
