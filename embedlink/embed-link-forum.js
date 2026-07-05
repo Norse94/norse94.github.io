@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-05.19.1 */
+/* FD EMBED LINK build 2026-07-05.19.2 */
 (() => {
   "use strict";
 
