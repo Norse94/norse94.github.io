@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.7 */
+/* FD EMBED LINK build 2026-07-05.9 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.7",
+    version: "2026-07-05.9",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -376,15 +376,44 @@
     const C = commons();
     const forum = C && C.forum ? C.forum : {};
     const locationInfo = C && C.location ? C.location : {};
+    const topicId = Number(locationInfo.topic && locationInfo.topic.id || getTopicIdFromUrl() || 0);
+    const topicTitle = getTopicTitle(locationInfo);
 
     return {
       forumId: Number(forum.id || 0),
       forumDomain: forum.domain || location.hostname,
       forumSubdomain: forum.subdomain || "",
-      topicId: Number(locationInfo.topic && locationInfo.topic.id || 0),
-      topicTitle: locationInfo.topic && locationInfo.topic.title || null,
+      topicId,
+      topicTitle,
       pageUrl: window.location.href
     };
+  }
+
+  function getTopicTitle(locationInfo) {
+    const commonsTitle = locationInfo && locationInfo.topic && locationInfo.topic.title;
+    if (commonsTitle) {
+      return normalizeSpace(commonsTitle);
+    }
+
+    const title = normalizeSpace(document.title || "");
+    if (!title) {
+      return null;
+    }
+
+    return title
+      .replace(/\s*[-|•]\s*(ForumFree|ForumCommunity).*$/i, "")
+      .replace(/\s*[-|•]\s*difesaitalia\.forumfree\.it.*$/i, "")
+      .replace(/\s*[-|•]\s*difesa\.forumfree\.it.*$/i, "")
+      .trim() || title;
+  }
+
+  function getTopicIdFromUrl() {
+    try {
+      return Number(new URL(window.location.href).searchParams.get("t") || 0);
+    } catch (_error) {
+      const match = String(window.location.search || "").match(/[?&]t=(\d+)/);
+      return match ? Number(match[1]) : 0;
+    }
   }
 
   function assertCanUse() {
