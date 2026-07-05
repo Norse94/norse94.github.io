@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-05.17 - existing link warning */
+/* FD EMBED LINK build 2026-07-05.18 - existing link warning */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -318,8 +318,8 @@
   justify-self: start;
   box-sizing: border-box;
   padding: 10px 12px;
-  border-left: 6px solid #f44336;
-  background-color: #ffdddd;
+  border-left: 6px solid #ffeb3b;
+  background-color: #ffffcc;
   color: #151819;
   font-size: 13px;
   line-height: 1.45;
