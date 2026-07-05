@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-05.15 - existing link warning */
+/* FD EMBED LINK build 2026-07-05.16 - existing link warning */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -312,15 +312,15 @@
 }
 
 .fd-embed-existing {
-  display: inline-block;
-  width: auto;
+  display: block;
+  width: 100%;
   max-width: 100%;
   justify-self: start;
+  box-sizing: border-box;
   padding: 10px 12px;
-  border: 1px solid #d9b66f;
-  border-radius: 6px;
-  background: #fff9ed;
-  color: #5f430d;
+  border-left: 6px solid #f44336;
+  background-color: #ffdddd;
+  color: #151819;
   font-size: 13px;
   line-height: 1.45;
   text-align: left;
@@ -331,7 +331,7 @@
 }
 
 .fd-embed-existing a {
-  color: #5f430d;
+  color: #151819;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
