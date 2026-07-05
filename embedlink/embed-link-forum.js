@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.33 */
+/* FD EMBED LINK build 2026-07-05.34 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.33",
+    version: "2026-07-05.34",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -1563,14 +1563,32 @@
       const url = new URL(rawUrl, window.location.origin);
       const resolvedTopicId = topicId || Number(url.searchParams.get("t") || 0);
       if (resolvedTopicId && postId) {
-        return url.origin + "/?t=" + encodeURIComponent(String(resolvedTopicId)) + "#entry" + encodeURIComponent(String(postId));
+        const params = new URLSearchParams();
+        params.set("t", String(resolvedTopicId));
+        const st = url.searchParams.get("st") || currentTopicPageOffset();
+        if (st && Number(st) > 0) {
+          params.set("st", String(Number(st)));
+        }
+        return url.origin + "/?" + params.toString() + "#entry" + encodeURIComponent(String(postId));
       }
       return url.href;
     } catch (_error) {
       if (topicId && postId) {
-        return window.location.origin + "/?t=" + encodeURIComponent(String(topicId)) + "#entry" + encodeURIComponent(String(postId));
+        const st = currentTopicPageOffset();
+        const stPart = st && Number(st) > 0 ? "&st=" + encodeURIComponent(String(Number(st))) : "";
+        return window.location.origin + "/?t=" + encodeURIComponent(String(topicId)) + stPart + "#entry" + encodeURIComponent(String(postId));
       }
       return window.location.href;
+    }
+  }
+
+  function currentTopicPageOffset() {
+    try {
+      const value = new URL(window.location.href).searchParams.get("st") || "";
+      return Number(value) > 0 ? String(Number(value)) : "";
+    } catch (_error) {
+      const match = String(window.location.search || "").match(/[?&]st=(\d+)/);
+      return match && Number(match[1]) > 0 ? String(Number(match[1])) : "";
     }
   }
 
