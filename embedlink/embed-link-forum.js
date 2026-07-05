@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.21 */
+/* FD EMBED LINK build 2026-07-05.23 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.21",
+    version: "2026-07-05.23",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -889,11 +889,13 @@
       return "";
     }
 
+    const links = existingPublications.map((item) => (
+      `<a href="${escapeAttr(item.postUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeText(item.topicTitle)}</a>`
+    )).join(", ");
+
     return [
       "<div class=\"fd-embed-existing\" role=\"note\">",
-      existingPublications.map((item) => (
-        `  <p><strong>Attenzione!</strong><br>Sei sicuro di voler inviare questo Embed Link? Risulta gia pubblicato in <a href="${escapeAttr(item.postUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(item.topicTitle)}</a></p>`
-      )).join("\n"),
+      `  <p><strong>Attenzione!</strong><br>Sei sicuro di voler inviare questo Embed Link? Risulta gia pubblicato in ${links}</p>`,
       "</div>"
     ].join("\n");
   }
