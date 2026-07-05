@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.24 */
+/* FD EMBED LINK build 2026-07-05.26 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.24",
+    version: "2026-07-05.26",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -461,7 +461,10 @@
   function getTopicTitle(locationInfo) {
     const commonsTitle = locationInfo && locationInfo.topic && locationInfo.topic.title;
     if (commonsTitle) {
-      return normalizeSpace(commonsTitle);
+      const cleanedCommonsTitle = cleanForumTopicTitle(commonsTitle);
+      if (cleanedCommonsTitle) {
+        return cleanedCommonsTitle;
+      }
     }
 
     const title = normalizeSpace(document.title || "");
@@ -469,11 +472,21 @@
       return null;
     }
 
-    return title
+    return cleanForumTopicTitle(title);
+  }
+
+  function cleanForumTopicTitle(value) {
+    const title = normalizeSpace(value || "")
       .replace(/\s*[-|•]\s*(ForumFree|ForumCommunity).*$/i, "")
       .replace(/\s*[-|•]\s*difesaitalia\.forumfree\.it.*$/i, "")
       .replace(/\s*[-|•]\s*difesa\.forumfree\.it.*$/i, "")
-      .trim() || title;
+      .trim();
+
+    if (!title || /^stai\s+modificando\s+un\s+messaggio\s+nella\s+discussione\b/i.test(title)) {
+      return null;
+    }
+
+    return title;
   }
 
   function getTopicIdFromUrl() {
@@ -1219,9 +1232,11 @@
       }));
 
       try {
+        const context = getForumContext();
         await publishEmbeds(embeds, {
           id: getPostId(post) || null,
-          topicId: getForumContext().topicId,
+          topicId: context.topicId,
+          topicTitle: context.topicTitle,
           url: buildPostUrl(post)
         });
 
