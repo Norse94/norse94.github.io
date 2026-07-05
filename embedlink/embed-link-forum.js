@@ -1,14 +1,10 @@
-<<<<<<< HEAD
-/* FD EMBED LINK build 2026-07-05.20 */
-=======
-/* FD EMBED LINK build 2026-07-05.19.2 */
->>>>>>> 8c7915a6a0993134ca00784f4a736760f269d0cc
+/* FD EMBED LINK build 2026-07-05.21 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.20",
+    version: "2026-07-05.21",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -666,10 +662,10 @@
 
   function renderCardHtml(metadata, embedId, selectedImageUrl, options = {}) {
     const url = metadata.finalUrl || metadata.sourceUrl;
-    const title = truncate(metadata.title || url, 160);
-    const description = truncate(metadata.description || "", 260);
+    const title = truncate(decodeTextEntities(metadata.title || url), 160);
+    const description = truncate(decodeTextEntities(metadata.description || ""), 260);
     const domain = metadata.domain || getDomain(url);
-    const author = truncate(metadata.author || "", 80);
+    const author = truncate(decodeTextEntities(metadata.author || ""), 80);
     const publishedAt = metadata.publishedAt || "";
     const displayDate = formatDisplayDate(publishedAt);
     const compactClass = options.compact ? " fd-embed-link--compact" : "";
