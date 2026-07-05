@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-05.10 - topic title fallback */
+/* FD EMBED LINK build 2026-07-05.11 - existing link warning */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -309,6 +309,34 @@
 
 .fd-embed-preview .fd-embed-link {
   max-width: 100%;
+}
+
+.fd-embed-existing {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #d9b66f;
+  border-radius: 6px;
+  background: #fff9ed;
+  color: #5f430d;
+  font-size: 13px;
+  text-align: left;
+}
+
+.fd-embed-existing strong {
+  font-weight: 700;
+}
+
+.fd-embed-existing ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.fd-embed-existing a {
+  color: #17685b;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .fd-embed-cover-picker {

@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.10 */
+/* FD EMBED LINK build 2026-07-05.11 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.10",
+    version: "2026-07-05.11",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -541,6 +541,21 @@
     };
   }
 
+  function normalizeExistingPublications(raw) {
+    const items = Array.isArray(raw) ? raw : [];
+    return items.map((item) => {
+      const postUrl = item && (item.postUrl || item.post_url) ? String(item.postUrl || item.post_url) : "";
+      const topicTitle = item && (item.topicTitle || item.topic_title) ? String(item.topicTitle || item.topic_title) : "";
+      return {
+        postUrl,
+        topicTitle: topicTitle || "Discussione",
+        postId: item && (item.postId || item.post_id) || null,
+        topicId: item && (item.topicId || item.topic_id) || null,
+        confirmedAt: item && (item.confirmedAt || item.confirmed_at) || ""
+      };
+    }).filter((item) => item.postUrl);
+  }
+
   function normalizeImages(images) {
     const seen = new Set();
     const out = [];
@@ -756,9 +771,20 @@
   function renderPreviewModal() {
     const preview = state.preview;
     const metadata = preview.metadata;
+    const existingPublications = preview.existingPublications || [];
     const selected = getSelectedImage(metadata);
     const card = renderCardHtml(metadata, "", selected.url, { compact: false })
       .replace("<img class=\"fd-embed-link__image\"", "<img data-fd-embed-preview-image class=\"fd-embed-link__image\"");
+    const existingBlock = existingPublications.length ? [
+      "<div class=\"fd-embed-existing\">",
+      "  <strong>Questo link e gia stato pubblicato:</strong>",
+      "  <ul>",
+      existingPublications.map((item) => (
+        `    <li><a href="${escapeAttr(item.postUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(item.topicTitle)}</a></li>`
+      )).join("\n"),
+      "  </ul>",
+      "</div>"
+    ].join("\n") : "";
     const images = metadata.images.length ? [
       "<div class=\"fd-embed-field fd-embed-cover-picker el-img-preview-container\">",
       "  <strong>Scegli l'immagine di copertina:</strong>",
@@ -779,6 +805,7 @@
 
     return [
       "<div class=\"fd-embed-preview\">",
+      existingBlock,
       images,
       card,
       "</div>"
@@ -898,10 +925,12 @@
         user: getUser()
       });
       const metadata = normalizeMetadata(data, parsed.href);
+      const existingPublications = normalizeExistingPublications(data.existingPublications || data.existing_publications);
       const selectedImageIndex = metadata.images.length ? 0 : -1;
       state.preview = {
         sourceUrl: parsed.href,
         metadata,
+        existingPublications,
         selectedImageIndex
       };
 
