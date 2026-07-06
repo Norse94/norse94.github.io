@@ -318,6 +318,10 @@
     const pendingInCommonsPosts = intersect(report.pendingBeforeIds, report.commonsPostEmbedIds);
     const domNotPending = report.domEmbedIds.filter((id) => report.pendingBeforeIds.indexOf(id) === -1);
     const pendingMatchedByUrl = report.pendingMatchedByUrl || [];
+    const lastConfirmedIds = report.diagnosticsAfter && Array.isArray(report.diagnosticsAfter.lastPublishConfirmedIds)
+      ? report.diagnosticsAfter.lastPublishConfirmedIds
+      : [];
+    const alreadyConfirmedIds = intersect(lastConfirmedIds, report.domEmbedIds);
     const maybeAlreadyConfirmed = submittedIds.length > 0 && submittedStillPending.length === 0 && submittedInDom.length > 0;
     const beaconQueuedIds = report.pendingAfterIds.filter((id) => {
       const item = report.pendingAfter && report.pendingAfter[id];
@@ -330,6 +334,8 @@
       message = "Publish confermato: pending rimossi dalla sessione.";
     } else if (beaconQueued) {
       message = "Beacon accodato: pending mantenuti in sessione in attesa di verifica publish-status.";
+    } else if (!report.pendingBeforeIds.length && alreadyConfirmedIds.length) {
+      message = "Nessun pending da confermare: l'ultimo Embed Link risulta gia confermato via " + (report.diagnosticsAfter.lastPublishTransport || "publish") + ".";
     } else if (fetchPublish.some((event) => event.ok)) {
       message = "Richiesta publish inviata, ma i pending locali non sono cambiati.";
     } else if (maybeAlreadyConfirmed) {
@@ -345,10 +351,11 @@
     }
 
     return {
-      ok: report.removedPendingIds.length > 0 || beaconQueued || maybeAlreadyConfirmed,
+      ok: report.removedPendingIds.length > 0 || beaconQueued || maybeAlreadyConfirmed || alreadyConfirmedIds.length > 0,
       pendingBefore: report.pendingBeforeIds.length,
       pendingAfter: report.pendingAfterIds.length,
       confirmedIds: report.removedPendingIds,
+      alreadyConfirmedIds,
       beaconQueuedIds,
       fetchPublishCalls: fetchPublish.length,
       beaconPublishCalls: beaconPublish.length,

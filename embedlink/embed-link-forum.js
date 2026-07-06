@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.2 */
+/* FD EMBED LINK build 2026-07-06.4 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.2",
+    version: "2026-07-06.4",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -64,6 +64,9 @@
     lastPublishQueuedIds: [],
     lastPublishFailedIds: [],
     lastPublishStatusCheck: null,
+    lastPlainLinkId: "",
+    lastPlainLinkUrl: "",
+    lastPlainLinkError: "",
     submitFallbackUsed: 0,
     lastSubmitFallbackPostId: 0,
     integrationAttempts: 0,
@@ -679,6 +682,50 @@
     }).filter((item) => item.postUrl && (!item.status || item.status === "published"));
   }
 
+  function dedupeExistingPublicationsByTopic(existingPublications) {
+    const seen = new Set();
+    const deduped = [];
+
+    (existingPublications || []).forEach((item) => {
+      const key = existingPublicationTopicKey(item);
+      if (!key || seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+      deduped.push(item);
+    });
+
+    return deduped;
+  }
+
+  function existingPublicationTopicKey(item) {
+    if (!item) {
+      return "";
+    }
+
+    if (item.topicId) {
+      return "topic:" + String(item.topicId);
+    }
+
+    try {
+      const url = new URL(item.postUrl || "", window.location.origin);
+      const topicId = url.searchParams.get("t");
+      if (topicId) {
+        return "topic:" + topicId;
+      }
+
+      const entryMatch = String(url.hash || "").match(/^#entry(\d+)$/);
+      if (entryMatch) {
+        return "post:" + entryMatch[1];
+      }
+
+      return "url:" + url.origin + url.pathname + url.search + url.hash;
+    } catch (_error) {
+      return item.postUrl ? "url:" + String(item.postUrl) : "";
+    }
+  }
+
   async function verifyExistingPublications(existingPublications, metadata) {
     if (!existingPublications || !existingPublications.length) {
       state.lastPresenceCheck = { checked: 0, present: 0, missing: 0, unverified: 0 };
@@ -1040,21 +1087,48 @@
     ].filter(Boolean).join("");
   }
 
+  function renderTrackedLinkHtml(url, linkId) {
+    const href = parseUrl(url);
+    const safeUrl = href ? href.href : String(url || "");
+    const markerClass = linkId ? " " + getTrackedLinkMarkerClass(linkId) + " " + getEmbedMarkerClass(linkId) : "";
+    const idAttrs = linkId
+      ? ` data-fd-link-id="${escapeAttr(linkId)}" data-fd-embed-id="${escapeAttr(linkId)}"`
+      : "";
+
+    return [
+      `<span class="fd-tracked-link${markerClass}" data-fd-link-kind="plain"${idAttrs}>`,
+      `<a href="${escapeAttr(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeText(safeUrl)}</a>`,
+      "</span>"
+    ].join("");
+  }
+
   function getEmbedMarkerClass(embedId) {
     return "fd-embed-link-id-" + String(embedId || "").replace(/[^a-zA-Z0-9_-]/g, "-");
+  }
+
+  function getTrackedLinkMarkerClass(linkId) {
+    return "fd-tracked-link-id-" + String(linkId || "").replace(/[^a-zA-Z0-9_-]/g, "-");
   }
 
   function contentHasEmbedId(content, embedId) {
     const text = String(content || "");
     const markerClass = getEmbedMarkerClass(embedId);
+    const trackedClass = getTrackedLinkMarkerClass(embedId);
     return text.includes(`data-fd-embed-id="${embedId}"`) ||
       text.includes(`data-fd-embed-id='${embedId}'`) ||
-      text.includes(markerClass);
+      text.includes(`data-fd-link-id="${embedId}"`) ||
+      text.includes(`data-fd-link-id='${embedId}'`) ||
+      text.includes(markerClass) ||
+      text.includes(trackedClass);
   }
 
   function contentHasPendingEmbed(content, embedId, pendingItem) {
     if (contentHasEmbedId(content, embedId)) {
       return true;
+    }
+
+    if (pendingItem && pendingItem.kind === "plain") {
+      return contentHasPendingUrl(content, pendingItem);
     }
 
     return contentHasPendingEmbedUrl(content, pendingItem);
@@ -1378,13 +1452,14 @@
         normalizeExistingPublications(data.existingPublications || data.existing_publications),
         metadata
       );
-      state.lastPreviewExistingCount = existingPublications.length;
-      state.lastPreviewExistingUrls = existingPublications.map((item) => item.postUrl).slice(0, 5);
+      const visibleExistingPublications = dedupeExistingPublicationsByTopic(existingPublications);
+      state.lastPreviewExistingCount = visibleExistingPublications.length;
+      state.lastPreviewExistingUrls = visibleExistingPublications.map((item) => item.postUrl).slice(0, 5);
       const selectedImageIndex = metadata.images.length ? 0 : -1;
       state.preview = {
         sourceUrl: parsed.href,
         metadata,
-        existingPublications,
+        existingPublications: visibleExistingPublications,
         selectedImageIndex
       };
 
@@ -1421,11 +1496,59 @@
       }
 
       addContentToEditor("\n" + html + "\n");
-      storePendingEmbed(embedId, publishToken, metadata);
+      storePendingEmbed(embedId, publishToken, metadata, { kind: "embed" });
       closeModal();
       toast("success", APP_TITLE, "Card inserita nell'editor.");
     } catch (error) {
       toast("error", APP_TITLE, error.message || "Creazione non riuscita.");
+    }
+  }
+
+  async function createAndInsertPlainLink(rawUrl) {
+    const parsed = parseUrl(rawUrl);
+    if (!parsed || isDirectImageUrl(parsed.href)) {
+      addContentToEditor(rawUrl || "");
+      closeModal();
+      return;
+    }
+
+    try {
+      toast("info", APP_TITLE, "Creo il link tracciato...");
+      const data = await requestEdge("create-plain", {
+        url: parsed.href,
+        context: getForumContext(),
+        user: getUser()
+      });
+      const linkId = data.linkId || data.embedId || data.id;
+      const publishToken = data.publishToken || data.publish_token;
+      const metadata = normalizeMetadata(data.metadata || {
+        sourceUrl: parsed.href,
+        finalUrl: parsed.href,
+        canonicalUrl: parsed.href,
+        domain: getDomain(parsed.href),
+        title: parsed.href,
+        images: []
+      }, parsed.href);
+
+      if (!linkId || !publishToken) {
+        throw new Error("La Edge Function non ha restituito linkId o publishToken.");
+      }
+
+      addContentToEditor(renderTrackedLinkHtml(metadata.finalUrl || parsed.href, linkId));
+      storePendingEmbed(linkId, publishToken, metadata, { kind: "plain" });
+      state.lastPlainLinkId = String(linkId);
+      state.lastPlainLinkUrl = metadata.finalUrl || parsed.href;
+      state.lastPlainLinkError = "";
+      closeModal();
+      toast("success", APP_TITLE, "Link tracciato inserito nell'editor.");
+    } catch (error) {
+      state.lastPlainLinkId = "";
+      state.lastPlainLinkUrl = parsed.href;
+      state.lastPlainLinkError = error && error.message ? error.message : String(error);
+      console.warn("[FDEmbedLink] plain link tracking failed", error);
+      addContentToEditor(parsed.href);
+      closeModal();
+      toast("info", APP_TITLE, "Link inserito senza tracking: creazione record non riuscita.");
     }
   }
 
@@ -1441,11 +1564,12 @@
     sessionStorage.setItem(CONFIG.pendingStorageKey, JSON.stringify(value));
   }
 
-  function storePendingEmbed(embedId, publishToken, metadata) {
+  function storePendingEmbed(embedId, publishToken, metadata, options = {}) {
     const pending = getPendingEmbeds();
     pending[embedId] = {
       id: embedId,
       publishToken,
+      kind: options.kind || "embed",
       sourceUrl: metadata.sourceUrl,
       finalUrl: metadata.finalUrl,
       canonicalUrl: metadata.canonicalUrl,
@@ -1993,8 +2117,7 @@
     }
 
     if (action === "paste-normal") {
-      addContentToEditor(state.pasteText);
-      closeModal();
+      createAndInsertPlainLink(state.pasteText);
       return;
     }
 
@@ -2228,6 +2351,9 @@
       lastPublishQueuedIds: state.lastPublishQueuedIds,
       lastPublishFailedIds: state.lastPublishFailedIds,
       lastPublishStatusCheck: state.lastPublishStatusCheck,
+      lastPlainLinkId: state.lastPlainLinkId,
+      lastPlainLinkUrl: state.lastPlainLinkUrl,
+      lastPlainLinkError: state.lastPlainLinkError,
       submitInfo: getSubmitInfo(),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
@@ -2282,6 +2408,7 @@
     openUrlModal,
     handlePaste,
     buildHtml: renderCardHtml,
+    buildTrackedLinkHtml: renderTrackedLinkHtml,
     confirmPublishedEmbeds,
     diagnostics,
     refreshIntegration

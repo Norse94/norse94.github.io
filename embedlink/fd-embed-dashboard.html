@@ -652,6 +652,7 @@
             <thead>
               <tr>
                 <th>Img</th>
+                <th>Tipo</th>
                 <th>Articolo</th>
                 <th>Fonte</th>
                 <th>Utente</th>
@@ -943,7 +944,7 @@
         els.historyCount.textContent = rows.length ? rows.length + " risultati" : "";
 
         if (!rows.length) {
-          els.history.innerHTML = `<tr><td colspan="8" class="empty">Nessun record trovato.</td></tr>`;
+          els.history.innerHTML = `<tr><td colspan="9" class="empty">Nessun record trovato.</td></tr>`;
           return;
         }
 
@@ -955,6 +956,7 @@
           return `
             <tr>
               <td>${row.selected_image_url ? `<img class="thumb" src="${escapeAttr(row.selected_image_url)}" alt="">` : ""}</td>
+              <td><span class="badge">${escapeHtml(row.kind === "plain" ? "link" : "embed")}</span></td>
               <td><a href="${escapeAttr(article)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.title || article)}</a><br><span class="muted">${escapeHtml(row.author || "")}</span></td>
               <td>${escapeHtml(row.source_domain || "")}</td>
               <td>${escapeHtml(row.forum_username || row.forum_user_id || "")}</td>
