@@ -299,7 +299,7 @@
     let after = readStorageJson(storageKey);
     while (Date.now() - started < timeoutMs) {
       after = readStorageJson(storageKey);
-      if (diffRemoved(before, after).length || diffAdded(before, after).length) {
+      if (JSON.stringify(after) !== JSON.stringify(before)) {
         return after;
       }
       await new Promise((resolve) => window.setTimeout(resolve, pollMs));
@@ -319,11 +319,18 @@
     const domNotPending = report.domEmbedIds.filter((id) => report.pendingBeforeIds.indexOf(id) === -1);
     const pendingMatchedByUrl = report.pendingMatchedByUrl || [];
     const maybeAlreadyConfirmed = submittedIds.length > 0 && submittedStillPending.length === 0 && submittedInDom.length > 0;
+    const beaconQueuedIds = report.pendingAfterIds.filter((id) => {
+      const item = report.pendingAfter && report.pendingAfter[id];
+      return report.pendingBeforeIds.indexOf(id) !== -1 && item && item.publishQueuedAt;
+    });
+    const beaconQueued = beaconPublish.some((event) => event.ok) && beaconQueuedIds.length > 0;
     let message = "";
 
     if (report.removedPendingIds.length) {
       message = "Publish confermato: pending rimossi dalla sessione.";
-    } else if (publishEvents.some((event) => event.ok)) {
+    } else if (beaconQueued) {
+      message = "Beacon accodato: pending mantenuti in sessione in attesa di verifica publish-status.";
+    } else if (fetchPublish.some((event) => event.ok)) {
       message = "Richiesta publish inviata, ma i pending locali non sono cambiati.";
     } else if (maybeAlreadyConfirmed) {
       message = "Probabile conferma gia eseguita al caricamento pagina: l'ID inviato e nel DOM ma non e piu nei pending.";
@@ -338,10 +345,11 @@
     }
 
     return {
-      ok: report.removedPendingIds.length > 0 || publishEvents.some((event) => event.ok) || maybeAlreadyConfirmed,
+      ok: report.removedPendingIds.length > 0 || beaconQueued || maybeAlreadyConfirmed,
       pendingBefore: report.pendingBeforeIds.length,
       pendingAfter: report.pendingAfterIds.length,
       confirmedIds: report.removedPendingIds,
+      beaconQueuedIds,
       fetchPublishCalls: fetchPublish.length,
       beaconPublishCalls: beaconPublish.length,
       forceBeacon: report.options.forceBeacon,
@@ -353,6 +361,7 @@
       domNotPending,
       pendingMatchedByUrl,
       maybeAlreadyConfirmed,
+      beaconQueued,
       message
     };
   }
@@ -601,11 +610,14 @@
       }
     }
 
+    const diagnosticsAfter = typeof api.diagnostics === "function" ? api.diagnostics() : null;
+
     const report = {
       name: TEST_NAME,
       ranAt: nowIso(),
       options: cloneJson(options),
       diagnosticsBefore,
+      diagnosticsAfter,
       pendingStorageKey: pendingKey,
       submitStorageKey: submitKey,
       pendingBefore,

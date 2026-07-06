@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.1 */
+/* FD EMBED LINK build 2026-07-06.2 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.1",
+    version: "2026-07-06.2",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -59,6 +59,11 @@
     lastPresenceCheck: null,
     lastPresenceDetails: [],
     lastPresenceReport: null,
+    lastPublishTransport: "",
+    lastPublishConfirmedIds: [],
+    lastPublishQueuedIds: [],
+    lastPublishFailedIds: [],
+    lastPublishStatusCheck: null,
     submitFallbackUsed: 0,
     lastSubmitFallbackPostId: 0,
     integrationAttempts: 0,
@@ -1450,6 +1455,120 @@
     setPendingEmbeds(pending);
   }
 
+  function uniqueIds(values) {
+    return (Array.isArray(values) ? values : [])
+      .map((value) => String(value || ""))
+      .filter((value, index, all) => value && all.indexOf(value) === index);
+  }
+
+  function publishResultConfirmedIds(result, requestedIds) {
+    const allowed = uniqueIds(requestedIds);
+    const confirmed = [];
+
+    if (result && Array.isArray(result.confirmedIds)) {
+      confirmed.push(...result.confirmedIds);
+    }
+
+    const rows = result && Array.isArray(result.results) ? result.results : [];
+    rows.forEach((row) => {
+      const id = row && row.id ? String(row.id) : "";
+      const status = row && row.status ? String(row.status).toLowerCase() : "";
+
+      if (!id) {
+        return;
+      }
+      if (allowed.length && allowed.indexOf(id) === -1) {
+        return;
+      }
+      if (row.updated === true || status === "published") {
+        confirmed.push(id);
+      }
+    });
+
+    return uniqueIds(confirmed);
+  }
+
+  function applyPublishResultToRemaining(remaining, result, requestedIds) {
+    const ids = uniqueIds(requestedIds);
+    const confirmedIds = publishResultConfirmedIds(result, ids);
+    const queuedIds = result && result.queued ? uniqueIds(result.queuedIds || ids) : [];
+    const failedIds = ids.filter((id) => confirmedIds.indexOf(id) === -1 && queuedIds.indexOf(id) === -1);
+
+    state.lastPublishTransport = result && result.transport || "";
+    state.lastPublishConfirmedIds = confirmedIds;
+    state.lastPublishQueuedIds = queuedIds;
+    state.lastPublishFailedIds = failedIds;
+
+    confirmedIds.forEach((id) => {
+      delete remaining[id];
+    });
+
+    if (queuedIds.length) {
+      const queuedAt = Date.now();
+      queuedIds.forEach((id) => {
+        if (!remaining[id]) {
+          return;
+        }
+
+        remaining[id] = {
+          ...remaining[id],
+          publishQueuedAt: queuedAt,
+          publishAttempts: Number(remaining[id].publishAttempts || 0) + 1,
+          lastPublishTransport: result && result.transport || "beacon",
+          lastPublishError: result && result.error || ""
+        };
+      });
+    }
+
+    return confirmedIds;
+  }
+
+  function finishPendingConfirmation(remaining, submittedIds) {
+    setPendingEmbeds(remaining);
+    if (submittedIds.length && submittedIds.every((id) => !remaining[id])) {
+      sessionStorage.removeItem(CONFIG.submitStorageKey);
+    }
+  }
+
+  async function reconcileQueuedPublishStatus(remaining) {
+    const embeds = Object.keys(remaining)
+      .filter((id) => remaining[id] && remaining[id].publishQueuedAt && remaining[id].publishToken)
+      .map((id) => ({
+        id,
+        publishToken: remaining[id].publishToken
+      }));
+
+    if (!embeds.length || !isConfigured()) {
+      state.lastPublishStatusCheck = embeds.length ? { checked: embeds.length, confirmedIds: [], skipped: true } : null;
+      return [];
+    }
+
+    try {
+      const result = await requestEdge("publish-status", { embeds, user: getUser() });
+      const ids = embeds.map((item) => item.id);
+      const confirmedIds = publishResultConfirmedIds(result, ids);
+
+      confirmedIds.forEach((id) => {
+        delete remaining[id];
+      });
+
+      state.lastPublishStatusCheck = {
+        checked: embeds.length,
+        confirmedIds,
+        results: result && Array.isArray(result.results) ? result.results : []
+      };
+
+      return confirmedIds;
+    } catch (error) {
+      state.lastPublishStatusCheck = {
+        checked: embeds.length,
+        confirmedIds: [],
+        error: error && error.message || String(error)
+      };
+      return [];
+    }
+  }
+
   function rememberSubmitEmbeds() {
     const text = getEditorText();
     const pending = getPendingEmbeds();
@@ -1622,11 +1741,6 @@
   }
 
   async function confirmPublishedEmbeds() {
-    const C = commons();
-    if (!C || !C.location || !Array.isArray(C.location.posts) || !C.location.posts.length) {
-      return;
-    }
-
     const pending = getPendingEmbeds();
     const ids = Object.keys(pending);
     if (!ids.length) {
@@ -1637,13 +1751,22 @@
     const remaining = { ...pending };
     const submitInfo = getSubmitInfo();
     const submittedIds = Array.isArray(submitInfo.ids) ? submitInfo.ids : [];
+    const attemptedIds = new Set();
+
+    await reconcileQueuedPublishStatus(remaining);
+
+    const C = commons();
+    if (!C || !C.location || !Array.isArray(C.location.posts) || !C.location.posts.length) {
+      finishPendingConfirmation(remaining, submittedIds);
+      return;
+    }
 
     for (const post of C.location.posts) {
       if (!isOwnPost(post, user)) {
         continue;
       }
 
-      const activeIds = Object.keys(remaining);
+      const activeIds = Object.keys(remaining).filter((id) => !attemptedIds.has(id));
       if (!activeIds.length) {
         break;
       }
@@ -1664,22 +1787,22 @@
 
       try {
         const context = getForumContext();
-        await publishEmbeds(embeds, {
+        const result = await publishEmbeds(embeds, {
           id: getPostId(post) || null,
           topicId: context.topicId,
           topicTitle: context.topicTitle,
           url: buildPostUrl(post)
         });
 
-        for (const id of foundIds) {
-          delete remaining[id];
-        }
+        foundIds.forEach((id) => attemptedIds.add(id));
+        applyPublishResultToRemaining(remaining, result, foundIds);
       } catch (error) {
+        foundIds.forEach((id) => attemptedIds.add(id));
         console.warn("[FDEmbedLink] publish failed", error);
       }
     }
 
-    const remainingIds = Object.keys(remaining);
+    const remainingIds = Object.keys(remaining).filter((id) => !attemptedIds.has(id));
     const fallbackPost = remainingIds.length ? findSubmittedFallbackPost(C.location.posts, submitInfo, user) : null;
     if (fallbackPost) {
       const html = getPostHtml(fallbackPost);
@@ -1692,7 +1815,7 @@
 
         try {
           const context = getForumContext();
-          await publishEmbeds(embeds, {
+          const result = await publishEmbeds(embeds, {
             id: getPostId(fallbackPost) || null,
             topicId: context.topicId,
             topicTitle: context.topicTitle,
@@ -1701,19 +1824,16 @@
 
           state.submitFallbackUsed += 1;
           state.lastSubmitFallbackPostId = getPostId(fallbackPost) || 0;
-          for (const id of foundIds) {
-            delete remaining[id];
-          }
+          foundIds.forEach((id) => attemptedIds.add(id));
+          applyPublishResultToRemaining(remaining, result, foundIds);
         } catch (error) {
+          foundIds.forEach((id) => attemptedIds.add(id));
           console.warn("[FDEmbedLink] submit fallback publish failed", error);
         }
       }
     }
 
-    setPendingEmbeds(remaining);
-    if (submittedIds.length && submittedIds.every((id) => !remaining[id])) {
-      sessionStorage.removeItem(CONFIG.submitStorageKey);
-    }
+    finishPendingConfirmation(remaining, submittedIds);
   }
 
   async function publishEmbeds(embeds, post) {
@@ -1727,9 +1847,14 @@
       throw new Error("Configura CONFIG.edgeEndpoint con l'URL della Supabase Edge Function.");
     }
 
+    let fetchError = null;
+    const requestedIds = embeds.map((item) => item.id);
+
     try {
-      return await requestEdge("publish", payload, { keepalive: true });
+      const result = await requestEdge("publish", payload, { keepalive: true });
+      return { ...result, transport: "fetch" };
     } catch (error) {
+      fetchError = error;
       if (!navigator.sendBeacon) {
         throw error;
       }
@@ -1741,11 +1866,20 @@
       });
       const sent = navigator.sendBeacon(CONFIG.edgeEndpoint, blob);
       if (sent) {
-        return { ok: true, beacon: true };
+        return {
+          ok: false,
+          queued: true,
+          beacon: true,
+          transport: "beacon",
+          queuedIds: requestedIds,
+          confirmedIds: [],
+          error: fetchError && fetchError.message || ""
+        };
       }
     }
 
-    return requestEdge("publish", payload, { keepalive: true });
+    const result = await requestEdge("publish", payload, { keepalive: true });
+    return { ...result, transport: "fetch-retry" };
   }
 
   function handlePaste(event) {
@@ -2089,6 +2223,11 @@
       lastPresenceCheck: state.lastPresenceCheck,
       lastPresenceDetails: state.lastPresenceDetails,
       lastPresenceReport: state.lastPresenceReport,
+      lastPublishTransport: state.lastPublishTransport,
+      lastPublishConfirmedIds: state.lastPublishConfirmedIds,
+      lastPublishQueuedIds: state.lastPublishQueuedIds,
+      lastPublishFailedIds: state.lastPublishFailedIds,
+      lastPublishStatusCheck: state.lastPublishStatusCheck,
       submitInfo: getSubmitInfo(),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
