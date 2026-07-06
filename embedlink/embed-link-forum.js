@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-05.36 */
+/* FD EMBED LINK build 2026-07-06.1 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-05.36",
+    version: "2026-07-06.1",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -18,6 +18,24 @@
   const EDITOR_BUTTON_TITLE = "Embed Link";
   const IMAGE_URL_RE = /\.(?:jpe?g|png|gif|webp|avif|svg)(?:[?#].*)?$/i;
   const ID_PREFIX = "fd-embed-link-";
+  const HTML_ENTITY_MAP = {
+    amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " ",
+    agrave: "à", aacute: "á", acirc: "â", atilde: "ã", auml: "ä", aring: "å", aelig: "æ",
+    ccedil: "ç", egrave: "è", eacute: "é", ecirc: "ê", euml: "ë",
+    igrave: "ì", iacute: "í", icirc: "î", iuml: "ï",
+    eth: "ð", ntilde: "ñ", ograve: "ò", oacute: "ó", ocirc: "ô", otilde: "õ", ouml: "ö", oslash: "ø",
+    ugrave: "ù", uacute: "ú", ucirc: "û", uuml: "ü", yacute: "ý", thorn: "þ", yuml: "ÿ",
+    Agrave: "À", Aacute: "Á", Acirc: "Â", Atilde: "Ã", Auml: "Ä", Aring: "Å", AElig: "Æ",
+    Ccedil: "Ç", Egrave: "È", Eacute: "É", Ecirc: "Ê", Euml: "Ë",
+    Igrave: "Ì", Iacute: "Í", Icirc: "Î", Iuml: "Ï",
+    ETH: "Ð", Ntilde: "Ñ", Ograve: "Ò", Oacute: "Ó", Ocirc: "Ô", Otilde: "Õ", Ouml: "Ö", Oslash: "Ø",
+    Ugrave: "Ù", Uacute: "Ú", Ucirc: "Û", Uuml: "Ü", Yacute: "Ý", THORN: "Þ",
+    euro: "€", pound: "£", yen: "¥", cent: "¢", copy: "©", reg: "®", trade: "™",
+    deg: "°", plusmn: "±", micro: "µ", para: "¶", middot: "·",
+    laquo: "«", raquo: "»", bdquo: "„", sbquo: "‚",
+    lsquo: "'", rsquo: "'", ldquo: "\"", rdquo: "\"",
+    ndash: "-", mdash: "-", hellip: "...", bull: "•"
+  };
 
   const state = {
     initialized: false,
@@ -324,20 +342,9 @@
 
     for (let index = 0; index < 3; index += 1) {
       const decoded = text
-        .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number(code)))
-        .replace(/&#x([0-9a-f]+);/gi, (_match, code) => String.fromCodePoint(parseInt(code, 16)))
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, "\"")
-        .replace(/&apos;/g, "'")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&rsquo;/g, "'")
-        .replace(/&lsquo;/g, "'")
-        .replace(/&rdquo;/g, "\"")
-        .replace(/&ldquo;/g, "\"")
-        .replace(/&ndash;/g, "-")
-        .replace(/&mdash;/g, "-");
+        .replace(/&#(\d+);/g, (match, code) => decodeEntityCodePoint(code, 10) || match)
+        .replace(/&#x([0-9a-f]+);/gi, (match, code) => decodeEntityCodePoint(code, 16) || match)
+        .replace(/&([a-zA-Z][a-zA-Z0-9]+);/g, (match, name) => decodeNamedEntity(name, match));
 
       if (decoded === text) {
         return decoded;
@@ -346,6 +353,25 @@
     }
 
     return text;
+  }
+
+  function decodeEntityCodePoint(value, radix) {
+    const code = Number.parseInt(value, radix);
+    if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) {
+      return "";
+    }
+
+    try {
+      return String.fromCodePoint(code);
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function decodeNamedEntity(name, fallback) {
+    return Object.prototype.hasOwnProperty.call(HTML_ENTITY_MAP, name)
+      ? HTML_ENTITY_MAP[name]
+      : fallback;
   }
 
   function normalizeSpace(value) {
@@ -1491,7 +1517,7 @@
     }
 
     if (topicId && postId) {
-      return window.location.origin + "/?t=" + encodeURIComponent(String(topicId)) + "#entry" + encodeURIComponent(String(postId));
+      return normalizePostUrl(window.location.href, topicId, postId);
     }
 
     return postId ? window.location.href.split("#")[0] + "#entry" + postId : window.location.href;
