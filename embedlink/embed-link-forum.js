@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.6 */
+/* FD EMBED LINK build 2026-07-06.7 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.6",
+    version: "2026-07-06.7",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -59,6 +59,7 @@
     lastPresenceCheck: null,
     lastPresenceDetails: [],
     lastPresenceReport: null,
+    lastPasteDuplicateCheck: null,
     lastPublishTransport: "",
     lastPublishConfirmedIds: [],
     lastPublishQueuedIds: [],
@@ -1352,6 +1353,14 @@
     const parsed = parseUrl(rawUrl);
     if (!parsed) {
       updatePasteExistingPublications([]);
+      state.lastPasteDuplicateCheck = {
+        at: new Date().toISOString(),
+        url: "",
+        mode: "invalid-url",
+        raw: 0,
+        verified: 0,
+        shown: 0
+      };
       return [];
     }
 
@@ -1362,21 +1371,76 @@
         user: getUser()
       });
       const metadata = normalizeMetadata(data, parsed.href);
-      const existingPublications = await verifyExistingPublications(
-        normalizeExistingPublications(data.existingPublications || data.existing_publications),
-        metadata
-      );
-      const visibleExistingPublications = dedupeExistingPublicationsByTopic(existingPublications);
+      const rawExistingPublications = normalizeExistingPublications(data.existingPublications || data.existing_publications);
+      const provisionalExistingPublications = dedupeExistingPublicationsByTopic(rawExistingPublications);
 
-      state.lastPreviewExistingCount = visibleExistingPublications.length;
-      state.lastPreviewExistingUrls = visibleExistingPublications.map((item) => item.postUrl).slice(0, 5);
-      updatePasteExistingPublications(visibleExistingPublications);
-      return visibleExistingPublications;
+      updatePasteExistingPublications(provisionalExistingPublications);
+
+      const verifiedExistingPublications = await verifyExistingPublications(rawExistingPublications, metadata);
+      const visibleExistingPublications = dedupeExistingPublicationsByTopic(verifiedExistingPublications);
+      const fallbackExistingPublications = visibleExistingPublications.length
+        ? visibleExistingPublications
+        : pasteDuplicateFallbackPublications(provisionalExistingPublications);
+      const mode = visibleExistingPublications.length
+        ? "verified"
+        : fallbackExistingPublications.length
+          ? "db-fallback"
+          : "none";
+
+      state.lastPreviewExistingCount = fallbackExistingPublications.length;
+      state.lastPreviewExistingUrls = fallbackExistingPublications.map((item) => item.postUrl).slice(0, 5);
+      state.lastPasteDuplicateCheck = {
+        at: new Date().toISOString(),
+        url: parsed.href,
+        mode,
+        raw: rawExistingPublications.length,
+        provisional: provisionalExistingPublications.length,
+        verified: visibleExistingPublications.length,
+        shown: fallbackExistingPublications.length,
+        presence: state.lastPresenceCheck
+      };
+      updatePasteExistingPublications(fallbackExistingPublications);
+      return fallbackExistingPublications;
     } catch (error) {
       console.warn("[FDEmbedLink] paste duplicate check failed", error);
+      state.lastPasteDuplicateCheck = {
+        at: new Date().toISOString(),
+        url: parsed.href,
+        mode: "error",
+        raw: 0,
+        verified: 0,
+        shown: 0,
+        error: error && error.message ? error.message : String(error)
+      };
       updatePasteExistingPublications([]);
       return [];
     }
+  }
+
+  function pasteDuplicateFallbackPublications(existingPublications) {
+    if (!existingPublications || !existingPublications.length) {
+      return [];
+    }
+
+    const details = Array.isArray(state.lastPresenceDetails) ? state.lastPresenceDetails : [];
+    const missingIds = details
+      .filter((item) => item && item.presence === "missing" && item.id)
+      .map((item) => item.id);
+    const uncertainIds = details
+      .filter((item) => item && (item.presence === "unverified" || item.presence === "unavailable") && item.id)
+      .map((item) => item.id);
+
+    return existingPublications.filter((item) => {
+      if (item.id && missingIds.indexOf(item.id) !== -1) {
+        return false;
+      }
+
+      if (!item.id) {
+        return true;
+      }
+
+      return uncertainIds.indexOf(item.id) !== -1 || !details.length;
+    });
   }
 
   function renderPreviewFooter() {
@@ -2391,6 +2455,7 @@
       lastPresenceCheck: state.lastPresenceCheck,
       lastPresenceDetails: state.lastPresenceDetails,
       lastPresenceReport: state.lastPresenceReport,
+      lastPasteDuplicateCheck: state.lastPasteDuplicateCheck,
       lastPublishTransport: state.lastPublishTransport,
       lastPublishConfirmedIds: state.lastPublishConfirmedIds,
       lastPublishQueuedIds: state.lastPublishQueuedIds,
