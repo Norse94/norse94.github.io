@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.5 */
+/* FD EMBED LINK build 2026-07-06.6 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.5",
+    version: "2026-07-06.6",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -1271,7 +1271,11 @@
   }
 
   function renderPasteModal(_url) {
-    return "";
+    return [
+      "<div class=\"fd-embed-paste-body\">",
+      "  <div data-fd-embed-paste-existing hidden></div>",
+      "</div>"
+    ].join("\n");
   }
 
   function renderPasteFooter() {
@@ -1291,7 +1295,6 @@
     const selected = getSelectedImage(metadata);
     const card = renderCardHtml(metadata, "", selected.url, { compact: false })
       .replace("<img class=\"fd-embed-link__image\"", "<img data-fd-embed-preview-image class=\"fd-embed-link__image\"");
-    const existingBlock = renderExistingPublicationsBlock(existingPublications);
     const images = metadata.images.length ? [
       "<div class=\"fd-embed-field fd-embed-cover-picker el-img-preview-container\">",
       "  <strong>Scegli l'immagine di copertina:</strong>",
@@ -1312,7 +1315,6 @@
 
     return [
       "<div class=\"fd-embed-preview\">",
-      existingBlock,
       images,
       card,
       "</div>"
@@ -1333,6 +1335,48 @@
       `  <p><strong>Attenzione!</strong><br>Sei sicuro di voler inviare questo Embed Link? Risulta gia pubblicato in ${links}</p>`,
       "</div>"
     ].join("\n");
+  }
+
+  function updatePasteExistingPublications(existingPublications) {
+    const container = document.querySelector("[data-fd-embed-paste-existing]");
+    if (!container) {
+      return;
+    }
+
+    const html = renderExistingPublicationsBlock(existingPublications);
+    container.innerHTML = html;
+    container.hidden = !html;
+  }
+
+  async function loadPasteExistingPublications(rawUrl) {
+    const parsed = parseUrl(rawUrl);
+    if (!parsed) {
+      updatePasteExistingPublications([]);
+      return [];
+    }
+
+    try {
+      const data = await requestEdge("preview", {
+        url: parsed.href,
+        forum: getForumContext(),
+        user: getUser()
+      });
+      const metadata = normalizeMetadata(data, parsed.href);
+      const existingPublications = await verifyExistingPublications(
+        normalizeExistingPublications(data.existingPublications || data.existing_publications),
+        metadata
+      );
+      const visibleExistingPublications = dedupeExistingPublicationsByTopic(existingPublications);
+
+      state.lastPreviewExistingCount = visibleExistingPublications.length;
+      state.lastPreviewExistingUrls = visibleExistingPublications.map((item) => item.postUrl).slice(0, 5);
+      updatePasteExistingPublications(visibleExistingPublications);
+      return visibleExistingPublications;
+    } catch (error) {
+      console.warn("[FDEmbedLink] paste duplicate check failed", error);
+      updatePasteExistingPublications([]);
+      return [];
+    }
   }
 
   function renderPreviewFooter() {
@@ -2027,6 +2071,7 @@
     event.preventDefault();
     state.pasteText = text.trim();
     showModal("Vuoi inserire un Embed Link?", renderPasteModal(state.pasteText), renderPasteFooter(), "fd-embed-modal-paste fd-embed-modal-preview cs-modal-w50");
+    loadPasteExistingPublications(state.pasteText);
     return false;
   }
 
