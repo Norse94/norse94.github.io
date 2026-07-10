@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.7 */
+/* FD EMBED LINK build 2026-07-06.5 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.7",
+    version: "2026-07-06.5",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -59,7 +59,6 @@
     lastPresenceCheck: null,
     lastPresenceDetails: [],
     lastPresenceReport: null,
-    lastPasteDuplicateCheck: null,
     lastPublishTransport: "",
     lastPublishConfirmedIds: [],
     lastPublishQueuedIds: [],
@@ -1272,11 +1271,7 @@
   }
 
   function renderPasteModal(_url) {
-    return [
-      "<div class=\"fd-embed-paste-body\">",
-      "  <div data-fd-embed-paste-existing hidden></div>",
-      "</div>"
-    ].join("\n");
+    return "";
   }
 
   function renderPasteFooter() {
@@ -1296,6 +1291,7 @@
     const selected = getSelectedImage(metadata);
     const card = renderCardHtml(metadata, "", selected.url, { compact: false })
       .replace("<img class=\"fd-embed-link__image\"", "<img data-fd-embed-preview-image class=\"fd-embed-link__image\"");
+    const existingBlock = renderExistingPublicationsBlock(existingPublications);
     const images = metadata.images.length ? [
       "<div class=\"fd-embed-field fd-embed-cover-picker el-img-preview-container\">",
       "  <strong>Scegli l'immagine di copertina:</strong>",
@@ -1316,6 +1312,7 @@
 
     return [
       "<div class=\"fd-embed-preview\">",
+      existingBlock,
       images,
       card,
       "</div>"
@@ -1336,111 +1333,6 @@
       `  <p><strong>Attenzione!</strong><br>Sei sicuro di voler inviare questo Embed Link? Risulta gia pubblicato in ${links}</p>`,
       "</div>"
     ].join("\n");
-  }
-
-  function updatePasteExistingPublications(existingPublications) {
-    const container = document.querySelector("[data-fd-embed-paste-existing]");
-    if (!container) {
-      return;
-    }
-
-    const html = renderExistingPublicationsBlock(existingPublications);
-    container.innerHTML = html;
-    container.hidden = !html;
-  }
-
-  async function loadPasteExistingPublications(rawUrl) {
-    const parsed = parseUrl(rawUrl);
-    if (!parsed) {
-      updatePasteExistingPublications([]);
-      state.lastPasteDuplicateCheck = {
-        at: new Date().toISOString(),
-        url: "",
-        mode: "invalid-url",
-        raw: 0,
-        verified: 0,
-        shown: 0
-      };
-      return [];
-    }
-
-    try {
-      const data = await requestEdge("preview", {
-        url: parsed.href,
-        forum: getForumContext(),
-        user: getUser()
-      });
-      const metadata = normalizeMetadata(data, parsed.href);
-      const rawExistingPublications = normalizeExistingPublications(data.existingPublications || data.existing_publications);
-      const provisionalExistingPublications = dedupeExistingPublicationsByTopic(rawExistingPublications);
-
-      updatePasteExistingPublications(provisionalExistingPublications);
-
-      const verifiedExistingPublications = await verifyExistingPublications(rawExistingPublications, metadata);
-      const visibleExistingPublications = dedupeExistingPublicationsByTopic(verifiedExistingPublications);
-      const fallbackExistingPublications = visibleExistingPublications.length
-        ? visibleExistingPublications
-        : pasteDuplicateFallbackPublications(provisionalExistingPublications);
-      const mode = visibleExistingPublications.length
-        ? "verified"
-        : fallbackExistingPublications.length
-          ? "db-fallback"
-          : "none";
-
-      state.lastPreviewExistingCount = fallbackExistingPublications.length;
-      state.lastPreviewExistingUrls = fallbackExistingPublications.map((item) => item.postUrl).slice(0, 5);
-      state.lastPasteDuplicateCheck = {
-        at: new Date().toISOString(),
-        url: parsed.href,
-        mode,
-        raw: rawExistingPublications.length,
-        provisional: provisionalExistingPublications.length,
-        verified: visibleExistingPublications.length,
-        shown: fallbackExistingPublications.length,
-        presence: state.lastPresenceCheck
-      };
-      updatePasteExistingPublications(fallbackExistingPublications);
-      return fallbackExistingPublications;
-    } catch (error) {
-      console.warn("[FDEmbedLink] paste duplicate check failed", error);
-      state.lastPasteDuplicateCheck = {
-        at: new Date().toISOString(),
-        url: parsed.href,
-        mode: "error",
-        raw: 0,
-        verified: 0,
-        shown: 0,
-        error: error && error.message ? error.message : String(error)
-      };
-      updatePasteExistingPublications([]);
-      return [];
-    }
-  }
-
-  function pasteDuplicateFallbackPublications(existingPublications) {
-    if (!existingPublications || !existingPublications.length) {
-      return [];
-    }
-
-    const details = Array.isArray(state.lastPresenceDetails) ? state.lastPresenceDetails : [];
-    const missingIds = details
-      .filter((item) => item && item.presence === "missing" && item.id)
-      .map((item) => item.id);
-    const uncertainIds = details
-      .filter((item) => item && (item.presence === "unverified" || item.presence === "unavailable") && item.id)
-      .map((item) => item.id);
-
-    return existingPublications.filter((item) => {
-      if (item.id && missingIds.indexOf(item.id) !== -1) {
-        return false;
-      }
-
-      if (!item.id) {
-        return true;
-      }
-
-      return uncertainIds.indexOf(item.id) !== -1 || !details.length;
-    });
   }
 
   function renderPreviewFooter() {
@@ -2135,7 +2027,6 @@
     event.preventDefault();
     state.pasteText = text.trim();
     showModal("Vuoi inserire un Embed Link?", renderPasteModal(state.pasteText), renderPasteFooter(), "fd-embed-modal-paste fd-embed-modal-preview cs-modal-w50");
-    loadPasteExistingPublications(state.pasteText);
     return false;
   }
 
@@ -2455,7 +2346,6 @@
       lastPresenceCheck: state.lastPresenceCheck,
       lastPresenceDetails: state.lastPresenceDetails,
       lastPresenceReport: state.lastPresenceReport,
-      lastPasteDuplicateCheck: state.lastPasteDuplicateCheck,
       lastPublishTransport: state.lastPublishTransport,
       lastPublishConfirmedIds: state.lastPublishConfirmedIds,
       lastPublishQueuedIds: state.lastPublishQueuedIds,
