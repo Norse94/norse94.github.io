@@ -1,14 +1,14 @@
-/* FD EMBED LINK build 2026-07-06.5 */
+/* FD EMBED LINK build 2026-07-06.6 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.5",
+    version: "2026-07-06.6",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
-    requestTimeoutMs: 12000,
+    requestTimeoutMs: 20000,
     pendingStorageKey: "fd_embed_link_pending_v1",
     submitStorageKey: "fd_embed_link_submit_v1",
     pasteInterceptionStorageKey: "fd_embed_link_paste_interception_v1"
@@ -18,6 +18,8 @@
   const EDITOR_BUTTON_TITLE = "Embed Link";
   const IMAGE_URL_RE = /\.(?:jpe?g|png|gif|webp|avif|svg)(?:[?#].*)?$/i;
   const ID_PREFIX = "fd-embed-link-";
+  const CONFIRMATION_RETRY_DELAYS_MS = [500, 1500, 3500, 7000, 12000];
+  const PRESENCE_RECHECK_DELAY_MS = 65000;
   const HTML_ENTITY_MAP = {
     amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " ",
     agrave: "à", aacute: "á", acirc: "â", atilde: "ã", auml: "ä", aring: "å", aelig: "æ",
@@ -59,6 +61,7 @@
     lastPresenceCheck: null,
     lastPresenceDetails: [],
     lastPresenceReport: null,
+    presenceRecheckTimers: new Map(),
     lastPublishTransport: "",
     lastPublishConfirmedIds: [],
     lastPublishQueuedIds: [],
@@ -69,6 +72,11 @@
     lastPlainLinkError: "",
     submitFallbackUsed: 0,
     lastSubmitFallbackPostId: 0,
+    confirmationPromise: null,
+    confirmationRetryTimer: 0,
+    confirmationRetryAttempts: 0,
+    confirmationRetryReason: "",
+    lastConfirmationAt: "",
     integrationAttempts: 0,
     integrationTimer: 0,
     integrationInterval: 0,
@@ -726,7 +734,7 @@
     }
   }
 
-  async function verifyExistingPublications(existingPublications, metadata) {
+  async function verifyExistingPublications(existingPublications, metadata, options = {}) {
     if (!existingPublications || !existingPublications.length) {
       state.lastPresenceCheck = { checked: 0, present: 0, missing: 0, unverified: 0 };
       state.lastPresenceDetails = [];
@@ -751,7 +759,6 @@
       const present = [];
       const missing = [];
       const unavailable = [];
-      const unavailableMissing = [];
 
       verifiable.forEach((item) => {
         const currentPagePublication = findCurrentPagePublication(item);
@@ -762,14 +769,13 @@
 
         const post = postsById[String(item.postId)];
         if (!post || typeof post.content !== "string") {
-          unavailable.push(presenceDetail(item, "unavailable", "post non restituito da api.php"));
-          unavailableMissing.push(item);
+          unavailable.push({ item, reason: "post non restituito da api.php" });
           return;
         }
 
         const consistencyError = forumPostConsistencyError(item, post);
         if (consistencyError) {
-          unavailable.push(presenceDetail(item, "unavailable", consistencyError));
+          unavailable.push({ item, reason: consistencyError });
           return;
         }
 
@@ -782,9 +788,16 @@
 
       const reportItems = present.map((item) => ({ ...item, presence: "present" }))
         .concat(missing.map((item) => ({ ...item, presence: "missing" })))
-        .concat(unavailableMissing.map((item) => ({ ...item, presence: "missing" })));
+        .concat(unavailable.map(({ item, reason }) => ({
+          ...item,
+          presence: "unavailable",
+          presenceReason: reason
+        })));
       if (reportItems.length) {
         await reportPublicationPresence(reportItems);
+      }
+      if (missing.length && !options.isRecheck) {
+        scheduleMissingPresenceRecheck(missing, metadata);
       }
 
       state.lastPresenceCheck = {
@@ -794,7 +807,7 @@
         unverified: unverified.length + unavailable.length
       };
       state.lastPresenceDetails = unverified.map((item) => presenceDetail(item, "unverified", "record non verificabile"))
-        .concat(unavailable)
+        .concat(unavailable.map(({ item, reason }) => presenceDetail(item, "unavailable", reason)))
         .concat(missing.map((item) => presenceDetail(item, "missing", "marker UUID non trovato")))
         .concat(present.map((item) => presenceDetail(item, "present", "marker UUID trovato")));
 
@@ -811,6 +824,20 @@
       state.lastPresenceDetails = existingPublications.map((item) => presenceDetail(item, "unverified", "errore verifica"));
       return [];
     }
+  }
+
+  function scheduleMissingPresenceRecheck(publications, metadata) {
+    const items = (publications || []).filter((item) => item && item.id && item.postId && item.postUrl);
+    const key = items.map((item) => String(item.id)).sort().join(",");
+    if (!key || state.presenceRecheckTimers.has(key)) {
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      state.presenceRecheckTimers.delete(key);
+      await verifyExistingPublications(items, metadata, { isRecheck: true });
+    }, PRESENCE_RECHECK_DELAY_MS);
+    state.presenceRecheckTimers.set(key, timer);
   }
 
   function canVerifyExistingPublication(item) {
@@ -955,13 +982,14 @@
 
   async function reportPublicationPresence(publications) {
     const payload = publications
-      .filter((item) => item && item.id && item.postUrl && (item.presence === "present" || item.presence === "missing"))
+      .filter((item) => item && item.id && item.postUrl && ["present", "missing", "unavailable"].includes(item.presence))
       .map((item) => ({
         id: item.id,
         postUrl: item.postUrl,
         postId: item.postId || null,
         topicTitle: item.topicTitle || "",
-        presence: item.presence
+        presence: item.presence,
+        reason: item.presenceReason || ""
       }));
 
     if (!payload.length) {
@@ -972,6 +1000,7 @@
       sent: payload.length,
       missing: payload.filter((item) => item.presence === "missing").length,
       present: payload.filter((item) => item.presence === "present").length,
+      unavailable: payload.filter((item) => item.presence === "unavailable").length,
       at: new Date().toISOString()
     };
 
@@ -984,6 +1013,7 @@
         sent: payload.length,
         missing: payload.filter((item) => item.presence === "missing").length,
         present: payload.filter((item) => item.presence === "present").length,
+        unavailable: payload.filter((item) => item.presence === "unavailable").length,
         ok: true,
         result,
         updated: Array.isArray(result && result.results)
@@ -997,6 +1027,7 @@
         sent: payload.length,
         missing: payload.filter((item) => item.presence === "missing").length,
         present: payload.filter((item) => item.presence === "present").length,
+        unavailable: payload.filter((item) => item.presence === "unavailable").length,
         ok: false,
         error: error && error.message ? error.message : String(error),
         at: new Date().toISOString()
@@ -1864,10 +1895,59 @@
     }
   }
 
+  function pendingConfirmationNeedsRetry(remaining, submitInfo) {
+    const submittedIds = Array.isArray(submitInfo && submitInfo.ids) ? submitInfo.ids : [];
+    const hasFreshSubmitted = isFreshSubmitInfo(submitInfo) && submittedIds.some((id) => remaining[id]);
+    const hasQueuedBeacon = Object.keys(remaining).some((id) => (
+      remaining[id] && remaining[id].publishQueuedAt && remaining[id].publishToken
+    ));
+    return hasFreshSubmitted || hasQueuedBeacon;
+  }
+
+  function resetConfirmationRetry() {
+    window.clearTimeout(state.confirmationRetryTimer);
+    state.confirmationRetryTimer = 0;
+    state.confirmationRetryAttempts = 0;
+    state.confirmationRetryReason = "";
+  }
+
+  function scheduleConfirmationRetry(reason) {
+    if (state.confirmationRetryTimer || state.confirmationRetryAttempts >= CONFIRMATION_RETRY_DELAYS_MS.length) {
+      return false;
+    }
+
+    const delay = CONFIRMATION_RETRY_DELAYS_MS[state.confirmationRetryAttempts];
+    state.confirmationRetryReason = reason || "pending";
+    state.confirmationRetryTimer = window.setTimeout(() => {
+      state.confirmationRetryTimer = 0;
+      state.confirmationRetryAttempts += 1;
+      confirmPublishedEmbeds();
+    }, delay);
+    return true;
+  }
+
   async function confirmPublishedEmbeds() {
+    if (state.confirmationPromise) {
+      return state.confirmationPromise;
+    }
+
+    const promise = runPublishedEmbedConfirmation();
+    state.confirmationPromise = promise;
+    try {
+      return await promise;
+    } finally {
+      if (state.confirmationPromise === promise) {
+        state.confirmationPromise = null;
+      }
+    }
+  }
+
+  async function runPublishedEmbedConfirmation() {
+    state.lastConfirmationAt = new Date().toISOString();
     const pending = getPendingEmbeds();
     const ids = Object.keys(pending);
     if (!ids.length) {
+      resetConfirmationRetry();
       return;
     }
 
@@ -1882,6 +1962,11 @@
     const C = commons();
     if (!C || !C.location || !Array.isArray(C.location.posts) || !C.location.posts.length) {
       finishPendingConfirmation(remaining, submittedIds);
+      if (pendingConfirmationNeedsRetry(remaining, submitInfo)) {
+        scheduleConfirmationRetry("posts-not-ready");
+      } else {
+        resetConfirmationRetry();
+      }
       return;
     }
 
@@ -1958,6 +2043,11 @@
     }
 
     finishPendingConfirmation(remaining, submittedIds);
+    if (pendingConfirmationNeedsRetry(remaining, submitInfo)) {
+      scheduleConfirmationRetry("pending-after-scan");
+    } else {
+      resetConfirmationRetry();
+    }
   }
 
   async function publishEmbeds(embeds, post) {
@@ -2346,6 +2436,7 @@
       lastPresenceCheck: state.lastPresenceCheck,
       lastPresenceDetails: state.lastPresenceDetails,
       lastPresenceReport: state.lastPresenceReport,
+      presenceRecheckCount: state.presenceRecheckTimers.size,
       lastPublishTransport: state.lastPublishTransport,
       lastPublishConfirmedIds: state.lastPublishConfirmedIds,
       lastPublishQueuedIds: state.lastPublishQueuedIds,
@@ -2354,6 +2445,7 @@
       lastPlainLinkId: state.lastPlainLinkId,
       lastPlainLinkUrl: state.lastPlainLinkUrl,
       lastPlainLinkError: state.lastPlainLinkError,
+      lastConfirmationAt: state.lastConfirmationAt,
       submitInfo: getSubmitInfo(),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
@@ -2369,6 +2461,10 @@
         pasteTemporarilyDisabled: state.pasteDisabled,
         textareaApiPasteRegistered: state.textareaApiPasteRegistered,
         pasteTargetCount: state.pasteTargetCount,
+        confirmationInFlight: Boolean(state.confirmationPromise),
+        confirmationRetryActive: Boolean(state.confirmationRetryTimer),
+        confirmationRetryAttempts: state.confirmationRetryAttempts,
+        confirmationRetryReason: state.confirmationRetryReason,
         submitFallbackUsed: state.submitFallbackUsed,
         lastSubmitFallbackPostId: state.lastSubmitFallbackPostId,
         integrationAttempts: state.integrationAttempts,
