@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.5 */
+/* FD EMBED LINK build 2026-07-06.6 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.5",
+    version: "2026-07-06.6",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -16,6 +16,15 @@
 
   const APP_TITLE = CONFIG.appTitle;
   const EDITOR_BUTTON_TITLE = "Embed Link";
+  const EDITOR_PRIMARY_TEXTAREA_SELECTOR = [
+    "textarea[name='Post']",
+    "textarea[name='post']",
+    "textarea[name='message']",
+    "textarea[id*='Post']",
+    "textarea[id*='post']"
+  ].join(",");
+  const EDITOR_TEXTAREA_SELECTOR = EDITOR_PRIMARY_TEXTAREA_SELECTOR + ",textarea";
+  const CONFIRMATION_RETRY_DELAYS_MS = [250, 500, 1000, 1500, 2500, 4000, 6000, 8000];
   const IMAGE_URL_RE = /\.(?:jpe?g|png|gif|webp|avif|svg)(?:[?#].*)?$/i;
   const ID_PREFIX = "fd-embed-link-";
   const HTML_ENTITY_MAP = {
@@ -67,6 +76,13 @@
     lastPlainLinkId: "",
     lastPlainLinkUrl: "",
     lastPlainLinkError: "",
+    activeTextarea: null,
+    lastSubmitTextareaName: "",
+    confirmationPromise: null,
+    confirmationRetryTimer: 0,
+    confirmationRetryAttempts: 0,
+    confirmationRetryReason: "",
+    lastConfirmationAt: "",
     submitFallbackUsed: 0,
     lastSubmitFallbackPostId: 0,
     integrationAttempts: 0,
@@ -552,30 +568,71 @@
     return true;
   }
 
-  function getEditorTextarea() {
-    return document.querySelector("textarea[name='Post']") ||
-      document.querySelector("textarea[name='post']") ||
-      document.querySelector("textarea[name='message']") ||
-      document.querySelector("textarea[id*='Post']") ||
-      document.querySelector("textarea[id*='post']") ||
-      document.querySelector("textarea");
+  function getEditorTextarea(scope) {
+    const root = scope && typeof scope.querySelector === "function" ? scope : document;
+    const preferred = root.querySelector(EDITOR_PRIMARY_TEXTAREA_SELECTOR);
+    if (scope && preferred) {
+      return preferred;
+    }
+
+    const focused = document.activeElement;
+    if (focused && focused.matches && focused.matches("textarea") && root.contains(focused)) {
+      return focused;
+    }
+
+    if (state.activeTextarea && state.activeTextarea.isConnected && root.contains(state.activeTextarea)) {
+      return state.activeTextarea;
+    }
+
+    return preferred || root.querySelector("textarea");
   }
 
-  function getEditorTextareas() {
-    const items = Array.from(document.querySelectorAll([
-      "textarea[name='Post']",
-      "textarea[name='post']",
-      "textarea[name='message']",
-      "textarea[id*='Post']",
-      "textarea[id*='post']",
-      "textarea"
-    ].join(",")));
+  function getEditorTextareas(scope) {
+    const root = scope && typeof scope.querySelectorAll === "function" ? scope : document;
+    const items = Array.from(root.querySelectorAll(EDITOR_TEXTAREA_SELECTOR));
     return [...new Set(items)];
   }
 
-  function getEditorText() {
-    const textarea = getEditorTextarea();
+  function getSubmissionForm(source) {
+    const target = source && source.target ? source.target : source;
+    if (!target) {
+      return null;
+    }
+    if (target.tagName === "FORM") {
+      return target;
+    }
+    return target.closest && target.closest("form") || null;
+  }
+
+  function getEditorText(source) {
+    const form = getSubmissionForm(source);
+    const textarea = getEditorTextarea(form || undefined);
+    state.lastSubmitTextareaName = textarea
+      ? String(textarea.name || textarea.id || "textarea")
+      : "";
     return textarea ? textarea.value || "" : "";
+  }
+
+  function rememberActiveTextarea(event) {
+    const target = event && event.target;
+    if (!target || !target.closest) {
+      return;
+    }
+
+    let textarea = target.closest("textarea");
+    const editorSurface = target.closest("[contenteditable='true'], [contenteditable=''], .wysibb-body, .note-editable, .sceditor-container, .cke_editable");
+    const form = (textarea || editorSurface) && (textarea || editorSurface).closest("form");
+    if (!textarea && form) {
+      textarea = getEditorTextarea(form);
+    }
+
+    const textareaCount = form ? form.querySelectorAll("textarea").length : 0;
+    const isEditorTextarea = textarea && (
+      textarea.matches(EDITOR_PRIMARY_TEXTAREA_SELECTOR) || textareaCount === 1 || Boolean(editorSurface)
+    );
+    if (isEditorTextarea && form && form.querySelector('input[name="submit_post"], button[name="submit_post"]')) {
+      state.activeTextarea = textarea;
+    }
   }
 
   function addContentToEditor(content) {
@@ -751,7 +808,6 @@
       const present = [];
       const missing = [];
       const unavailable = [];
-      const unavailableMissing = [];
 
       verifiable.forEach((item) => {
         const currentPagePublication = findCurrentPagePublication(item);
@@ -762,14 +818,13 @@
 
         const post = postsById[String(item.postId)];
         if (!post || typeof post.content !== "string") {
-          unavailable.push(presenceDetail(item, "unavailable", "post non restituito da api.php"));
-          unavailableMissing.push(item);
+          unavailable.push({ item, reason: "post non restituito da api.php" });
           return;
         }
 
         const consistencyError = forumPostConsistencyError(item, post);
         if (consistencyError) {
-          unavailable.push(presenceDetail(item, "unavailable", consistencyError));
+          unavailable.push({ item, reason: consistencyError });
           return;
         }
 
@@ -782,7 +837,11 @@
 
       const reportItems = present.map((item) => ({ ...item, presence: "present" }))
         .concat(missing.map((item) => ({ ...item, presence: "missing" })))
-        .concat(unavailableMissing.map((item) => ({ ...item, presence: "missing" })));
+        .concat(unavailable.map(({ item, reason }) => ({
+          ...item,
+          presence: "unavailable",
+          presenceReason: reason
+        })));
       if (reportItems.length) {
         await reportPublicationPresence(reportItems);
       }
@@ -794,7 +853,7 @@
         unverified: unverified.length + unavailable.length
       };
       state.lastPresenceDetails = unverified.map((item) => presenceDetail(item, "unverified", "record non verificabile"))
-        .concat(unavailable)
+        .concat(unavailable.map(({ item, reason }) => presenceDetail(item, "unavailable", reason)))
         .concat(missing.map((item) => presenceDetail(item, "missing", "marker UUID non trovato")))
         .concat(present.map((item) => presenceDetail(item, "present", "marker UUID trovato")));
 
@@ -955,13 +1014,14 @@
 
   async function reportPublicationPresence(publications) {
     const payload = publications
-      .filter((item) => item && item.id && item.postUrl && (item.presence === "present" || item.presence === "missing"))
+      .filter((item) => item && item.id && item.postUrl && ["present", "missing", "unavailable"].includes(item.presence))
       .map((item) => ({
         id: item.id,
         postUrl: item.postUrl,
         postId: item.postId || null,
         topicTitle: item.topicTitle || "",
-        presence: item.presence
+        presence: item.presence,
+        reason: item.presenceReason || ""
       }));
 
     if (!payload.length) {
@@ -972,6 +1032,7 @@
       sent: payload.length,
       missing: payload.filter((item) => item.presence === "missing").length,
       present: payload.filter((item) => item.presence === "present").length,
+      unavailable: payload.filter((item) => item.presence === "unavailable").length,
       at: new Date().toISOString()
     };
 
@@ -984,6 +1045,7 @@
         sent: payload.length,
         missing: payload.filter((item) => item.presence === "missing").length,
         present: payload.filter((item) => item.presence === "present").length,
+        unavailable: payload.filter((item) => item.presence === "unavailable").length,
         ok: true,
         result,
         updated: Array.isArray(result && result.results)
@@ -997,6 +1059,7 @@
         sent: payload.length,
         missing: payload.filter((item) => item.presence === "missing").length,
         present: payload.filter((item) => item.presence === "present").length,
+        unavailable: payload.filter((item) => item.presence === "unavailable").length,
         ok: false,
         error: error && error.message ? error.message : String(error),
         at: new Date().toISOString()
@@ -1693,12 +1756,14 @@
     }
   }
 
-  function rememberSubmitEmbeds() {
-    const text = getEditorText();
+  function rememberSubmitEmbeds(source) {
+    const form = getSubmissionForm(source);
+    const text = getEditorText(form || source);
     const pending = getPendingEmbeds();
     const ids = Object.keys(pending).filter((id) => contentHasPendingEmbed(text, id, pending[id]));
 
     if (!ids.length) {
+      sessionStorage.removeItem(CONFIG.submitStorageKey);
       return;
     }
 
@@ -1864,10 +1929,59 @@
     }
   }
 
+  function pendingConfirmationNeedsRetry(remaining, submitInfo) {
+    const submittedIds = Array.isArray(submitInfo && submitInfo.ids) ? submitInfo.ids : [];
+    const hasFreshSubmitted = isFreshSubmitInfo(submitInfo) && submittedIds.some((id) => remaining[id]);
+    const hasQueuedBeacon = Object.keys(remaining).some((id) => (
+      remaining[id] && remaining[id].publishQueuedAt && remaining[id].publishToken
+    ));
+    return hasFreshSubmitted || hasQueuedBeacon;
+  }
+
+  function resetConfirmationRetry() {
+    window.clearTimeout(state.confirmationRetryTimer);
+    state.confirmationRetryTimer = 0;
+    state.confirmationRetryAttempts = 0;
+    state.confirmationRetryReason = "";
+  }
+
+  function scheduleConfirmationRetry(reason) {
+    if (state.confirmationRetryTimer || state.confirmationRetryAttempts >= CONFIRMATION_RETRY_DELAYS_MS.length) {
+      return false;
+    }
+
+    const delay = CONFIRMATION_RETRY_DELAYS_MS[state.confirmationRetryAttempts];
+    state.confirmationRetryReason = reason || "pending";
+    state.confirmationRetryTimer = window.setTimeout(() => {
+      state.confirmationRetryTimer = 0;
+      state.confirmationRetryAttempts += 1;
+      confirmPublishedEmbeds();
+    }, delay);
+    return true;
+  }
+
   async function confirmPublishedEmbeds() {
+    if (state.confirmationPromise) {
+      return state.confirmationPromise;
+    }
+
+    const promise = runPublishedEmbedConfirmation();
+    state.confirmationPromise = promise;
+    try {
+      return await promise;
+    } finally {
+      if (state.confirmationPromise === promise) {
+        state.confirmationPromise = null;
+      }
+    }
+  }
+
+  async function runPublishedEmbedConfirmation() {
+    state.lastConfirmationAt = new Date().toISOString();
     const pending = getPendingEmbeds();
     const ids = Object.keys(pending);
     if (!ids.length) {
+      resetConfirmationRetry();
       return;
     }
 
@@ -1882,6 +1996,11 @@
     const C = commons();
     if (!C || !C.location || !Array.isArray(C.location.posts) || !C.location.posts.length) {
       finishPendingConfirmation(remaining, submittedIds);
+      if (pendingConfirmationNeedsRetry(remaining, submitInfo)) {
+        scheduleConfirmationRetry("posts-not-ready");
+      } else {
+        resetConfirmationRetry();
+      }
       return;
     }
 
@@ -1958,6 +2077,11 @@
     }
 
     finishPendingConfirmation(remaining, submittedIds);
+    if (pendingConfirmationNeedsRetry(remaining, submitInfo)) {
+      scheduleConfirmationRetry("pending-after-scan");
+    } else {
+      resetConfirmationRetry();
+    }
   }
 
   async function publishEmbeds(embeds, post) {
@@ -2011,6 +2135,8 @@
       return true;
     }
 
+    rememberActiveTextarea(event);
+
     if (state.pasteDisabled || !state.pasteInterceptionEnabled || !assertCanUse()) {
       return true;
     }
@@ -2032,23 +2158,29 @@
 
   function isEditorPasteEvent(event) {
     const target = event && event.target;
-    const textarea = getEditorTextarea();
 
     if (!target || !target.closest) {
-      return Boolean(textarea);
+      return false;
     }
 
-    if (textarea && (target === textarea || target.closest("textarea") === textarea)) {
-      return true;
+    const textarea = target.closest("textarea");
+    if (textarea) {
+      const form = textarea.closest("form");
+      const textareaCount = form ? form.querySelectorAll("textarea").length : 0;
+      return Boolean(
+        form &&
+        (textarea.matches(EDITOR_PRIMARY_TEXTAREA_SELECTOR) || textareaCount === 1) &&
+        form.querySelector('input[name="submit_post"], button[name="submit_post"]')
+      );
     }
 
-    if (target.closest("[contenteditable='true'], [contenteditable=''], .wysibb-body, .note-editable, .sceditor-container, .cke_editable")) {
-      return true;
+    const editorSurface = target.closest("[contenteditable='true'], [contenteditable=''], .wysibb-body, .note-editable, .sceditor-container, .cke_editable");
+    if (editorSurface) {
+      const form = editorSurface.closest("form");
+      return Boolean(form && form.querySelector('input[name="submit_post"], button[name="submit_post"]'));
     }
 
-    const submit = document.querySelector('input[name="submit_post"], button[name="submit_post"]');
-    const form = submit && submit.closest ? submit.closest("form") : null;
-    return Boolean(form && form.contains(target));
+    return false;
   }
 
   function handleImageChoice(target) {
@@ -2149,8 +2281,11 @@
 
   function handleSubmitCapture(event) {
     const target = event.target;
-    if (target && target.matches && target.matches('input[name="submit_post"], button[name="submit_post"]')) {
-      rememberSubmitEmbeds();
+    const submit = target && target.closest
+      ? target.closest('input[name="submit_post"], button[name="submit_post"]')
+      : null;
+    if (submit) {
+      rememberSubmitEmbeds(submit.closest("form") || event);
     }
   }
 
@@ -2354,6 +2489,11 @@
       lastPlainLinkId: state.lastPlainLinkId,
       lastPlainLinkUrl: state.lastPlainLinkUrl,
       lastPlainLinkError: state.lastPlainLinkError,
+      activeTextareaName: state.activeTextarea
+        ? String(state.activeTextarea.name || state.activeTextarea.id || "textarea")
+        : "",
+      lastSubmitTextareaName: state.lastSubmitTextareaName,
+      lastConfirmationAt: state.lastConfirmationAt,
       submitInfo: getSubmitInfo(),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
       textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
@@ -2369,6 +2509,10 @@
         pasteTemporarilyDisabled: state.pasteDisabled,
         textareaApiPasteRegistered: state.textareaApiPasteRegistered,
         pasteTargetCount: state.pasteTargetCount,
+        confirmationInFlight: Boolean(state.confirmationPromise),
+        confirmationRetryActive: Boolean(state.confirmationRetryTimer),
+        confirmationRetryAttempts: state.confirmationRetryAttempts,
+        confirmationRetryReason: state.confirmationRetryReason,
         submitFallbackUsed: state.submitFallbackUsed,
         lastSubmitFallbackPostId: state.lastSubmitFallbackPostId,
         integrationAttempts: state.integrationAttempts,
@@ -2393,6 +2537,7 @@
     removeLegacyEditorButtons();
     document.addEventListener("click", handleDocumentClick);
     document.addEventListener("change", handleDocumentChange);
+    document.addEventListener("focusin", rememberActiveTextarea, true);
     document.addEventListener("paste", handlePaste, true);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
