@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.6 */
+/* FD EMBED LINK build 2026-07-06.7 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.6",
+    version: "2026-07-06.7",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -446,6 +446,23 @@
     } catch (_error) {
       return null;
     }
+  }
+
+  function incompleteUrlError(value) {
+    const raw = normalizeSpace(value);
+    let decoded = raw;
+
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch (_error) {
+      // The original value is enough for the truncation check.
+    }
+
+    if (raw.includes("...") || raw.includes("…") || decoded.includes("...") || decoded.includes("…")) {
+      return "Il link sembra incompleto o abbreviato. Incolla l'URL completo, senza puntini di sospensione.";
+    }
+
+    return "";
   }
 
   function isDirectImageUrl(value) {
@@ -1301,16 +1318,25 @@
     ].join("\n");
   }
 
-  function renderPasteModal(_url) {
-    return "";
+  function renderPasteModal(errorMessage) {
+    if (!errorMessage) {
+      return "";
+    }
+
+    return [
+      "<div class=\"fd-embed-form\">",
+      `  <p class="fd-embed-error" data-fd-embed-error role="alert">${escapeText(errorMessage)}</p>`,
+      "</div>"
+    ].join("\n");
   }
 
-  function renderPasteFooter() {
+  function renderPasteFooter(hasError) {
+    const confirmDisabled = hasError ? " disabled aria-disabled=\"true\"" : "";
     return [
       "<div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
       "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-yellow cs-modal-close el-cancel-session\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"paste-disable\">Disabilita temporaneamente</button>",
       "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"paste-normal\">Annulla</button>",
-      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-green cs-modal-close el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"paste-confirm\">Conferma</button>",
+      `  <button class="cs-btn cs-btn-sm cs-btn-outer-green cs-modal-close el-confirm" type="button" data-cs-events="" data-fd-embed-action="paste-confirm"${confirmDisabled}>Conferma</button>`,
       "</div>"
     ].join("\n");
   }
@@ -1456,6 +1482,12 @@
 
   async function openPreviewForUrl(rawUrl) {
     if (!assertCanUse()) {
+      return;
+    }
+
+    const incompleteError = incompleteUrlError(rawUrl);
+    if (incompleteError) {
+      showUrlError(incompleteError);
       return;
     }
 
@@ -2116,7 +2148,9 @@
     event.stopPropagation();
     event.preventDefault();
     state.pasteText = text.trim();
-    showModal("Vuoi inserire un Embed Link?", renderPasteModal(state.pasteText), renderPasteFooter(), "fd-embed-modal-paste fd-embed-modal-preview cs-modal-w50");
+    const incompleteError = incompleteUrlError(state.pasteText);
+    const errorClass = incompleteError ? " fd-embed-modal-paste-has-error" : "";
+    showModal("Vuoi inserire un Embed Link?", renderPasteModal(incompleteError), renderPasteFooter(Boolean(incompleteError)), "fd-embed-modal-paste fd-embed-modal-preview cs-modal-w50" + errorClass);
     return false;
   }
 
@@ -2178,6 +2212,10 @@
 
     const actionButton = event.target.closest("[data-fd-embed-action]");
     if (!actionButton) {
+      return;
+    }
+
+    if (actionButton.disabled) {
       return;
     }
 

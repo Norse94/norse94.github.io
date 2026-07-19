@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-06.6 - plain link tracking */
+/* FD EMBED LINK build 2026-07-06.7 - incomplete URL validation */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -76,6 +76,11 @@
 .fd-embed-local-modal__dialog.fd-embed-modal-paste .fd-embed-local-modal__body,
 .fd-embed-modal-paste .cs-modal-body {
   display: none;
+}
+
+.fd-embed-local-modal__dialog.fd-embed-modal-paste-has-error .fd-embed-local-modal__body,
+.fd-embed-modal-paste-has-error .cs-modal-body {
+  display: block;
 }
 
 .fd-embed-local-modal__close {
