@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.9 */
+/* FD EMBED LINK build 2026-07-06.10 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.9",
+    version: "2026-07-06.10",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -708,15 +708,17 @@
     return `https://translate.google.com/translate?${params.toString()}`;
   }
 
-  function renderTranslationLinkHtml(metadata, url) {
+  function renderTranslationLinkHtml(metadata, url, options = {}) {
     const language = normalizeLanguageCode(metadata && metadata.language);
     const href = language && language !== "it" ? googleTranslateUrl(url) : "";
     if (!href) {
       return "";
     }
 
+    const editableAttr = options.nonEditable ? " data-editable=\"false\"" : "";
+
     return [
-      `<a class="fd-embed-translate" href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`,
+      `<a class="fd-embed-translate"${editableAttr} href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`,
       "<span class=\"fd-embed-translate__mark\" aria-hidden=\"true\">G</span>",
       "<span>Apri in Google Traduttore</span>",
       "</a>"
@@ -1188,7 +1190,7 @@
     const idAttrs = linkId
       ? ` data-fd-link-id="${escapeAttr(linkId)}" data-fd-embed-id="${escapeAttr(linkId)}"`
       : "";
-    const translationLink = renderTranslationLinkHtml(metadata, safeUrl);
+    const translationLink = renderTranslationLinkHtml(metadata, safeUrl, { nonEditable: true });
     const translationBlock = translationLink
       ? `<span class="fd-tracked-link__translation">${translationLink}</span>`
       : "";
