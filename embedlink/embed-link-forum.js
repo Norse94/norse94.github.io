@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.7 */
+/* FD EMBED LINK build 2026-07-06.8 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.7",
+    version: "2026-07-06.8",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -683,8 +683,44 @@
       description: decodeTextEntities(metadata.description || metadata.excerpt || ""),
       author: decodeTextEntities(metadata.author || ""),
       publishedAt: metadata.publishedAt || metadata.published_at || metadata.articlePublishedAt || "",
+      language: normalizeLanguageCode(metadata.language || metadata.lang || metadata.locale || ""),
       images
     };
+  }
+
+  function normalizeLanguageCode(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    const match = /^([a-z]{2,3})(?:[-_]|$)/.exec(normalized);
+    return match ? match[1] : "";
+  }
+
+  function googleTranslateUrl(url) {
+    const parsed = parseUrl(url);
+    if (!parsed) {
+      return "";
+    }
+
+    const params = new URLSearchParams({
+      sl: "auto",
+      tl: "it",
+      u: parsed.href
+    });
+    return `https://translate.google.com/translate?${params.toString()}`;
+  }
+
+  function renderTranslationLinkHtml(metadata, url) {
+    const language = normalizeLanguageCode(metadata && metadata.language);
+    const href = language && language !== "it" ? googleTranslateUrl(url) : "";
+    if (!href) {
+      return "";
+    }
+
+    return [
+      `<a class="fd-embed-translate" href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`,
+      "<span class=\"fd-embed-translate__mark\" aria-hidden=\"true\">G</span>",
+      "<span>Apri in Google Traduttore</span>",
+      "</a>"
+    ].join("");
   }
 
   function normalizeExistingPublications(raw) {
@@ -1099,8 +1135,17 @@
     const noImageClass = selectedImageUrl ? "" : " fd-embed-link--no-image";
     const markerClass = embedId ? " " + getEmbedMarkerClass(embedId) : "";
     const idAttr = embedId ? ` data-fd-embed-id="${escapeAttr(embedId)}"` : "";
-    const imageBlock = selectedImageUrl
+    const translationLink = renderTranslationLinkHtml(metadata, url);
+    const mediaLink = selectedImageUrl
       ? `<a class="fd-embed-link__media" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow"><img class="fd-embed-link__image" src="${escapeAttr(selectedImageUrl)}" alt=""></a>`
+      : "";
+    const imageBlock = selectedImageUrl
+      ? translationLink
+        ? `<div class="fd-embed-link__media-wrap">${mediaLink}<div class="fd-embed-link__translation-overlay">${translationLink}</div></div>`
+        : mediaLink
+      : "";
+    const translationFooter = !selectedImageUrl && translationLink
+      ? `<div class="fd-embed-link__translation-footer">${translationLink}</div>`
       : "";
     const sourceBlock = domain
       ? `<div class="fd-embed-link__source"><span class="fd-embed-link__source-mark" aria-hidden="true"></span><span class="fd-embed-link__source-text">${escapeText(domain)}</span></div>`
@@ -1131,21 +1176,27 @@
       excerptBlock,
       metaBlock,
       "</div>",
+      translationFooter,
       "</div>"
     ].filter(Boolean).join("");
   }
 
-  function renderTrackedLinkHtml(url, linkId) {
+  function renderTrackedLinkHtml(url, linkId, metadata = {}) {
     const href = parseUrl(url);
     const safeUrl = href ? href.href : String(url || "");
     const markerClass = linkId ? " " + getTrackedLinkMarkerClass(linkId) + " " + getEmbedMarkerClass(linkId) : "";
     const idAttrs = linkId
       ? ` data-fd-link-id="${escapeAttr(linkId)}" data-fd-embed-id="${escapeAttr(linkId)}"`
       : "";
+    const translationLink = renderTranslationLinkHtml(metadata, safeUrl);
+    const translationBlock = translationLink
+      ? `<span class="fd-tracked-link__translation">${translationLink}</span>`
+      : "";
 
     return [
       `<span class="fd-tracked-link${markerClass}" data-fd-link-kind="plain"${idAttrs}>`,
       `<a href="${escapeAttr(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeText(safeUrl)}</a>`,
+      translationBlock,
       "</span>"
     ].join("");
   }
@@ -1597,7 +1648,7 @@
         throw new Error("La Edge Function non ha restituito linkId o publishToken.");
       }
 
-      addContentToEditor(renderTrackedLinkHtml(metadata.finalUrl || parsed.href, linkId));
+      addContentToEditor(renderTrackedLinkHtml(metadata.finalUrl || parsed.href, linkId, metadata));
       storePendingEmbed(linkId, publishToken, metadata, { kind: "plain" });
       state.lastPlainLinkId = String(linkId);
       state.lastPlainLinkUrl = metadata.finalUrl || parsed.href;

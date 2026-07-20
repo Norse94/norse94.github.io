@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-06.7 - incomplete URL validation */
+/* FD EMBED LINK build 2026-07-06.8 - translation links */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -127,6 +127,94 @@
   overflow: hidden;
   background: #dce5e1;
   text-decoration: none;
+}
+
+.fd-embed-link__media-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.fd-embed-link__translation-overlay {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1;
+}
+
+.fd-embed-translate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid #1769aa;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1769aa;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+}
+
+.fd-embed-translate:hover,
+.fd-embed-translate:focus-visible {
+  background: #1769aa;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.fd-embed-translate__mark {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.fd-embed-link__translation-overlay .fd-embed-translate {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(21, 24, 25, 0.2);
+  white-space: nowrap;
+}
+
+.fd-embed-link__translation-overlay .fd-embed-translate:hover,
+.fd-embed-link__translation-overlay .fd-embed-translate:focus-visible {
+  background: #1769aa;
+}
+
+.fd-embed-link__translation-footer {
+  display: flex;
+  justify-content: flex-start;
+  padding: 10px 15px;
+  border-top: 1px solid var(--fd-embed-line);
+  background: #f6f8f7;
+}
+
+.fd-tracked-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  max-width: 100%;
+}
+
+.fd-tracked-link > a:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fd-tracked-link__translation {
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.fd-tracked-link__translation .fd-embed-translate {
+  min-height: 26px;
+  padding: 3px 7px;
+  font-size: 11px;
 }
 
 .fd-embed-link__image {
@@ -512,6 +600,10 @@
   .fd-embed-link__body,
   .fd-embed-link--no-image .fd-embed-link__body {
     padding: 18px 20px 19px;
+  }
+
+  .fd-embed-link__translation-footer {
+    padding: 11px 20px;
   }
 
   .fd-embed-link--compact .fd-embed-link__body {
