@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-06.8 - translation links */
+/* FD EMBED LINK build 2026-07-06.9 - translation links */
 
 .fd-embed-local-modal {
   position: fixed;
@@ -146,7 +146,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 30px;
+  min-height: 20px;
   max-width: 100%;
   padding: 5px 9px;
   border: 1px solid #1769aa;
@@ -212,7 +212,7 @@
 }
 
 .fd-tracked-link__translation .fd-embed-translate {
-  min-height: 26px;
+  min-height: 20px;
   padding: 3px 7px;
   font-size: 11px;
 }
