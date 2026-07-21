@@ -17,7 +17,7 @@
 
     const HASHTAG_PATTERN = /#(?!\d+\b)[\p{L}][\p{L}\p{N}_+-]*/gu;
     const HASHTAG_IN_TEXT_PATTERN = /(^|[\s([{])(#(?!\d+\b)[\p{L}][\p{L}\p{N}_+-]*)/gu;
-    const STORAGE_VERSION = 1;
+    const STORAGE_VERSION = 2;
     const CSS_ID = "ht-local-styles";
     const BAR_ID = "ht-suggestions";
 
@@ -126,6 +126,55 @@
         return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
     }
 
+    function getNumericUrlParameter(href, name) {
+        const source = String(href || "").replace(/&amp;/gi, "&");
+
+        try {
+            const value = new URL(source, window.location.href).searchParams.get(name);
+            if (/^\d+$/.test(value || "")) return Number(value);
+        } catch {
+            // Alcune skin usano URL relativi non standard: il fallback li gestisce.
+        }
+
+        const match = source.match(new RegExp(`[?&;]${name}=(\\d+)(?:[&#;]|$)`, "i"));
+        return match ? Number(match[1]) : 0;
+    }
+
+    function findSectionTitleInPage(sectionId, topicTitle) {
+        if (!sectionId) return "";
+
+        const topicKey = normalizeForSearch(normalizeSpace(topicTitle));
+        const candidates = [...document.querySelectorAll("a[href]")]
+            .filter((anchor) => getNumericUrlParameter(anchor.getAttribute("href"), "f") === sectionId)
+            .map((anchor) => {
+                const title = normalizeSpace(anchor.textContent || anchor.getAttribute("title"));
+                let score = 0;
+
+                if (anchor.closest("#navstrip, .navstrip, .breadcrumbs, .breadcrumb, .navigation, .path")) score += 100;
+                if (!getNumericUrlParameter(anchor.getAttribute("href"), "t")) score += 20;
+                if (title.length <= 80) score += 10;
+
+                return { title, score };
+            })
+            .filter((candidate) => candidate.title
+                && normalizeForSearch(candidate.title) !== topicKey)
+            .sort((left, right) => right.score - left.score || left.title.length - right.title.length);
+
+        return candidates[0]?.title || "";
+    }
+
+    function getCurrentSection(locationInfo, topicTitle) {
+        const id = Number(locationInfo?.section?.id || 0);
+        const commonsTitle = normalizeSpace(locationInfo?.section?.title);
+        const topicKey = normalizeForSearch(normalizeSpace(topicTitle));
+        const commonsTitleIsSection = commonsTitle
+            && normalizeForSearch(commonsTitle) !== topicKey;
+        const title = (commonsTitleIsSection ? commonsTitle : findSectionTitleInPage(id, topicTitle))
+            || (id ? `Sezione ${id}` : "Sezione");
+
+        return { id, title };
+    }
+
     function debounce(callback, delay) {
         let timeout;
         return (...args) => {
@@ -170,8 +219,9 @@
 
             const topicId = Number(location.topic?.id || 0);
             const topicTitle = location.topic?.title || document.title || "Discussione";
-            const sectionId = Number(location.section?.id || 0);
-            const sectionTitle = location.section?.title || "Sezione";
+            const section = getCurrentSection(location, topicTitle);
+            const sectionId = section.id;
+            const sectionTitle = section.title;
             const indexedAt = Date.now();
 
             location.posts.forEach((post) => {
