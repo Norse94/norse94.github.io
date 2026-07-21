@@ -4,7 +4,7 @@
     const scriptInfo = {
         sid: "local-hashtags-v1",
         name: "HashTags Local",
-        version: "1.0.0",
+        version: "1.0.1",
         settings: {
             blacklistSections: [],
             whitelistSections: [],
@@ -17,7 +17,7 @@
 
     const HASHTAG_PATTERN = /#(?!\d+\b)[\p{L}][\p{L}\p{N}_+-]*/gu;
     const HASHTAG_IN_TEXT_PATTERN = /(^|[\s([{])(#(?!\d+\b)[\p{L}][\p{L}\p{N}_+-]*)/gu;
-    const STORAGE_VERSION = 2;
+    const STORAGE_VERSION = 3;
     const CSS_ID = "ht-local-styles";
     const BAR_ID = "ht-suggestions";
 
@@ -147,11 +147,24 @@
         const candidates = [...document.querySelectorAll("a[href]")]
             .filter((anchor) => getNumericUrlParameter(anchor.getAttribute("href"), "f") === sectionId)
             .map((anchor) => {
+                const href = anchor.getAttribute("href") || "";
                 const title = normalizeSpace(anchor.textContent || anchor.getAttribute("title"));
                 let score = 0;
 
+                try {
+                    const url = new URL(href, window.location.href);
+                    const isCanonicalSectionLink = !url.searchParams.get("act")
+                        && !url.searchParams.get("t")
+                        && !/\/rss\.php$/i.test(url.pathname);
+
+                    if (isCanonicalSectionLink) score += 1000;
+                    if (/\/rss\.php$/i.test(url.pathname)) score -= 500;
+                } catch {
+                    // Il punteggio restante è sufficiente per gli URL non standard.
+                }
+
                 if (anchor.closest("#navstrip, .navstrip, .breadcrumbs, .breadcrumb, .navigation, .path")) score += 100;
-                if (!getNumericUrlParameter(anchor.getAttribute("href"), "t")) score += 20;
+                if (!getNumericUrlParameter(href, "t")) score += 20;
                 if (title.length <= 80) score += 10;
 
                 return { title, score };
@@ -223,6 +236,12 @@
             const sectionId = section.id;
             const sectionTitle = section.title;
             const indexedAt = Date.now();
+
+            Object.values(this.data.posts).forEach((storedPost) => {
+                if (Number(storedPost.sectionId) === sectionId) {
+                    storedPost.sectionTitle = sectionTitle;
+                }
+            });
 
             location.posts.forEach((post) => {
                 const contentRoot = post.nativeElement?.querySelector?.(".color");
@@ -309,12 +328,23 @@
 
             this.getPosts().forEach((post) => {
                 const key = String(post.sectionId || post.sectionTitle);
-                if (!sections.has(key)) {
-                    sections.set(key, { id: post.sectionId, title: post.sectionTitle });
+                const title = normalizeSpace(post.sectionTitle);
+                const isReliable = Boolean(title)
+                    && normalizeForSearch(title) !== normalizeForSearch(post.topicTitle);
+                const current = sections.get(key);
+
+                if (!current || (!current.isReliable && isReliable)) {
+                    sections.set(key, {
+                        id: post.sectionId,
+                        title: isReliable ? title : `Sezione ${post.sectionId}`,
+                        isReliable
+                    });
                 }
             });
 
-            return [...sections.values()].sort((left, right) => left.title.localeCompare(right.title));
+            return [...sections.values()]
+                .map(({ id, title }) => ({ id, title }))
+                .sort((left, right) => left.title.localeCompare(right.title));
         }
     }
 
