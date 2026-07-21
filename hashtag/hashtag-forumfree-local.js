@@ -414,16 +414,24 @@
             row.className = "Item ht-suggestions-row";
             row.hidden = true;
             row.innerHTML = `
-                <div class="ht-suggestions-head">
-                    <div>
-                        <strong>Hashtag suggeriti</strong>
-                        <span class="ht-suggestions-status"></span>
+                <div class="ht-suggestions-panel">
+                    <div class="ht-suggestions-head">
+                        <div class="ht-suggestions-heading">
+                            <strong>Hashtag suggeriti</strong>
+                            <span class="ht-suggestions-status"></span>
+                        </div>
+                        <button type="button" class="ht-open-search">
+                            Cerca nel forum
+                        </button>
                     </div>
-                    <button type="button" class="cs-btn cs-btn-sm cs-btn-outer-blue ht-open-search">
-                        Cerca nel forum
-                    </button>
+                    <div class="ht-suggestions-list" role="list" aria-live="polite"></div>
+                    <div class="ht-suggestions-legend" aria-label="Origine dei suggerimenti">
+                        <span><i class="ht-legend-dot ht-legend-text"></i>Testo</span>
+                        <span><i class="ht-legend-dot ht-legend-link"></i>Link</span>
+                        <span><i class="ht-legend-dot ht-legend-topic"></i>Topic</span>
+                        <span><i class="ht-legend-dot ht-legend-section"></i>Sezione</span>
+                    </div>
                 </div>
-                <div class="ht-suggestions-list" role="list" aria-live="polite"></div>
             `;
 
             const bottomAddons = editorArea.querySelector(":scope > li.bottom-addons");
@@ -567,10 +575,11 @@
             suggestions.forEach((item) => {
                 const button = document.createElement("button");
                 button.type = "button";
-                button.className = `cs-btn cs-btn-sm ht-suggestion ht-source-${item.source}`;
+                button.className = `ht-suggestion ht-source-${item.source}`;
                 button.dataset.hashtag = item.tag;
                 button.setAttribute("role", "listitem");
                 button.setAttribute("aria-label", `${item.tag}: ${item.reason}`);
+                button.title = item.reason;
 
                 const tag = document.createElement("span");
                 tag.className = "ht-suggestion-tag";
@@ -578,14 +587,14 @@
 
                 const reason = document.createElement("span");
                 reason.className = "ht-suggestion-reason";
-                reason.textContent = item.reason;
+                reason.textContent = item.count ? `· ${item.count}` : "";
 
                 button.append(tag, reason);
                 list.appendChild(button);
             });
 
             status.textContent = suggestions.length
-                ? `${suggestions.length} proposte dal contenuto e dal forum`
+                ? `${suggestions.length} suggerimenti aggiornati dal contenuto e dal contesto`
                 : "Nessun suggerimento disponibile";
             this.suggestionBar.hidden = false;
         }
@@ -1022,17 +1031,128 @@
             const style = document.createElement("style");
             style.id = CSS_ID;
             style.textContent = `
-                .ht-suggestions-row { padding: 8px 2%; }
-                .ht-suggestions-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-                .ht-suggestions-head strong, .ht-suggestions-status { display: block; }
-                .ht-suggestions-status { margin-top: 2px; opacity: .72; font-size: .85em; }
-                .ht-suggestions-list { display: flex; flex-wrap: wrap; gap: 6px; }
-                .ht-suggestion { display: inline-flex !important; align-items: center; gap: 5px; }
-                .ht-suggestion-reason { opacity: .7; font-size: .82em; }
+                ul.st-editor-area > li.ht-suggestions-row {
+                    display: block !important;
+                    box-sizing: border-box !important;
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 10px 2% !important;
+                    list-style: none !important;
+                    text-align: left !important;
+                    background: transparent !important;
+                }
+                .ht-suggestions-row .ht-suggestions-panel {
+                    display: block !important;
+                    box-sizing: border-box !important;
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 13px !important;
+                    border: 1px solid rgba(127, 127, 127, .18) !important;
+                    border-radius: 12px !important;
+                    background: rgba(127, 127, 127, .075) !important;
+                    text-align: left !important;
+                }
+                .ht-suggestions-row .ht-suggestions-head {
+                    display: flex !important;
+                    align-items: flex-start !important;
+                    justify-content: space-between !important;
+                    width: 100% !important;
+                    margin: 0 0 10px !important;
+                    padding: 0 !important;
+                    gap: 12px !important;
+                    text-align: left !important;
+                }
+                .ht-suggestions-row .ht-suggestions-heading {
+                    display: block !important;
+                    width: auto !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    text-align: left !important;
+                }
+                .ht-suggestions-head strong,
+                .ht-suggestions-status {
+                    display: block !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    text-align: left !important;
+                }
+                .ht-suggestions-head strong { font-size: 1.08em !important; line-height: 1.3 !important; }
+                .ht-suggestions-status { margin-top: 2px !important; opacity: .68; font-size: .82em !important; }
+                .ht-suggestions-row .ht-open-search {
+                    appearance: none !important;
+                    flex: 0 0 auto !important;
+                    box-sizing: border-box !important;
+                    margin: 0 !important;
+                    padding: 7px 11px !important;
+                    border: 1px solid rgba(80, 120, 190, .45) !important;
+                    border-radius: 8px !important;
+                    background: rgba(255, 255, 255, .72) !important;
+                    color: inherit !important;
+                    font: inherit !important;
+                    line-height: 1.2 !important;
+                    cursor: pointer !important;
+                    box-shadow: none !important;
+                }
+                .ht-suggestions-row .ht-open-search:hover { background: rgba(80, 120, 190, .12) !important; }
+                .ht-suggestions-row .ht-suggestions-list {
+                    display: flex !important;
+                    align-items: center !important;
+                    flex-wrap: wrap !important;
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    gap: 7px !important;
+                    text-align: left !important;
+                }
+                .ht-suggestions-row .ht-suggestion {
+                    appearance: none !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    box-sizing: border-box !important;
+                    width: auto !important;
+                    min-width: 0 !important;
+                    margin: 0 !important;
+                    padding: 6px 9px !important;
+                    gap: 5px !important;
+                    border: 1px solid rgba(127, 127, 127, .24) !important;
+                    border-radius: 999px !important;
+                    background: rgba(255, 255, 255, .76) !important;
+                    color: inherit !important;
+                    font: inherit !important;
+                    font-weight: 400 !important;
+                    line-height: 1.2 !important;
+                    text-align: left !important;
+                    text-decoration: none !important;
+                    cursor: pointer !important;
+                    box-shadow: none !important;
+                }
+                .ht-suggestions-row .ht-suggestion:hover {
+                    border-color: rgba(80, 120, 190, .45) !important;
+                    background: rgba(80, 120, 190, .10) !important;
+                }
+                .ht-suggestion-tag { white-space: nowrap; }
+                .ht-suggestion-reason { opacity: .62; font-size: .9em; white-space: nowrap; }
                 .ht-suggestion::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4a90e2; }
                 .ht-source-link::before { background: #f2994a; }
                 .ht-source-topic::before { background: #48b86a; }
                 .ht-source-section::before { background: #d96aa7; }
+                .ht-suggestions-row .ht-suggestions-legend {
+                    display: flex !important;
+                    align-items: center !important;
+                    flex-wrap: wrap !important;
+                    width: 100% !important;
+                    margin: 10px 0 0 !important;
+                    padding: 0 !important;
+                    gap: 10px !important;
+                    opacity: .66;
+                    font-size: .8em;
+                    text-align: left !important;
+                }
+                .ht-suggestions-legend span { display: inline-flex !important; align-items: center !important; gap: 4px !important; margin: 0 !important; padding: 0 !important; }
+                .ht-legend-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4a90e2; }
+                .ht-legend-link { background: #f2994a; }
+                .ht-legend-topic { background: #48b86a; }
+                .ht-legend-section { background: #d96aa7; }
                 .ht-entity { display: inline; border: 0; border-radius: 3px; padding: 0 2px; background: rgba(255, 220, 40, .28); color: inherit; font: inherit; cursor: pointer; }
                 .ht-search-simple, .ht-search-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
                 .ht-search-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1052,9 +1172,9 @@
                 .ht-search-results-head { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(127, 127, 127, .25); }
                 .ht-search-empty { padding: 12px 0; }
                 @media (max-width: 600px) {
-                    .ht-suggestions-head, .ht-search-result-head, .ht-search-results-head { align-items: flex-start; flex-direction: column; }
+                    .ht-suggestions-row .ht-suggestions-head, .ht-search-result-head, .ht-search-results-head { align-items: flex-start !important; flex-direction: column !important; }
                     .ht-search-simple, .ht-search-grid { grid-template-columns: 1fr; }
-                    .ht-suggestion-reason { display: none; }
+                    .ht-suggestions-row .ht-open-search { align-self: flex-start !important; }
                 }
             `;
             document.head.appendChild(style);
