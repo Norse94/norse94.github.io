@@ -1188,7 +1188,7 @@
                 <div class="ht-suggestions-panel">
                     <div class="ht-suggestions-line">
                         <div class="ht-suggestion-group ht-selected-group">
-                            <strong class="ht-suggestions-label"><span class="ht-label-full">Da aggiungere:</span><span class="ht-label-short">Da:</span></strong>
+                            <strong class="ht-suggestions-label"><span class="ht-label-full">Scelti:</span><span class="ht-label-short">Scelti:</span></strong>
                             <div class="ht-selected-list" role="group" aria-label="Hashtag da aggiungere"></div>
                             <button type="button" class="ht-overflow-button ht-selected-overflow" hidden aria-label="Mostra hashtag selezionati nascosti" aria-expanded="false" aria-controls="ht-suggestion-overflow"></button>
                             <label class="ht-token-entry">
@@ -1379,6 +1379,7 @@
             panel.hidden = false;
             input.setAttribute("aria-controls", panel.id);
             input.setAttribute("aria-expanded", "true");
+            this.positionSuggestionPopover(panel, input);
         }
 
         setTokenAutocompleteIndex(index) {
@@ -1683,6 +1684,33 @@
             });
         }
 
+        positionSuggestionPopover(popover, trigger) {
+            const container = this.suggestionBar?.querySelector(".ht-suggestions-panel");
+            if (!container || !popover || !trigger) return;
+
+            popover.style.removeProperty("left");
+            popover.style.removeProperty("right");
+            const containerRect = container.getBoundingClientRect();
+            const triggerRect = trigger.getBoundingClientRect();
+            const popoverWidth = popover.getBoundingClientRect().width;
+            const centered = triggerRect.left
+                - containerRect.left
+                + (triggerRect.width - popoverWidth) / 2;
+            const maximum = Math.max(0, containerRect.width - popoverWidth);
+            const left = Math.max(0, Math.min(centered, maximum));
+            const anchor = Math.max(
+                12,
+                Math.min(
+                    triggerRect.left - containerRect.left + triggerRect.width / 2 - left,
+                    popoverWidth - 12
+                )
+            );
+
+            popover.style.left = `${left}px`;
+            popover.style.right = "auto";
+            popover.style.setProperty("--ht-popover-anchor", `${anchor}px`);
+        }
+
         layoutSuggestionRow() {
             const line = this.suggestionBar?.querySelector(".ht-suggestions-line");
             const selectedButtons = [
@@ -1782,6 +1810,8 @@
             this.suggestionBar
                 ?.querySelector(triggerSelector)
                 ?.setAttribute("aria-expanded", "true");
+            const trigger = this.suggestionBar?.querySelector(triggerSelector);
+            this.positionSuggestionPopover(panel, trigger);
             panel.querySelector(".ht-overflow-item, .ht-overflow-close")?.focus();
         }
 
@@ -1812,6 +1842,7 @@
             this.closeTokenAutocomplete();
             hint.hidden = !willOpen;
             trigger.setAttribute("aria-expanded", String(willOpen));
+            if (willOpen) this.positionSuggestionPopover(hint, trigger);
         }
 
         closeColorHint(restoreFocus = false) {
@@ -2991,6 +3022,9 @@
                     border-radius: 999px !important;
                     background: rgba(127, 127, 127, .08) !important;
                 }
+                .ht-suggestions-row .ht-color-hint-toggle {
+                    margin-left: auto !important;
+                }
                 .ht-suggestions-row .ht-color-hint-toggle:hover,
                 .ht-suggestions-row .ht-color-hint-toggle:focus-visible,
                 .ht-suggestions-row .ht-overflow-button:hover,
@@ -3086,6 +3120,21 @@
                 .ht-suggestion-overflow-panel {
                     right: 0;
                     width: min(320px, 100%);
+                }
+                .ht-token-autocomplete::before,
+                .ht-color-hint::before,
+                .ht-suggestion-overflow-panel::before {
+                    content: "";
+                    position: absolute;
+                    top: -6px;
+                    left: var(--ht-popover-anchor, 50%);
+                    box-sizing: border-box;
+                    width: 11px;
+                    height: 11px;
+                    border-top: 1px solid rgba(127, 127, 127, .3);
+                    border-left: 1px solid rgba(127, 127, 127, .3);
+                    background: Canvas;
+                    transform: translateX(-50%) rotate(45deg);
                 }
                 .ht-token-autocomplete[hidden],
                 .ht-color-hint[hidden],
