@@ -4,7 +4,7 @@
     const scriptInfo = {
         sid: "local-hashtags-v1",
         name: "HashTags Local",
-        version: "1.5.0",
+        version: "1.5.1",
         settings: {
             blacklistSections: [],
             whitelistSections: [],
@@ -1063,6 +1063,7 @@
             this.lastEditorContent = null;
             this.replyForm = null;
             this.selectedSuggestions = new Map();
+            this.recoverableManualSuggestions = new Map();
             this.currentSuggestions = [];
             this.hiddenSelectedSuggestions = [];
             this.hiddenContextSuggestions = [];
@@ -1308,12 +1309,13 @@
                 return false;
             }
 
+            this.recoverableManualSuggestions.delete(key);
             this.selectedSuggestions.set(key, {
                 tag,
                 source: item?.source || "manual",
                 reason: item?.reason || "aggiunto manualmente",
                 count: Number(item?.count || 0),
-                origin: item ? "suggestion" : "manual"
+                origin: item?.origin || (item ? "suggestion" : "manual")
             });
             if (announce) this.announceSuggestionStatus(`${tag} aggiunto`);
             this.refreshSuggestions(true);
@@ -1322,8 +1324,23 @@
 
         removeSelectedHashtag(value) {
             const tag = canonicalTag(value);
-            if (!tag || !this.selectedSuggestions.delete(tag.toLowerCase())) return;
-            this.announceSuggestionStatus(`${tag} rimosso`);
+            const key = tag.toLowerCase();
+            const item = this.selectedSuggestions.get(key);
+            if (!tag || !item) return;
+
+            this.selectedSuggestions.delete(key);
+            if (item.origin === "manual") {
+                this.recoverableManualSuggestions.delete(key);
+                this.recoverableManualSuggestions.set(key, {
+                    ...item,
+                    source: "manual",
+                    reason: "Aggiunto manualmente e rimosso; premi per ripristinarlo",
+                    origin: "manual"
+                });
+                this.announceSuggestionStatus(`${tag} spostato tra i suggeriti`);
+            } else {
+                this.announceSuggestionStatus(`${tag} rimosso`);
+            }
             this.refreshSuggestions(true);
         }
 
@@ -1602,18 +1619,42 @@
             const insertedTags = new Set(
                 extractHashtags(htmlToText(content)).map((tag) => tag.toLowerCase())
             );
-            insertedTags.forEach((key) => this.selectedSuggestions.delete(key));
+            insertedTags.forEach((key) => {
+                this.selectedSuggestions.delete(key);
+                this.recoverableManualSuggestions.delete(key);
+            });
 
             const sectionId = Number(this.commons.location?.section?.id || 0);
             const dismissedTags = new Set(
                 this.preferences.getDismissed(sectionId).map((tag) => tag.toLowerCase())
             );
-            dismissedTags.forEach((key) => this.selectedSuggestions.delete(key));
+            dismissedTags.forEach((key) => {
+                this.selectedSuggestions.delete(key);
+                this.recoverableManualSuggestions.delete(key);
+            });
 
-            const currentSuggestions = this.buildSuggestions(content);
-            this.currentSuggestions = currentSuggestions.filter(
-                (item) => !this.selectedSuggestions.has(item.tag.toLowerCase())
+            const suggestionsByTag = new Map();
+            [...this.recoverableManualSuggestions.values()]
+                .reverse()
+                .forEach((item) => {
+                    const key = item.tag.toLowerCase();
+                    if (
+                        !this.selectedSuggestions.has(key)
+                        && !insertedTags.has(key)
+                        && !dismissedTags.has(key)
+                    ) suggestionsByTag.set(key, item);
+                });
+            this.buildSuggestions(content).forEach((item) => {
+                const key = item.tag.toLowerCase();
+                if (!this.selectedSuggestions.has(key) && !suggestionsByTag.has(key)) {
+                    suggestionsByTag.set(key, item);
+                }
+            });
+            const suggestionLimit = Math.max(
+                scriptInfo.settings.maxSuggestions,
+                this.recoverableManualSuggestions.size
             );
+            this.currentSuggestions = [...suggestionsByTag.values()].slice(0, suggestionLimit);
             const selectedList = this.suggestionBar.querySelector(".ht-selected-list");
             const suggestedList = this.suggestionBar.querySelector(".ht-suggestions-list");
             const status = this.suggestionBar.querySelector(".ht-suggestions-status");
@@ -1647,6 +1688,7 @@
                 button.dataset.source = item.source;
                 button.dataset.reason = item.reason;
                 button.dataset.count = String(item.count || 0);
+                button.dataset.origin = item.origin || "suggestion";
                 button.setAttribute("aria-haspopup", "menu");
                 button.setAttribute("aria-expanded", "false");
                 button.setAttribute(
@@ -1679,7 +1721,8 @@
             this.addSelectedHashtag(tag, {
                 source: button.dataset.source || "text",
                 reason: button.dataset.reason || "suggerito dal contesto",
-                count: Number(button.dataset.count || 0)
+                count: Number(button.dataset.count || 0),
+                origin: button.dataset.origin || "suggestion"
             });
         }
 
@@ -1844,6 +1887,7 @@
                 button.dataset.source = item?.source || "manual";
                 button.dataset.reason = item?.reason || "";
                 button.dataset.count = String(item?.count || 0);
+                button.dataset.origin = item?.origin || "suggestion";
                 label.textContent = tag;
                 action.textContent = type === "selected" ? "×" : "+";
                 action.setAttribute("aria-hidden", "true");
@@ -1971,6 +2015,7 @@
 
             this.preferences.dismiss(sectionId, canonical);
             this.selectedSuggestions.delete(canonical.toLowerCase());
+            this.recoverableManualSuggestions.delete(canonical.toLowerCase());
             this.closeSuggestionMenu();
             this.refreshSuggestions(true);
 
@@ -2770,7 +2815,8 @@
                     this.addSelectedHashtag(overflowItem.dataset.hashtag, {
                         source: overflowItem.dataset.source || "text",
                         reason: overflowItem.dataset.reason || "suggerito dal contesto",
-                        count: Number(overflowItem.dataset.count || 0)
+                        count: Number(overflowItem.dataset.count || 0),
+                        origin: overflowItem.dataset.origin || "suggestion"
                     });
                 }
                 this.closeSuggestionOverflow();
