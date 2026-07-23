@@ -4,7 +4,7 @@
     const scriptInfo = {
         sid: "local-hashtags-v1",
         name: "HashTags Local",
-        version: "1.2.0",
+        version: "1.3.0",
         settings: {
             blacklistSections: [],
             whitelistSections: [],
@@ -12,6 +12,8 @@
             maxSuggestions: 8,
             suggestionDebounce: 250,
             editorPollInterval: 750,
+            autocompleteMinLength: 2,
+            autocompleteMaxResults: 5,
             aliasGroups: [
                 { canonical: "#IntelligenzaArtificiale", aliases: ["#AI"] },
                 { canonical: "#Cybersecurity", aliases: ["#Cyber"] },
@@ -570,11 +572,490 @@
         }
     }
 
+    class CompactHashtagAutocomplete {
+        constructor(app) {
+            this.app = app;
+            this.container = null;
+            this.root = null;
+            this.list = null;
+            this.queryLabel = null;
+            this.editors = new Map();
+            this.observer = null;
+            this.retryTimer = null;
+            this.editor = null;
+            this.token = null;
+            this.results = [];
+            this.activeIndex = 0;
+            this.composing = false;
+            this.handlePointerDown = this.handlePointerDown.bind(this);
+            this.handlePointerMove = this.handlePointerMove.bind(this);
+        }
+
+        start(attempt = 0) {
+            const container = document.querySelector("li.st-editor-container");
+            if (!container) {
+                if (attempt < 40) {
+                    this.retryTimer = setTimeout(() => this.start(attempt + 1), 150);
+                }
+                return;
+            }
+
+            this.container = container;
+            this.syncEditors();
+            if (!this.observer) {
+                this.observer = new MutationObserver(() => this.syncEditors());
+                this.observer.observe(container, { childList: true, subtree: true });
+            }
+        }
+
+        destroy() {
+            clearTimeout(this.retryTimer);
+            this.observer?.disconnect();
+            this.editors.forEach((handlers, editor) => {
+                Object.entries(handlers).forEach(([type, handler]) => {
+                    editor.removeEventListener(type, handler);
+                });
+            });
+            this.editors.clear();
+            this.root?.removeEventListener("pointerdown", this.handlePointerDown);
+            this.root?.removeEventListener("pointermove", this.handlePointerMove);
+            this.root?.remove();
+            this.root = null;
+            this.editor = null;
+            this.token = null;
+            this.results = [];
+        }
+
+        syncEditors() {
+            if (!this.container?.isConnected) return;
+
+            [...this.editors.keys()].forEach((editor) => {
+                if (editor.isConnected) return;
+                const handlers = this.editors.get(editor);
+                Object.entries(handlers).forEach(([type, handler]) => {
+                    editor.removeEventListener(type, handler);
+                });
+                this.editors.delete(editor);
+            });
+
+            const candidates = this.container.querySelectorAll([
+                "textarea#Post",
+                "#st-visual-editor [contenteditable='true'][role='textbox']",
+                "#st-visual-editor .ProseMirror[contenteditable='true']",
+                ".ve-content [contenteditable='true'][role='textbox']"
+            ].join(","));
+
+            [...new Set(candidates)].forEach((editor) => this.bindEditor(editor));
+        }
+
+        bindEditor(editor) {
+            if (this.editors.has(editor)) return;
+
+            if (!editor.id) {
+                editor.id = `ht-autocomplete-editor-${this.editors.size + 1}`;
+            }
+
+            editor.setAttribute("aria-autocomplete", "list");
+            editor.setAttribute("aria-expanded", "false");
+
+            const handlers = {
+                input: () => {
+                    if (!this.composing) this.update(editor);
+                },
+                click: () => this.update(editor),
+                keyup: (event) => {
+                    if (!["ArrowUp", "ArrowDown", "Enter", "Tab", "Escape"].includes(event.key)) {
+                        this.update(editor);
+                    }
+                },
+                keydown: (event) => this.handleEditorKeydown(event, editor),
+                compositionstart: () => {
+                    this.composing = true;
+                },
+                compositionend: () => {
+                    this.composing = false;
+                    this.update(editor);
+                },
+                blur: () => {
+                    setTimeout(() => {
+                        if (this.editor !== editor) return;
+                        if (!this.editors.has(document.activeElement)) this.close();
+                    }, 80);
+                }
+            };
+
+            Object.entries(handlers).forEach(([type, handler]) => {
+                editor.addEventListener(type, handler);
+            });
+            this.editors.set(editor, handlers);
+        }
+
+        ensureRoot() {
+            if (this.root?.isConnected) return this.root;
+
+            const root = document.createElement("div");
+            root.id = "ht-autocomplete";
+            root.className = "ht-autocomplete";
+            root.hidden = true;
+            root.setAttribute("role", "listbox");
+            root.setAttribute("aria-label", "Suggerimenti hashtag");
+            root.innerHTML = `
+                <div class="ht-autocomplete-head">
+                    <strong>Completa hashtag</strong>
+                    <span class="ht-autocomplete-query"></span>
+                </div>
+                <div class="ht-autocomplete-list"></div>
+                <div class="ht-autocomplete-help">
+                    <span>↑↓ per scegliere</span>
+                    <span>Invio per inserire</span>
+                    <span>Esc per chiudere</span>
+                </div>
+            `;
+            root.addEventListener("pointerdown", this.handlePointerDown);
+            root.addEventListener("pointermove", this.handlePointerMove);
+            document.body.appendChild(root);
+
+            this.root = root;
+            this.list = root.querySelector(".ht-autocomplete-list");
+            this.queryLabel = root.querySelector(".ht-autocomplete-query");
+            return root;
+        }
+
+        getToken(editor) {
+            if (editor instanceof HTMLTextAreaElement) {
+                const caret = editor.selectionStart;
+                if (caret !== editor.selectionEnd) return null;
+                const before = editor.value.slice(0, caret);
+                const match = before.match(/(?:^|\s)#([\p{L}\p{N}_+-]*)$/u);
+                if (!match) return null;
+                return {
+                    query: match[1],
+                    start: caret - match[1].length - 1,
+                    end: caret
+                };
+            }
+
+            if (!editor.matches("[contenteditable='true']")) return null;
+            const selection = window.getSelection();
+            if (!selection?.rangeCount || !selection.isCollapsed) return null;
+            const selectionRange = selection.getRangeAt(0);
+            if (!editor.contains(selectionRange.startContainer)) return null;
+            if (selectionRange.startContainer.nodeType !== Node.TEXT_NODE) return null;
+            if (selectionRange.startContainer.parentElement?.closest("a, code, pre")) return null;
+
+            const node = selectionRange.startContainer;
+            const offset = selectionRange.startOffset;
+            const before = node.nodeValue.slice(0, offset);
+            const match = before.match(/(?:^|\s)#([\p{L}\p{N}_+-]*)$/u);
+            if (!match) return null;
+
+            const range = document.createRange();
+            range.setStart(node, offset - match[1].length - 1);
+            range.setEnd(node, offset);
+            return { query: match[1], range };
+        }
+
+        update(editor) {
+            const token = this.getToken(editor);
+            if (!token) {
+                this.close();
+                return;
+            }
+
+            this.editor = editor;
+            this.token = token;
+            this.activeIndex = 0;
+            const minLength = scriptInfo.settings.autocompleteMinLength;
+            this.results = token.query.length >= minLength
+                ? this.app.index.listHashtags(`#${token.query}`)
+                    .slice(0, scriptInfo.settings.autocompleteMaxResults)
+                : [];
+            this.render();
+        }
+
+        render() {
+            const root = this.ensureRoot();
+            const minLength = scriptInfo.settings.autocompleteMinLength;
+            this.list.replaceChildren();
+            this.queryLabel.textContent = `#${this.token.query}`;
+
+            if (this.token.query.length < minLength) {
+                const hint = document.createElement("span");
+                hint.className = "ht-autocomplete-message";
+                hint.textContent = `Digita almeno ${minLength} caratteri…`;
+                this.list.appendChild(hint);
+            } else if (!this.results.length) {
+                const empty = document.createElement("span");
+                empty.className = "ht-autocomplete-message";
+                empty.textContent = "Nessun hashtag trovato";
+                this.list.appendChild(empty);
+            } else {
+                this.results.forEach((item, index) => {
+                    const button = document.createElement("button");
+                    const tag = document.createElement("span");
+                    const count = document.createElement("span");
+                    button.type = "button";
+                    button.id = `ht-autocomplete-option-${index}`;
+                    button.className = "ht-autocomplete-option";
+                    button.dataset.index = String(index);
+                    button.setAttribute("role", "option");
+                    button.setAttribute("aria-selected", String(index === this.activeIndex));
+                    tag.className = "ht-autocomplete-tag";
+                    tag.textContent = item.tag;
+                    count.className = "ht-autocomplete-count";
+                    count.textContent = `${item.count} ${item.count === 1 ? "uso" : "usi"}`;
+                    button.append(tag, count);
+                    this.list.appendChild(button);
+                });
+            }
+
+            root.hidden = false;
+            this.editor.setAttribute("aria-controls", root.id);
+            this.editor.setAttribute("aria-expanded", "true");
+            this.updateActiveDescendant();
+            this.position();
+        }
+
+        setActive(index) {
+            if (!this.results.length) return;
+            this.activeIndex = (index + this.results.length) % this.results.length;
+            this.list.querySelectorAll(".ht-autocomplete-option").forEach((button, itemIndex) => {
+                button.setAttribute("aria-selected", String(itemIndex === this.activeIndex));
+            });
+            this.updateActiveDescendant();
+            this.list.querySelector(`[data-index="${this.activeIndex}"]`)?.scrollIntoView({
+                block: "nearest"
+            });
+        }
+
+        updateActiveDescendant() {
+            if (!this.editor) return;
+            if (this.results[this.activeIndex]) {
+                this.editor.setAttribute("aria-activedescendant", `ht-autocomplete-option-${this.activeIndex}`);
+            } else {
+                this.editor.removeAttribute("aria-activedescendant");
+            }
+        }
+
+        handleEditorKeydown(event, editor) {
+            if (this.root?.hidden || editor !== this.editor) return;
+
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                this.setActive(this.activeIndex + 1);
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                this.setActive(this.activeIndex - 1);
+            } else if ((event.key === "Enter" || event.key === "Tab") && this.results[this.activeIndex]) {
+                event.preventDefault();
+                this.commit(this.results[this.activeIndex]);
+            } else if (event.key === "Escape") {
+                event.preventDefault();
+                this.close();
+            }
+        }
+
+        handlePointerDown(event) {
+            const option = event.target instanceof Element
+                ? event.target.closest(".ht-autocomplete-option")
+                : null;
+            if (!option) return;
+            event.preventDefault();
+            const item = this.results[Number(option.dataset.index)];
+            if (item) this.commit(item);
+        }
+
+        handlePointerMove(event) {
+            const option = event.target instanceof Element
+                ? event.target.closest(".ht-autocomplete-option")
+                : null;
+            if (option) this.setActive(Number(option.dataset.index));
+        }
+
+        commit(item) {
+            if (!this.editor || !this.token) return;
+            const replacement = `${canonicalTag(item.tag)} `;
+
+            if (this.editor instanceof HTMLTextAreaElement) {
+                const before = this.editor.value.slice(0, this.token.start);
+                const after = this.editor.value.slice(this.token.end);
+                const caret = before.length + replacement.length;
+                this.editor.value = `${before}${replacement}${after}`;
+                this.editor.focus();
+                this.editor.setSelectionRange(caret, caret);
+                this.editor.dispatchEvent(new InputEvent("input", {
+                    bubbles: true,
+                    inputType: "insertText",
+                    data: replacement
+                }));
+            } else {
+                this.insertIntoContenteditable(replacement);
+            }
+
+            this.close();
+            this.app.lastEditorContent = null;
+            this.app.refreshSuggestions(true);
+        }
+
+        insertIntoContenteditable(replacement) {
+            const editor = this.editor;
+            const range = this.token.range?.cloneRange();
+            if (!range) return;
+
+            editor.focus();
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            let inserted = false;
+            try {
+                inserted = document.execCommand("insertText", false, replacement);
+            } catch {
+                inserted = false;
+            }
+
+            if (inserted) return;
+
+            range.deleteContents();
+            const text = document.createTextNode(replacement);
+            range.insertNode(text);
+            range.setStartAfter(text);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            editor.dispatchEvent(new InputEvent("input", {
+                bubbles: true,
+                inputType: "insertText",
+                data: replacement
+            }));
+        }
+
+        close() {
+            if (this.editor) {
+                this.editor.setAttribute("aria-expanded", "false");
+                this.editor.removeAttribute("aria-controls");
+                this.editor.removeAttribute("aria-activedescendant");
+            }
+            if (this.root) this.root.hidden = true;
+            this.editor = null;
+            this.token = null;
+            this.results = [];
+            this.activeIndex = 0;
+        }
+
+        reposition() {
+            if (this.root && !this.root.hidden && this.editor) this.position();
+        }
+
+        position() {
+            if (!this.root || !this.editor) return;
+            const caret = this.caretRect(this.editor);
+            const viewportPadding = 8;
+            const width = Math.min(320, Math.max(220, window.innerWidth - viewportPadding * 2));
+            const background = this.findBackground(this.editor);
+            const editorStyle = getComputedStyle(this.editor);
+
+            this.root.style.width = `${width}px`;
+            this.root.style.backgroundColor = background;
+            this.root.style.color = editorStyle.color;
+
+            const height = this.root.offsetHeight;
+            const left = Math.max(
+                viewportPadding,
+                Math.min(caret.left, window.innerWidth - width - viewportPadding)
+            );
+            let top = caret.bottom + 6;
+            if (top + height > window.innerHeight - viewportPadding) {
+                top = Math.max(viewportPadding, caret.top - height - 6);
+            }
+
+            this.root.style.left = `${Math.round(left)}px`;
+            this.root.style.top = `${Math.round(top)}px`;
+        }
+
+        caretRect(editor) {
+            if (editor instanceof HTMLTextAreaElement) return this.textareaCaretRect(editor);
+
+            const selection = window.getSelection();
+            if (selection?.rangeCount && editor.contains(selection.anchorNode)) {
+                const range = selection.getRangeAt(0).cloneRange();
+                const rects = range.getClientRects();
+                const rect = rects.length ? rects[rects.length - 1] : range.getBoundingClientRect();
+                if (rect.width || rect.height) {
+                    return {
+                        left: rect.left,
+                        top: rect.top,
+                        right: rect.right,
+                        bottom: rect.bottom
+                    };
+                }
+            }
+
+            const fallback = editor.getBoundingClientRect();
+            return {
+                left: fallback.left + 10,
+                top: fallback.top + 10,
+                right: fallback.left + 10,
+                bottom: fallback.top + 30
+            };
+        }
+
+        textareaCaretRect(editor) {
+            const mirror = document.createElement("div");
+            const marker = document.createElement("span");
+            const style = getComputedStyle(editor);
+            const properties = [
+                "fontFamily", "fontSize", "fontStyle", "fontWeight", "letterSpacing", "lineHeight",
+                "textTransform", "wordSpacing", "tabSize", "paddingTop", "paddingRight",
+                "paddingBottom", "paddingLeft", "borderTopWidth", "borderRightWidth",
+                "borderBottomWidth", "borderLeftWidth"
+            ];
+
+            mirror.style.position = "absolute";
+            mirror.style.top = "0";
+            mirror.style.left = "0";
+            mirror.style.visibility = "hidden";
+            mirror.style.whiteSpace = "pre-wrap";
+            mirror.style.overflowWrap = "break-word";
+            mirror.style.boxSizing = style.boxSizing;
+            mirror.style.width = `${editor.offsetWidth}px`;
+            properties.forEach((property) => {
+                mirror.style[property] = style[property];
+            });
+            mirror.textContent = editor.value.slice(0, editor.selectionStart);
+            marker.textContent = ".";
+            mirror.appendChild(marker);
+            document.body.appendChild(mirror);
+
+            const editorRect = editor.getBoundingClientRect();
+            const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.2;
+            const left = editorRect.left + marker.offsetLeft - editor.scrollLeft;
+            const top = editorRect.top + marker.offsetTop - editor.scrollTop;
+            mirror.remove();
+            return { left, top, right: left + 1, bottom: top + lineHeight };
+        }
+
+        findBackground(element) {
+            let current = element;
+            while (current instanceof Element) {
+                const color = getComputedStyle(current).backgroundColor;
+                const match = color.match(/rgba?\(([^)]+)\)/);
+                if (match) {
+                    const parts = match[1].split(",").map((part) => Number.parseFloat(part.trim()));
+                    if (parts.length < 4 || parts[3] > 0) return color;
+                }
+                current = current.parentElement;
+            }
+            return "Canvas";
+        }
+    }
+
     class HashtagApp {
         constructor(commons) {
             this.commons = commons;
             this.index = new LocalHashtagIndex(commons);
             this.preferences = new LocalHashtagPreferences(commons);
+            this.autocomplete = new CompactHashtagAutocomplete(this);
             this.modal = null;
             this.editorRow = null;
             this.suggestionBar = null;
@@ -602,6 +1083,7 @@
             this.handleWindowViewportChange = () => {
                 this.cancelLongPress();
                 this.closeSuggestionMenu();
+                this.autocomplete.reposition();
             };
         }
 
@@ -646,6 +1128,7 @@
             window.removeEventListener("scroll", this.handleWindowViewportChange, true);
             this.replyForm?.removeEventListener("submit", this.handleReplySubmit, true);
             this.suggestionMenu?.remove();
+            this.autocomplete.destroy();
         }
 
         isSectionAllowed(sectionId) {
@@ -1134,26 +1617,7 @@
         }
 
         addAutocomplete() {
-            const autocomplete = this.commons.tooltip?.autocomplete;
-            const textarea = document.querySelector("textarea#Post");
-            if (typeof autocomplete !== "function" || !textarea) return;
-
-            autocomplete(textarea, {
-                char: "#",
-                searchOptions: {
-                    queryMinLength: 2,
-                    allowSpaces: false,
-                    caseSensitive: false,
-                    exitOnEmpty: true
-                },
-                search: async ({ query }) => this.index.listHashtags(`#${query}`).map((item) => ({
-                    id: item.tag.slice(1),
-                    label: `${item.tag} (${item.count})`
-                })),
-                templates: {
-                    queryTooShort: "Digita almeno 2 caratteri..."
-                }
-            });
+            this.autocomplete.start();
         }
 
         applyPostEntities() {
@@ -2069,6 +2533,87 @@
                 }
                 .ht-suggestion-menu button:hover,
                 .ht-suggestion-menu button:focus { background: rgba(127, 127, 127, .14); }
+                .ht-autocomplete {
+                    position: fixed !important;
+                    z-index: 2147483000 !important;
+                    display: grid !important;
+                    box-sizing: border-box !important;
+                    max-width: calc(100vw - 16px) !important;
+                    margin: 0 !important;
+                    padding: 8px !important;
+                    gap: 7px !important;
+                    border: 1px solid rgba(127, 127, 127, .3) !important;
+                    border-radius: 8px !important;
+                    background: Canvas;
+                    color: CanvasText;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, .18) !important;
+                    text-align: left !important;
+                    font: inherit !important;
+                }
+                .ht-autocomplete[hidden] { display: none !important; }
+                .ht-autocomplete-head {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    min-width: 0 !important;
+                    gap: 8px !important;
+                }
+                .ht-autocomplete-query,
+                .ht-autocomplete-count,
+                .ht-autocomplete-help,
+                .ht-autocomplete-message { opacity: .72; }
+                .ht-autocomplete-list {
+                    display: grid !important;
+                    max-height: 240px !important;
+                    gap: 3px !important;
+                    overflow-y: auto !important;
+                }
+                .ht-autocomplete-option {
+                    appearance: none !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    box-sizing: border-box !important;
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 7px 8px !important;
+                    gap: 10px !important;
+                    border: 0 !important;
+                    border-radius: 6px !important;
+                    background: transparent !important;
+                    color: inherit !important;
+                    text-align: left !important;
+                    font: inherit !important;
+                    cursor: pointer !important;
+                    box-shadow: none !important;
+                }
+                .ht-autocomplete-option:hover,
+                .ht-autocomplete-option:focus-visible,
+                .ht-autocomplete-option[aria-selected="true"] {
+                    background: rgba(74, 144, 226, .16) !important;
+                }
+                .ht-autocomplete-tag {
+                    min-width: 0 !important;
+                    overflow-wrap: anywhere !important;
+                }
+                .ht-autocomplete-count {
+                    flex: 0 0 auto !important;
+                    white-space: nowrap !important;
+                    font-size: .84em !important;
+                }
+                .ht-autocomplete-message {
+                    display: block !important;
+                    padding: 7px 8px !important;
+                }
+                .ht-autocomplete-help {
+                    display: flex !important;
+                    align-items: center !important;
+                    flex-wrap: wrap !important;
+                    padding-top: 6px !important;
+                    gap: 4px 10px !important;
+                    border-top: 1px solid rgba(127, 127, 127, .2) !important;
+                    font-size: .8em !important;
+                }
                 .ht-sr-only {
                     position: absolute !important;
                     width: 1px !important;
