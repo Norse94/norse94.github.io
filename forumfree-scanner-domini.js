@@ -128,6 +128,28 @@
     return numberOfNewMessages === 0 ? previousCount + 1 : 0;
   }
 
+  function resultTimestamp(result) {
+    const timestamp = Date.parse(result && result.date ? result.date : '');
+    return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+  }
+
+  function localDateStartTimestamp(dateValue) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateValue || ''));
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day, 0, 0, 0, 0);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+    return date.getTime();
+  }
+
+  function filterResultsFromDate(results, dateValue) {
+    const minimumTimestamp = localDateStartTimestamp(dateValue);
+    if (minimumTimestamp == null) return results.slice();
+    return results.filter((result) => resultTimestamp(result) >= minimumTimestamp);
+  }
+
   if (ROOT.__FFDS_TEST_MODE__) {
     ROOT.__FFDS_TEST_API__ = Object.freeze({
       pageToOffset,
@@ -140,6 +162,10 @@
       makeBatchOffsets,
       collectUnseenMessages,
       advanceDuplicateCount,
+      resultTimestamp,
+      localDateStartTimestamp,
+      filterResultsFromDate,
+      sortResults,
       config: CONFIG
     });
     return;
@@ -294,7 +320,7 @@
         .field { display: grid; gap: 6px; min-width: 0; }
         .field.full { grid-column: 1 / -1; }
         label { font-weight: 700; color: #2c3d54; }
-        input[type='number'], input[type='file'] {
+        input[type='number'], input[type='file'], input[type='date'] {
           width: 100%; min-height: 42px; border: 1px solid #b9c5d4; border-radius: 8px;
           padding: 9px 11px; background: #fff; color: #182437;
         }
@@ -323,6 +349,10 @@
         .saved-actions { display: flex; flex-wrap: wrap; align-content: center; justify-content: flex-end; gap: 6px; }
         .saved-actions .btn { padding: 6px 9px; font-size: 12px; }
         .empty { color: #6a788c; font-style: italic; }
+        .result-filter { display: flex; flex-wrap: wrap; gap: 9px; align-items: end; margin-bottom: 14px; }
+        .result-filter .filter-field { display: grid; gap: 5px; min-width: 210px; }
+        .result-filter input { min-height: 38px; }
+        .filter-summary { color: #627087; font-size: 12px; align-self: center; }
         .result-top { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
         .counter { font-weight: 800; color: #173b6c; }
         .post-meta { margin-top: 6px; color: #5c6d83; }
@@ -392,6 +422,14 @@
 
             <section class="card">
               <h3>Risultati</h3>
+              <div class="result-filter">
+                <div class="filter-field">
+                  <label for="resultFromDate">Mostra risultati dal (incluso)</label>
+                  <input id="resultFromDate" type="date">
+                </div>
+                <button id="clearResultDate" class="btn" type="button">Azzera data</button>
+                <span id="resultFilterSummary" class="filter-summary"></span>
+              </div>
               <div id="resultEmpty" class="empty">Nessun risultato selezionato.</div>
               <div id="resultCard" class="hidden">
                 <div class="result-top">
@@ -591,7 +629,22 @@
   }
 
   function sortResults(results) {
-    results.sort((a, b) => a.offset - b.offset || a.positionInPage - b.positionInPage || String(a.postId).localeCompare(String(b.postId)));
+    results.sort((a, b) => {
+      const aTimestamp = resultTimestamp(a);
+      const bTimestamp = resultTimestamp(b);
+      if (aTimestamp !== bTimestamp) {
+        if (aTimestamp === Number.NEGATIVE_INFINITY) return 1;
+        if (bTimestamp === Number.NEGATIVE_INFINITY) return -1;
+        return bTimestamp - aTimestamp;
+      }
+      return b.offset - a.offset || b.positionInPage - a.positionInPage || String(b.postId).localeCompare(String(a.postId));
+    });
+  }
+
+  function getVisibleResults() {
+    const record = state.currentRecord;
+    const results = record && Array.isArray(record.results) ? record.results : [];
+    return filterResultsFromDate(results, element('resultFromDate').value);
   }
 
   function showRecord(record) {
@@ -1007,9 +1060,14 @@
     const empty = element('resultEmpty');
     const card = element('resultCard');
     const record = state.currentRecord;
-    const results = record && Array.isArray(record.results) ? record.results : [];
+    const allResults = record && Array.isArray(record.results) ? record.results : [];
+    const results = getVisibleResults();
+    const fromDate = element('resultFromDate').value;
+    element('resultFilterSummary').textContent = fromDate && record ? `${formatInteger(results.length)} di ${formatInteger(allResults.length)} risultati visibili` : '';
     if (!results.length) {
-      empty.textContent = record ? 'La scansione selezionata non contiene ancora post positivi.' : 'Nessun risultato selezionato.';
+      if (!record) empty.textContent = 'Nessun risultato selezionato.';
+      else if (fromDate && allResults.length) empty.textContent = `Nessun risultato dalla data ${fromDate} in avanti.`;
+      else empty.textContent = 'La scansione selezionata non contiene ancora post positivi.';
       empty.classList.remove('hidden');
       card.classList.add('hidden');
       return;
@@ -1019,7 +1077,7 @@
     const result = results[state.resultIndex];
     empty.classList.add('hidden');
     card.classList.remove('hidden');
-    element('resultCounter').textContent = `Risultato ${formatInteger(state.resultIndex + 1)} di ${formatInteger(results.length)}`;
+    element('resultCounter').textContent = `Risultato ${formatInteger(state.resultIndex + 1)} di ${formatInteger(results.length)}${results.length !== allResults.length ? ` (${formatInteger(allResults.length)} totali)` : ''}`;
     element('resultMeta').textContent = `Pagina ${formatInteger(result.page)} · offset ${formatInteger(result.offset)} · post ${result.postId} · ${result.author} · ${formatDate(result.date)}`;
     element('resultExcerpt').textContent = result.excerpt || '(Post senza testo visibile)';
 
@@ -1050,14 +1108,16 @@
   }
 
   function changeResult(delta) {
-    if (!state.currentRecord || !state.currentRecord.results.length) return;
+    const results = getVisibleResults();
+    if (!results.length) return;
     state.resultIndex += delta;
     renderResult();
   }
 
   function openCurrentPost() {
-    if (!state.currentRecord || !state.currentRecord.results.length) return;
-    const result = state.currentRecord.results[state.resultIndex];
+    const results = getVisibleResults();
+    if (!state.currentRecord || !results.length) return;
+    const result = results[state.resultIndex];
     const url = `https://difesa.forumfree.it/?t=${encodeURIComponent(state.currentRecord.topicId)}&st=${encodeURIComponent(result.offset)}#entry${encodeURIComponent(result.postId)}`;
     ROOT.open(url, '_blank', 'noopener,noreferrer');
   }
@@ -1080,6 +1140,15 @@
     element('previousResult').addEventListener('click', () => changeResult(-1));
     element('nextResult').addEventListener('click', () => changeResult(1));
     element('openPost').addEventListener('click', openCurrentPost);
+    element('resultFromDate').addEventListener('input', () => {
+      state.resultIndex = 0;
+      renderResult();
+    });
+    element('clearResultDate').addEventListener('click', () => {
+      element('resultFromDate').value = '';
+      state.resultIndex = 0;
+      renderResult();
+    });
   }
 
   async function initialize() {
