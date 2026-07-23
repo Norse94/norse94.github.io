@@ -4,7 +4,7 @@
     const scriptInfo = {
         sid: "local-hashtags-v1",
         name: "HashTags Local",
-        version: "1.3.0",
+        version: "1.4.0",
         settings: {
             blacklistSections: [],
             whitelistSections: [],
@@ -1063,6 +1063,13 @@
             this.lastEditorContent = null;
             this.replyForm = null;
             this.selectedSuggestions = new Map();
+            this.currentSuggestions = [];
+            this.hiddenSelectedSuggestions = [];
+            this.hiddenContextSuggestions = [];
+            this.tokenAutocompleteResults = [];
+            this.tokenAutocompleteIndex = 0;
+            this.suggestionResizeObserver = null;
+            this.suggestionBarControlsBound = false;
             this.suggestionMenu = null;
             this.suggestionMenuTrigger = null;
             this.longPressTimer = null;
@@ -1083,7 +1090,10 @@
             this.handleWindowViewportChange = () => {
                 this.cancelLongPress();
                 this.closeSuggestionMenu();
+                this.closeColorHint();
+                this.closeSuggestionOverflow();
                 this.autocomplete.reposition();
+                this.layoutSuggestionRow();
             };
         }
 
@@ -1127,6 +1137,7 @@
             window.removeEventListener("resize", this.handleWindowViewportChange);
             window.removeEventListener("scroll", this.handleWindowViewportChange, true);
             this.replyForm?.removeEventListener("submit", this.handleReplySubmit, true);
+            this.suggestionResizeObserver?.disconnect();
             this.suggestionMenu?.remove();
             this.autocomplete.destroy();
         }
@@ -1154,8 +1165,13 @@
             const textarea = document.querySelector("textarea#Post");
             const existing = document.getElementById(BAR_ID);
             if (existing) {
+                if (!existing.querySelector(".ht-token-input")) {
+                    existing.remove();
+                    return this.mountSuggestions();
+                }
                 this.suggestionBar = existing;
                 this.bindReplySubmit(textarea);
+                this.bindSuggestionBarControls();
                 return true;
             }
 
@@ -1170,16 +1186,51 @@
             row.hidden = true;
             row.innerHTML = `
                 <div class="ht-suggestions-panel">
-                    <div class="ht-suggestions-header">
-                        <strong class="ht-suggestions-label">Hashtag suggeriti:</strong>
-                        <button type="button" class="ht-open-search" aria-label="Cerca hashtag" title="Cerca hashtag">
+                    <div class="ht-suggestions-line">
+                        <div class="ht-suggestion-group ht-selected-group">
+                            <strong class="ht-suggestions-label"><span class="ht-label-full">Da aggiungere:</span><span class="ht-label-short">Da:</span></strong>
+                            <div class="ht-selected-list" role="group" aria-label="Hashtag da aggiungere"></div>
+                            <button type="button" class="ht-overflow-button ht-selected-overflow" hidden aria-label="Mostra hashtag selezionati nascosti" aria-expanded="false" aria-controls="ht-suggestion-overflow"></button>
+                            <label class="ht-token-entry">
+                                <span class="ht-sr-only">Aggiungi hashtag</span>
+                                <input type="text" class="ht-token-input" placeholder="+ Aggiungi hashtag" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-expanded="false">
+                            </label>
+                        </div>
+                        <span class="ht-group-divider" aria-hidden="true"></span>
+                        <div class="ht-suggestion-group ht-context-group">
+                            <strong class="ht-suggestions-label"><span class="ht-label-full">Suggeriti:</span><span class="ht-label-short">Sug.:</span></strong>
+                            <div class="ht-suggestions-list" role="group" aria-label="Hashtag suggeriti" aria-live="polite"></div>
+                            <button type="button" class="ht-overflow-button ht-suggested-overflow" hidden aria-label="Mostra hashtag suggeriti nascosti" aria-expanded="false" aria-controls="ht-suggestion-overflow"></button>
+                        </div>
+                        <button type="button" class="ht-color-hint-toggle" aria-label="Spiega i colori dei pallini" aria-expanded="false" aria-controls="ht-color-hint" title="Significato dei colori">
                             <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false">
-                                <circle cx="11" cy="11" r="7"></circle>
-                                <path d="m20 20-4.35-4.35"></path>
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 11v6"></path>
+                                <path d="M12 7h.01"></path>
                             </svg>
                         </button>
                     </div>
-                    <div class="ht-suggestions-list" role="group" aria-label="Hashtag suggeriti" aria-live="polite"></div>
+                    <div id="ht-token-autocomplete" class="ht-token-autocomplete" role="listbox" aria-label="Completa hashtag" hidden>
+                        <div class="ht-token-autocomplete-list"></div>
+                        <span class="ht-token-autocomplete-message"></span>
+                    </div>
+                    <div id="ht-color-hint" class="ht-color-hint" role="dialog" aria-label="Significato dei colori dei pallini" hidden>
+                        <strong>Origine del suggerimento</strong>
+                        <div class="ht-color-hint-grid">
+                            <span><i class="ht-source-dot ht-source-text" aria-hidden="true"></i>Testo del post</span>
+                            <span><i class="ht-source-dot ht-source-link" aria-hidden="true"></i>Link inseriti</span>
+                            <span><i class="ht-source-dot ht-source-topic" aria-hidden="true"></i>Topic corrente</span>
+                            <span><i class="ht-source-dot ht-source-section" aria-hidden="true"></i>Sezione corrente</span>
+                            <span><i class="ht-source-dot ht-source-manual" aria-hidden="true"></i>Aggiunto manualmente</span>
+                        </div>
+                    </div>
+                    <div id="ht-suggestion-overflow" class="ht-suggestion-overflow-panel" role="dialog" aria-label="Hashtag nascosti" hidden>
+                        <div class="ht-overflow-panel-head">
+                            <strong class="ht-overflow-panel-title"></strong>
+                            <button type="button" class="ht-overflow-close" aria-label="Chiudi">×</button>
+                        </div>
+                        <div class="ht-overflow-items"></div>
+                    </div>
                     <span class="ht-suggestions-status ht-sr-only" aria-live="polite"></span>
                 </div>
             `;
@@ -1191,6 +1242,7 @@
             this.editorRow = editorRow;
             this.suggestionBar = row;
             this.bindReplySubmit(textarea);
+            this.bindSuggestionBarControls();
             editorRow.addEventListener("input", this.refreshSuggestionsDebounced, true);
             editorRow.addEventListener("keyup", this.refreshSuggestionsDebounced, true);
 
@@ -1201,6 +1253,221 @@
 
             this.refreshSuggestions(true);
             return true;
+        }
+
+        bindSuggestionBarControls() {
+            if (!this.suggestionBar || this.suggestionBarControlsBound) return;
+
+            const input = this.suggestionBar.querySelector(".ht-token-input");
+            if (!input) return;
+
+            input.addEventListener("input", () => this.renderTokenAutocomplete());
+            input.addEventListener("paste", (event) => this.handleTokenPaste(event));
+            input.addEventListener("keydown", (event) => this.handleTokenKeydown(event));
+            input.addEventListener("blur", () => {
+                setTimeout(() => {
+                    if (!this.suggestionBar?.contains(document.activeElement)) {
+                        this.closeTokenAutocomplete();
+                    }
+                }, 80);
+            });
+
+            const line = this.suggestionBar.querySelector(".ht-suggestions-line");
+            if (line && typeof ResizeObserver === "function") {
+                this.suggestionResizeObserver = new ResizeObserver(() => this.layoutSuggestionRow());
+                this.suggestionResizeObserver.observe(line);
+            }
+
+            this.suggestionBarControlsBound = true;
+        }
+
+        getTokenInput() {
+            return this.suggestionBar?.querySelector(".ht-token-input") || null;
+        }
+
+        isValidHashtag(tag) {
+            return /^#(?!\d+\b)[\p{L}][\p{L}\p{N}_+-]*$/u.test(tag);
+        }
+
+        addSelectedHashtag(value, item = null, announce = true) {
+            const tag = canonicalTag(value);
+            const key = tag.toLowerCase();
+            if (!tag || !this.isValidHashtag(tag)) {
+                if (announce) this.announceSuggestionStatus("Formato hashtag non valido");
+                return false;
+            }
+
+            const existing = new Set(
+                extractHashtags(htmlToText(this.getEditorContent())).map((entry) => entry.toLowerCase())
+            );
+            if (existing.has(key)) {
+                if (announce) this.announceSuggestionStatus(`${tag} è già presente nel post`);
+                return false;
+            }
+            if (this.selectedSuggestions.has(key)) {
+                if (announce) this.announceSuggestionStatus(`${tag} è già tra quelli da aggiungere`);
+                return false;
+            }
+
+            this.selectedSuggestions.set(key, {
+                tag,
+                source: item?.source || "manual",
+                reason: item?.reason || "aggiunto manualmente",
+                count: Number(item?.count || 0),
+                origin: item ? "suggestion" : "manual"
+            });
+            if (announce) this.announceSuggestionStatus(`${tag} aggiunto`);
+            this.refreshSuggestions(true);
+            return true;
+        }
+
+        removeSelectedHashtag(value) {
+            const tag = canonicalTag(value);
+            if (!tag || !this.selectedSuggestions.delete(tag.toLowerCase())) return;
+            this.announceSuggestionStatus(`${tag} rimosso`);
+            this.refreshSuggestions(true);
+        }
+
+        announceSuggestionStatus(message) {
+            const status = this.suggestionBar?.querySelector(".ht-suggestions-status");
+            if (status) status.textContent = message;
+        }
+
+        renderTokenAutocomplete() {
+            const input = this.getTokenInput();
+            const panel = this.suggestionBar?.querySelector(".ht-token-autocomplete");
+            const list = panel?.querySelector(".ht-token-autocomplete-list");
+            const message = panel?.querySelector(".ht-token-autocomplete-message");
+            if (!input || !panel || !list || !message) return;
+
+            const query = input.value.trim();
+            const queryLength = query.replace(/^#/, "").length;
+            list.replaceChildren();
+            message.textContent = "";
+            this.tokenAutocompleteResults = [];
+            this.tokenAutocompleteIndex = 0;
+
+            if (queryLength < scriptInfo.settings.autocompleteMinLength) {
+                this.closeTokenAutocomplete();
+                return;
+            }
+
+            this.tokenAutocompleteResults = this.index
+                .listHashtags(query)
+                .filter((item) => !this.selectedSuggestions.has(item.tag.toLowerCase()))
+                .slice(0, scriptInfo.settings.autocompleteMaxResults);
+
+            if (!this.tokenAutocompleteResults.length) {
+                message.textContent = "Premi Invio o virgola per aggiungere un nuovo hashtag";
+            } else {
+                this.tokenAutocompleteResults.forEach((item, index) => {
+                    const button = document.createElement("button");
+                    const tag = document.createElement("span");
+                    const count = document.createElement("span");
+                    button.type = "button";
+                    button.className = "ht-token-option";
+                    button.dataset.index = String(index);
+                    button.setAttribute("role", "option");
+                    button.setAttribute("aria-selected", String(index === 0));
+                    tag.textContent = item.tag;
+                    count.textContent = `${item.count} ${item.count === 1 ? "uso" : "usi"}`;
+                    button.append(tag, count);
+                    list.appendChild(button);
+                });
+            }
+
+            panel.hidden = false;
+            input.setAttribute("aria-controls", panel.id);
+            input.setAttribute("aria-expanded", "true");
+        }
+
+        setTokenAutocompleteIndex(index) {
+            if (!this.tokenAutocompleteResults.length) return;
+            this.tokenAutocompleteIndex = (
+                index + this.tokenAutocompleteResults.length
+            ) % this.tokenAutocompleteResults.length;
+            this.suggestionBar
+                ?.querySelectorAll(".ht-token-option")
+                .forEach((button, itemIndex) => {
+                    button.setAttribute(
+                        "aria-selected",
+                        String(itemIndex === this.tokenAutocompleteIndex)
+                    );
+                });
+        }
+
+        closeTokenAutocomplete(clearInput = false) {
+            const input = this.getTokenInput();
+            const panel = this.suggestionBar?.querySelector(".ht-token-autocomplete");
+            if (panel) panel.hidden = true;
+            if (input) {
+                input.setAttribute("aria-expanded", "false");
+                input.removeAttribute("aria-controls");
+                if (clearInput) input.value = "";
+            }
+            this.tokenAutocompleteResults = [];
+            this.tokenAutocompleteIndex = 0;
+        }
+
+        commitTokenInput(preferActive = true) {
+            const input = this.getTokenInput();
+            if (!input) return;
+
+            const raw = input.value.trim();
+            if (!raw) return;
+            const active = preferActive
+                ? this.tokenAutocompleteResults[this.tokenAutocompleteIndex]
+                : null;
+            const value = active?.tag || raw;
+            if (this.addSelectedHashtag(value)) {
+                input.value = "";
+                this.closeTokenAutocomplete();
+                input.focus();
+            }
+        }
+
+        handleTokenPaste(event) {
+            const text = event.clipboardData?.getData("text") || "";
+            if (!/[,;\n]/.test(text)) return;
+
+            event.preventDefault();
+            const tokens = text
+                .split(/[,;\n]+/)
+                .map((token) => token.trim())
+                .filter(Boolean);
+            let added = 0;
+            tokens.forEach((token) => {
+                if (this.addSelectedHashtag(token, null, false)) added += 1;
+            });
+
+            const input = this.getTokenInput();
+            if (input) input.value = "";
+            this.closeTokenAutocomplete();
+            this.announceSuggestionStatus(
+                `${added} ${added === 1 ? "hashtag aggiunto" : "hashtag aggiunti"}`
+            );
+        }
+
+        handleTokenKeydown(event) {
+            if (event.key === "ArrowDown" && this.tokenAutocompleteResults.length) {
+                event.preventDefault();
+                this.setTokenAutocompleteIndex(this.tokenAutocompleteIndex + 1);
+                return;
+            }
+            if (event.key === "ArrowUp" && this.tokenAutocompleteResults.length) {
+                event.preventDefault();
+                this.setTokenAutocompleteIndex(this.tokenAutocompleteIndex - 1);
+                return;
+            }
+            if (event.key === "Enter" || event.key === ",") {
+                event.preventDefault();
+                this.commitTokenInput(true);
+                return;
+            }
+            if (event.key === "Escape") {
+                event.preventDefault();
+                this.closeTokenAutocomplete(true);
+            }
         }
 
         bindReplySubmit(textarea) {
@@ -1344,20 +1611,35 @@
             dismissedTags.forEach((key) => this.selectedSuggestions.delete(key));
 
             const currentSuggestions = this.buildSuggestions(content);
-            const suggestionsByTag = new Map(
-                currentSuggestions.map((item) => [item.tag.toLowerCase(), item])
+            this.currentSuggestions = currentSuggestions.filter(
+                (item) => !this.selectedSuggestions.has(item.tag.toLowerCase())
             );
-            this.selectedSuggestions.forEach((item, key) => {
-                if (!suggestionsByTag.has(key)) suggestionsByTag.set(key, item);
-            });
-            const suggestions = [...suggestionsByTag.values()];
-            const list = this.suggestionBar.querySelector(".ht-suggestions-list");
+            const selectedList = this.suggestionBar.querySelector(".ht-selected-list");
+            const suggestedList = this.suggestionBar.querySelector(".ht-suggestions-list");
             const status = this.suggestionBar.querySelector(".ht-suggestions-status");
-            list.replaceChildren();
+            selectedList.replaceChildren();
+            suggestedList.replaceChildren();
 
-            suggestions.forEach((item) => {
-                const key = item.tag.toLowerCase();
-                const isSelected = this.selectedSuggestions.has(key);
+            this.selectedSuggestions.forEach((item) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = `ht-selected-chip ht-source-${item.source || "manual"}`;
+                button.dataset.hashtag = item.tag;
+                button.setAttribute("aria-label", `Rimuovi ${item.tag}`);
+                button.title = `${item.reason}. Premi per rimuovere`;
+
+                const tag = document.createElement("span");
+                const remove = document.createElement("span");
+                tag.className = "ht-suggestion-tag";
+                tag.textContent = item.tag;
+                remove.className = "ht-selected-remove";
+                remove.setAttribute("aria-hidden", "true");
+                remove.textContent = "×";
+                button.append(tag, remove);
+                selectedList.appendChild(button);
+            });
+
+            this.currentSuggestions.forEach((item) => {
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = `ht-suggestion ht-source-${item.source}`;
@@ -1365,15 +1647,11 @@
                 button.dataset.source = item.source;
                 button.dataset.reason = item.reason;
                 button.dataset.count = String(item.count || 0);
-                button.setAttribute("role", "checkbox");
-                button.setAttribute("aria-checked", String(isSelected));
                 button.setAttribute("aria-haspopup", "menu");
                 button.setAttribute("aria-expanded", "false");
                 button.setAttribute(
                     "aria-label",
-                    `${item.tag}: ${item.reason}. ${isSelected
-                        ? "Selezionato; sarà aggiunto all'invio. Premi per deselezionarlo."
-                        : "Premi per aggiungerlo all'invio."}`
+                    `${item.tag}: ${item.reason}. Premi per aggiungerlo all'invio.`
                 );
                 button.title = item.reason;
 
@@ -1382,35 +1660,167 @@
                 tag.textContent = item.tag;
 
                 button.appendChild(tag);
-                list.appendChild(button);
+                suggestedList.appendChild(button);
             });
 
             const selectedCount = this.selectedSuggestions.size;
             status.textContent = selectedCount
                 ? `${selectedCount} ${selectedCount === 1 ? "hashtag selezionato" : "hashtag selezionati"}; saranno aggiunti all'invio`
-                : suggestions.length
-                    ? `${suggestions.length} suggerimenti disponibili`
-                : "Nessun suggerimento disponibile";
-            this.suggestionBar.hidden = !suggestions.length;
+                : this.currentSuggestions.length
+                    ? `${this.currentSuggestions.length} suggerimenti disponibili`
+                    : "Nessun suggerimento disponibile";
+            this.suggestionBar.hidden = false;
+            requestAnimationFrame(() => this.layoutSuggestionRow());
         }
 
         toggleSuggestedHashtag(button) {
             const tag = canonicalTag(button?.dataset.hashtag);
-            const key = tag.toLowerCase();
             if (!tag) return;
+            this.addSelectedHashtag(tag, {
+                source: button.dataset.source || "text",
+                reason: button.dataset.reason || "suggerito dal contesto",
+                count: Number(button.dataset.count || 0)
+            });
+        }
 
-            if (this.selectedSuggestions.has(key)) {
-                this.selectedSuggestions.delete(key);
-            } else {
-                this.selectedSuggestions.set(key, {
-                    tag,
-                    source: button.dataset.source || "text",
-                    reason: button.dataset.reason || "suggerito dal contesto",
-                    count: Number(button.dataset.count || 0)
-                });
+        layoutSuggestionRow() {
+            const line = this.suggestionBar?.querySelector(".ht-suggestions-line");
+            const selectedButtons = [
+                ...(this.suggestionBar?.querySelectorAll(".ht-selected-chip") || [])
+            ];
+            const suggestedButtons = [
+                ...(this.suggestionBar?.querySelectorAll(".ht-suggestion") || [])
+            ];
+            const selectedOverflow = this.suggestionBar?.querySelector(".ht-selected-overflow");
+            const suggestedOverflow = this.suggestionBar?.querySelector(".ht-suggested-overflow");
+            if (!line || !selectedOverflow || !suggestedOverflow) return;
+
+            selectedButtons.forEach((button) => {
+                button.hidden = false;
+            });
+            suggestedButtons.forEach((button) => {
+                button.hidden = false;
+            });
+            selectedOverflow.hidden = true;
+            suggestedOverflow.hidden = true;
+            this.hiddenSelectedSuggestions = [];
+            this.hiddenContextSuggestions = [];
+
+            const updateOverflow = (button, items) => {
+                button.hidden = !items.length;
+                button.textContent = items.length ? `+${items.length}` : "";
+            };
+
+            let guard = selectedButtons.length + suggestedButtons.length + 4;
+            while (line.scrollWidth > line.clientWidth + 1 && guard > 0) {
+                const visibleSuggested = suggestedButtons.filter((button) => !button.hidden);
+                if (visibleSuggested.length) {
+                    const button = visibleSuggested[visibleSuggested.length - 1];
+                    button.hidden = true;
+                    this.hiddenContextSuggestions.unshift(button.dataset.hashtag);
+                    updateOverflow(suggestedOverflow, this.hiddenContextSuggestions);
+                } else {
+                    const visibleSelected = selectedButtons.filter((button) => !button.hidden);
+                    if (!visibleSelected.length) break;
+                    const button = visibleSelected[visibleSelected.length - 1];
+                    button.hidden = true;
+                    this.hiddenSelectedSuggestions.unshift(button.dataset.hashtag);
+                    updateOverflow(selectedOverflow, this.hiddenSelectedSuggestions);
+                }
+                guard -= 1;
             }
+        }
 
-            this.refreshSuggestions(true);
+        openSuggestionOverflow(type) {
+            const panel = this.suggestionBar?.querySelector(".ht-suggestion-overflow-panel");
+            const title = panel?.querySelector(".ht-overflow-panel-title");
+            const items = panel?.querySelector(".ht-overflow-items");
+            if (!panel || !title || !items) return;
+
+            this.closeColorHint();
+            this.closeTokenAutocomplete();
+            const tags = type === "selected"
+                ? this.hiddenSelectedSuggestions
+                : this.hiddenContextSuggestions;
+            title.textContent = type === "selected"
+                ? "Hashtag da aggiungere nascosti"
+                : "Suggerimenti nascosti";
+            panel.dataset.type = type;
+            items.replaceChildren();
+
+            tags.forEach((tag) => {
+                const selected = this.selectedSuggestions.get(tag.toLowerCase());
+                const suggested = this.currentSuggestions.find(
+                    (item) => item.tag.toLowerCase() === tag.toLowerCase()
+                );
+                const item = selected || suggested;
+                const button = document.createElement("button");
+                const label = document.createElement("span");
+                const action = document.createElement("span");
+                button.type = "button";
+                button.className = `ht-overflow-item ht-source-${item?.source || "manual"}`;
+                button.dataset.hashtag = tag;
+                button.dataset.overflowType = type;
+                button.dataset.source = item?.source || "manual";
+                button.dataset.reason = item?.reason || "";
+                button.dataset.count = String(item?.count || 0);
+                label.textContent = tag;
+                action.textContent = type === "selected" ? "×" : "+";
+                action.setAttribute("aria-hidden", "true");
+                button.setAttribute(
+                    "aria-label",
+                    type === "selected" ? `Rimuovi ${tag}` : `Aggiungi ${tag}`
+                );
+                button.append(label, action);
+                items.appendChild(button);
+            });
+
+            panel.hidden = false;
+            const triggerSelector = type === "selected"
+                ? ".ht-selected-overflow"
+                : ".ht-suggested-overflow";
+            this.suggestionBar
+                ?.querySelector(triggerSelector)
+                ?.setAttribute("aria-expanded", "true");
+            panel.querySelector(".ht-overflow-item, .ht-overflow-close")?.focus();
+        }
+
+        closeSuggestionOverflow(restoreFocus = false) {
+            const panel = this.suggestionBar?.querySelector(".ht-suggestion-overflow-panel");
+            if (!panel || panel.hidden) return;
+            const type = panel.dataset.type;
+            panel.hidden = true;
+            this.suggestionBar
+                ?.querySelectorAll(".ht-overflow-button")
+                .forEach((button) => button.setAttribute("aria-expanded", "false"));
+            if (restoreFocus) {
+                const selector = type === "selected"
+                    ? ".ht-selected-overflow"
+                    : ".ht-suggested-overflow";
+                this.suggestionBar?.querySelector(selector)?.focus();
+            }
+            panel.removeAttribute("data-type");
+        }
+
+        toggleColorHint() {
+            const hint = this.suggestionBar?.querySelector(".ht-color-hint");
+            const trigger = this.suggestionBar?.querySelector(".ht-color-hint-toggle");
+            if (!hint || !trigger) return;
+
+            const willOpen = hint.hidden;
+            this.closeSuggestionOverflow();
+            this.closeTokenAutocomplete();
+            hint.hidden = !willOpen;
+            trigger.setAttribute("aria-expanded", String(willOpen));
+        }
+
+        closeColorHint(restoreFocus = false) {
+            const hint = this.suggestionBar?.querySelector(".ht-color-hint");
+            const trigger = this.suggestionBar?.querySelector(".ht-color-hint-toggle");
+            if (!hint || hint.hidden) return;
+            hint.hidden = true;
+            trigger?.setAttribute("aria-expanded", "false");
+            if (restoreFocus) trigger?.focus();
         }
 
         ensureSuggestionMenu() {
@@ -1609,6 +2019,7 @@
             const prefix = htmlToText(content) ? "\n" : "";
             this.commons.utilities.replierForm.textarea.addContent(`${prefix}${tags.join(" ")}`);
             this.lastEditorContent = null;
+            this.refreshSuggestions(true);
         }
 
         handleReplySubmit(event) {
@@ -2255,6 +2666,69 @@
             const target = event.target instanceof Element ? event.target : null;
             if (!target) return;
 
+            const selectedChip = target.closest(".ht-selected-chip");
+            if (selectedChip) {
+                this.removeSelectedHashtag(selectedChip.dataset.hashtag);
+                return;
+            }
+
+            const tokenOption = target.closest(".ht-token-option");
+            if (tokenOption) {
+                this.tokenAutocompleteIndex = Number(tokenOption.dataset.index || 0);
+                this.commitTokenInput(true);
+                return;
+            }
+
+            const overflowItem = target.closest(".ht-overflow-item");
+            if (overflowItem) {
+                if (overflowItem.dataset.overflowType === "selected") {
+                    this.removeSelectedHashtag(overflowItem.dataset.hashtag);
+                } else {
+                    this.addSelectedHashtag(overflowItem.dataset.hashtag, {
+                        source: overflowItem.dataset.source || "text",
+                        reason: overflowItem.dataset.reason || "suggerito dal contesto",
+                        count: Number(overflowItem.dataset.count || 0)
+                    });
+                }
+                this.closeSuggestionOverflow();
+                return;
+            }
+
+            if (target.closest(".ht-overflow-close")) {
+                this.closeSuggestionOverflow(true);
+                return;
+            }
+
+            if (target.closest(".ht-selected-overflow")) {
+                this.openSuggestionOverflow("selected");
+                return;
+            }
+
+            if (target.closest(".ht-suggested-overflow")) {
+                this.openSuggestionOverflow("suggested");
+                return;
+            }
+
+            if (target.closest(".ht-color-hint-toggle")) {
+                this.toggleColorHint();
+                return;
+            }
+
+            if (
+                !target.closest(".ht-color-hint")
+                && !target.closest(".ht-color-hint-toggle")
+            ) this.closeColorHint();
+
+            if (
+                !target.closest(".ht-suggestion-overflow-panel")
+                && !target.closest(".ht-overflow-button")
+            ) this.closeSuggestionOverflow();
+
+            if (
+                !target.closest(".ht-token-autocomplete")
+                && !target.closest(".ht-token-input")
+            ) this.closeTokenAutocomplete();
+
             const dismissAction = target.closest(".ht-dismiss-suggestion");
             if (dismissAction) {
                 this.dismissSuggestedHashtag(this.suggestionMenu?.dataset.hashtag);
@@ -2341,6 +2815,20 @@
         handleDocumentKeydown(event) {
             const target = event.target instanceof Element ? event.target : null;
 
+            const colorHint = this.suggestionBar?.querySelector(".ht-color-hint");
+            if (event.key === "Escape" && colorHint && !colorHint.hidden) {
+                event.preventDefault();
+                this.closeColorHint(true);
+                return;
+            }
+
+            const overflowPanel = this.suggestionBar?.querySelector(".ht-suggestion-overflow-panel");
+            if (event.key === "Escape" && overflowPanel && !overflowPanel.hidden) {
+                event.preventDefault();
+                this.closeSuggestionOverflow(true);
+                return;
+            }
+
             if (event.key === "Escape" && this.suggestionMenu && !this.suggestionMenu.hidden) {
                 event.preventDefault();
                 this.closeSuggestionMenu(true);
@@ -2390,26 +2878,37 @@
                     background: transparent !important;
                 }
                 .ht-suggestions-row .ht-suggestions-panel {
-                    display: grid !important;
+                    position: relative !important;
+                    display: block !important;
                     box-sizing: border-box !important;
                     width: 100% !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    gap: 7px !important;
                     border: 0 !important;
                     background: transparent !important;
                     text-align: left !important;
                 }
-                .ht-suggestions-row .ht-suggestions-header {
+                .ht-suggestions-row .ht-suggestions-line,
+                .ht-suggestions-row .ht-suggestion-group,
+                .ht-suggestions-row .ht-selected-list,
+                .ht-suggestions-row .ht-suggestions-list {
                     display: flex !important;
                     align-items: center !important;
-                    justify-content: space-between !important;
                     box-sizing: border-box !important;
-                    width: 100% !important;
+                    flex-wrap: nowrap !important;
                     min-width: 0 !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    gap: 7px !important;
+                    gap: 6px !important;
+                }
+                .ht-suggestions-row .ht-suggestions-line {
+                    width: 100% !important;
+                    overflow: hidden !important;
+                }
+                .ht-suggestions-row .ht-suggestion-group,
+                .ht-suggestions-row .ht-selected-list,
+                .ht-suggestions-row .ht-suggestions-list {
+                    flex: 0 0 auto !important;
                 }
                 .ht-suggestions-row .ht-suggestions-label {
                     display: inline !important;
@@ -2420,19 +2919,52 @@
                     font-size: inherit !important;
                     line-height: 1.2 !important;
                     text-align: left !important;
+                    white-space: nowrap !important;
                 }
-                .ht-suggestions-row .ht-suggestions-list {
-                    display: flex !important;
-                    align-items: center !important;
-                    flex-wrap: wrap !important;
-                    min-width: 0 !important;
-                    width: 100% !important;
+                .ht-suggestions-row .ht-label-short {
+                    display: none !important;
+                }
+                .ht-suggestions-row .ht-group-divider {
+                    display: block !important;
+                    flex: 0 0 1px !important;
+                    width: 1px !important;
+                    height: 24px !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    gap: 7px !important;
-                    text-align: left !important;
+                    background: rgba(127, 127, 127, .28) !important;
                 }
-                .ht-suggestions-row .ht-open-search {
+                .ht-suggestions-row .ht-token-entry {
+                    display: block !important;
+                    flex: 0 0 132px !important;
+                    width: 132px !important;
+                    min-width: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                .ht-suggestions-row .ht-token-input {
+                    appearance: none !important;
+                    display: block !important;
+                    box-sizing: border-box !important;
+                    width: 100% !important;
+                    height: 30px !important;
+                    margin: 0 !important;
+                    padding: 5px 8px !important;
+                    border: 1px solid rgba(127, 127, 127, .28) !important;
+                    border-radius: 999px !important;
+                    background: transparent !important;
+                    color: inherit !important;
+                    font: inherit !important;
+                    line-height: 1.2 !important;
+                    box-shadow: none !important;
+                }
+                .ht-suggestions-row .ht-token-input:focus {
+                    border-color: rgba(80, 120, 190, .72) !important;
+                    outline: 2px solid rgba(80, 120, 190, .24) !important;
+                    outline-offset: 1px !important;
+                }
+                .ht-suggestions-row .ht-color-hint-toggle,
+                .ht-suggestions-row .ht-overflow-button,
+                .ht-suggestions-row .ht-overflow-close {
                     appearance: none !important;
                     display: inline-flex !important;
                     align-items: center !important;
@@ -2449,12 +2981,25 @@
                     color: inherit !important;
                     cursor: pointer !important;
                     box-shadow: none !important;
+                    font: inherit !important;
                 }
-                .ht-suggestions-row .ht-open-search:hover,
-                .ht-suggestions-row .ht-open-search:focus-visible {
+                .ht-suggestions-row .ht-overflow-button {
+                    width: auto !important;
+                    min-width: 30px !important;
+                    padding-inline: 7px !important;
+                    border: 1px solid rgba(127, 127, 127, .24) !important;
+                    border-radius: 999px !important;
+                    background: rgba(127, 127, 127, .08) !important;
+                }
+                .ht-suggestions-row .ht-color-hint-toggle:hover,
+                .ht-suggestions-row .ht-color-hint-toggle:focus-visible,
+                .ht-suggestions-row .ht-overflow-button:hover,
+                .ht-suggestions-row .ht-overflow-button:focus-visible,
+                .ht-suggestions-row .ht-overflow-close:hover,
+                .ht-suggestions-row .ht-overflow-close:focus-visible {
                     background: rgba(127, 127, 127, .12) !important;
                 }
-                .ht-suggestions-row .ht-open-search svg {
+                .ht-suggestions-row .ht-color-hint-toggle svg {
                     display: block !important;
                     flex: 0 0 auto !important;
                     fill: none !important;
@@ -2462,7 +3007,8 @@
                     stroke-width: 2 !important;
                     stroke-linecap: round !important;
                 }
-                .ht-suggestions-row .ht-suggestion {
+                .ht-suggestions-row .ht-suggestion,
+                .ht-suggestions-row .ht-selected-chip {
                     appearance: none !important;
                     display: inline-flex !important;
                     align-items: center !important;
@@ -2484,25 +3030,126 @@
                     cursor: pointer !important;
                     box-shadow: none !important;
                 }
-                .ht-suggestions-row .ht-suggestion:hover {
+                .ht-suggestions-row .ht-suggestion:hover,
+                .ht-suggestions-row .ht-selected-chip:hover {
                     border-color: rgba(80, 120, 190, .45) !important;
                     background: rgba(80, 120, 190, .10) !important;
                 }
-                .ht-suggestions-row .ht-suggestion[aria-checked="true"] {
-                    border-color: rgba(80, 120, 190, .68) !important;
-                    background: rgba(127, 127, 127, .08) !important;
-                    box-shadow: inset 0 0 0 1px rgba(80, 120, 190, .28) !important;
-                }
-                .ht-suggestions-row .ht-suggestion[aria-checked="true"]::after {
-                    content: "✓";
+                .ht-suggestions-row .ht-selected-remove {
                     flex: 0 0 auto;
                     margin-left: 1px;
+                    font-weight: 700;
                 }
                 .ht-suggestion-tag { white-space: nowrap; }
-                .ht-suggestion::before { content: ""; flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #4a90e2; }
-                .ht-source-link::before { background: #f2994a; }
-                .ht-source-topic::before { background: #48b86a; }
-                .ht-source-section::before { background: #d96aa7; }
+                .ht-suggestion::before,
+                .ht-selected-chip::before,
+                .ht-overflow-item::before {
+                    content: "";
+                    flex: 0 0 7px;
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                    background: #4a90e2;
+                }
+                .ht-source-link::before, .ht-source-dot.ht-source-link { background: #f2994a; }
+                .ht-source-topic::before, .ht-source-dot.ht-source-topic { background: #48b86a; }
+                .ht-source-section::before, .ht-source-dot.ht-source-section { background: #d96aa7; }
+                .ht-source-manual::before, .ht-source-dot.ht-source-manual { background: #7f7f7f; }
+                .ht-source-dot.ht-source-text { background: #4a90e2; }
+                .ht-source-dot {
+                    display: inline-block;
+                    flex: 0 0 7px;
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                }
+                .ht-token-autocomplete,
+                .ht-color-hint,
+                .ht-suggestion-overflow-panel {
+                    position: absolute;
+                    z-index: 2147483000;
+                    top: calc(100% + 6px);
+                    box-sizing: border-box;
+                    max-width: min(360px, calc(100vw - 16px));
+                    padding: 8px;
+                    border: 1px solid rgba(127, 127, 127, .3);
+                    border-radius: 8px;
+                    background: Canvas;
+                    color: CanvasText;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+                }
+                .ht-token-autocomplete {
+                    left: 0;
+                    width: min(360px, 100%);
+                }
+                .ht-color-hint,
+                .ht-suggestion-overflow-panel {
+                    right: 0;
+                    width: min(320px, 100%);
+                }
+                .ht-token-autocomplete[hidden],
+                .ht-color-hint[hidden],
+                .ht-suggestion-overflow-panel[hidden],
+                .ht-suggestions-row [hidden] {
+                    display: none !important;
+                }
+                .ht-token-autocomplete-list,
+                .ht-color-hint-grid,
+                .ht-overflow-items {
+                    display: grid;
+                    gap: 4px;
+                }
+                .ht-token-option,
+                .ht-overflow-item {
+                    appearance: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    box-sizing: border-box;
+                    width: 100%;
+                    margin: 0;
+                    padding: 7px 8px;
+                    gap: 8px;
+                    border: 0;
+                    border-radius: 6px;
+                    background: transparent;
+                    color: inherit;
+                    font: inherit;
+                    text-align: left;
+                    cursor: pointer;
+                }
+                .ht-overflow-item {
+                    justify-content: flex-start;
+                }
+                .ht-overflow-item > span:last-child {
+                    margin-left: auto;
+                }
+                .ht-token-option:hover,
+                .ht-token-option:focus-visible,
+                .ht-token-option[aria-selected="true"],
+                .ht-overflow-item:hover,
+                .ht-overflow-item:focus-visible {
+                    background: rgba(127, 127, 127, .14);
+                }
+                .ht-token-autocomplete-message {
+                    display: block;
+                    opacity: .72;
+                }
+                .ht-color-hint-grid {
+                    margin-top: 7px;
+                }
+                .ht-color-hint-grid > span {
+                    display: flex;
+                    align-items: center;
+                    gap: 7px;
+                }
+                .ht-overflow-panel-head {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    margin-bottom: 5px;
+                }
                 .ht-suggestion-menu {
                     position: fixed;
                     z-index: 2147483646;
@@ -2753,6 +3400,24 @@
                 }
                 .ht-search-prompt span:not(.ht-search-prompt-mark),
                 .ht-search-empty span { opacity: .76; }
+                @media (max-width: 520px) {
+                    .ht-suggestions-row .ht-suggestions-line,
+                    .ht-suggestions-row .ht-suggestion-group,
+                    .ht-suggestions-row .ht-selected-list,
+                    .ht-suggestions-row .ht-suggestions-list {
+                        gap: 3px !important;
+                    }
+                    .ht-suggestions-row .ht-label-full {
+                        display: none !important;
+                    }
+                    .ht-suggestions-row .ht-label-short {
+                        display: inline !important;
+                    }
+                    .ht-suggestions-row .ht-token-entry {
+                        flex-basis: 86px !important;
+                        width: 86px !important;
+                    }
+                }
                 @media (max-width: 600px) {
                     .ht-search-result-head, .ht-search-results-head { align-items: flex-start !important; flex-direction: column !important; }
                     .ht-search-simple, .ht-search-grid { grid-template-columns: 1fr; }
