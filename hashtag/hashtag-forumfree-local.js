@@ -519,7 +519,7 @@
             if (typeof modal?.create === "function") {
                 this.mode = "create";
                 this.instance = modal.create({
-                    className: ["ht-modal", "ht-search-modal", "cs-modal-sm"],
+                    className: ["ht-modal", "ht-search-modal", "cs-modal-sm", "cs-modal-text-left"],
                     title: "Ricerca hashtag",
                     content,
                     footer
@@ -530,7 +530,7 @@
             if (typeof modal?.set === "function") {
                 this.mode = "set";
                 this.id = modal.set({
-                    class: ["ht-modal", "ht-search-modal", "cs-modal-w60"],
+                    class: ["ht-modal", "ht-search-modal", "cs-modal-w60", "cs-modal-text-left"],
                     title: "Ricerca hashtag",
                     content,
                     footer
@@ -1271,15 +1271,28 @@
             });
 
             const quick = root.querySelector(".ht-search-quick-tags");
+            const quickItems = this.index.listHashtags()
+                .filter((item) => item.count > 0)
+                .slice(0, 6);
             quick.replaceChildren();
-            this.index.listHashtags().slice(0, 6).forEach((item) => {
+            quickItems.forEach((item) => {
                 const button = document.createElement("button");
+                const label = document.createElement("span");
+                const count = document.createElement("span");
                 button.type = "button";
                 button.className = "cs-btn cs-btn-sm ht-search-quick-tag";
                 button.dataset.hashtag = item.tag;
-                button.textContent = `${item.tag} · ${item.count}`;
+                label.textContent = item.tag;
+                count.className = "ht-search-quick-count";
+                count.textContent = String(item.count);
+                button.setAttribute(
+                    "aria-label",
+                    `${item.tag}, ${item.count} ${item.count === 1 ? "uso" : "usi"}`
+                );
+                button.append(label, count);
                 quick.appendChild(button);
             });
+            quick.closest(".ht-search-quick").hidden = !quickItems.length;
 
             this.renderDismissedPreferences(root);
             this.updatePeriodFields(root);
@@ -1316,7 +1329,7 @@
             const toggle = root.querySelector(".ht-search-toggle");
             advanced.hidden = true;
             toggle.setAttribute("aria-expanded", "false");
-            toggle.textContent = "Mostra ricerca avanzata";
+            toggle.textContent = "Filtri avanzati";
         }
 
         toggleAdvanced(root) {
@@ -1325,7 +1338,7 @@
             const willOpen = advanced.hidden;
             advanced.hidden = !willOpen;
             toggle.setAttribute("aria-expanded", String(willOpen));
-            toggle.textContent = willOpen ? "Nascondi ricerca avanzata" : "Mostra ricerca avanzata";
+            toggle.textContent = willOpen ? "Nascondi filtri avanzati" : "Filtri avanzati";
         }
 
         advancedFilterCount(root) {
@@ -1412,7 +1425,7 @@
             const toggle = root.querySelector(".ht-search-toggle");
             advanced.hidden = false;
             toggle.setAttribute("aria-expanded", "true");
-            toggle.textContent = "Nascondi ricerca avanzata";
+            toggle.textContent = "Nascondi filtri avanzati";
             from.focus();
             return false;
         }
@@ -1690,22 +1703,44 @@
         }
 
         renderSearchPrompt(root) {
-            root.querySelector(".ht-search-count").textContent = "Inserisci una ricerca";
-            root.querySelector(".ht-search-results").replaceChildren();
+            const resultsHead = root.querySelector(".ht-search-results-head");
+            const results = root.querySelector(".ht-search-results");
+            const prompt = document.createElement("div");
+            const mark = document.createElement("span");
+            const copy = document.createElement("div");
+            const title = document.createElement("strong");
+            const description = document.createElement("span");
+
+            resultsHead.hidden = true;
+            results.replaceChildren();
+            prompt.className = "ht-search-prompt";
+            mark.className = "ht-search-prompt-mark";
+            mark.setAttribute("aria-hidden", "true");
+            mark.textContent = "#";
+            title.textContent = "Cerca nell’indice locale";
+            description.textContent = "Scrivi un hashtag o una parola, oppure scegli uno degli hashtag più usati.";
+            copy.append(title, description);
+            prompt.append(mark, copy);
+            results.appendChild(prompt);
             root.querySelector(".ht-search-discovery").hidden = true;
         }
 
         renderSearchResults(root, matches, kind, state) {
             const results = root.querySelector(".ht-search-results");
             const count = root.querySelector(".ht-search-count");
+            root.querySelector(".ht-search-results-head").hidden = false;
             results.replaceChildren();
             count.textContent = `${matches.length} ${matches.length === 1 ? "risultato" : "risultati"}`;
             this.renderSearchDiscovery(root, matches, kind, state);
 
             if (!matches.length) {
-                const empty = document.createElement("p");
+                const empty = document.createElement("div");
+                const title = document.createElement("strong");
+                const description = document.createElement("span");
                 empty.className = "ht-search-empty";
-                empty.textContent = "Nessun risultato nell'indice locale per questa combinazione.";
+                title.textContent = "Nessun risultato";
+                description.textContent = "Prova a rimuovere un filtro o a usare un hashtag diverso.";
+                empty.append(title, description);
                 results.appendChild(empty);
                 return;
             }
@@ -2046,16 +2081,81 @@
                     border: 0 !important;
                 }
                 .ht-entity { display: inline; border: 0; border-radius: 3px; padding: 0 2px; background: rgba(255, 220, 40, .28); color: inherit; font: inherit; cursor: pointer; }
+                .ht-search-shell {
+                    display: grid;
+                    gap: 14px;
+                    text-align: left;
+                }
                 .ht-search-simple, .ht-search-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
                 .ht-search-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
                 .ht-search-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+                .ht-search-field > span,
+                .ht-search-section-label { font-weight: 700; }
                 .ht-search-field input, .ht-search-field select { width: 100%; box-sizing: border-box; }
                 .ht-search-custom-dates { grid-column: 1 / -1; }
                 .ht-search-custom-dates[hidden] { display: none; }
-                .ht-search-quick { margin-top: 10px; }
-                .ht-search-quick-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
-                .ht-search-toggle-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+                .ht-search-quick { display: grid; gap: 7px; }
+                .ht-search-quick-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+                .ht-search-quick-tag {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    gap: 7px !important;
+                    margin: 0 !important;
+                    padding: 5px 9px !important;
+                    border: 1px solid rgba(127, 127, 127, .28) !important;
+                    border-radius: 999px !important;
+                    background: rgba(127, 127, 127, .07) !important;
+                    color: inherit !important;
+                    box-shadow: none !important;
+                }
+                .ht-search-quick-tag:hover,
+                .ht-search-quick-tag:focus-visible { background: rgba(127, 127, 127, .14) !important; }
+                .ht-search-quick-count {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 18px;
+                    min-height: 18px;
+                    padding: 0 4px;
+                    border-radius: 999px;
+                    background: rgba(127, 127, 127, .16);
+                    font-size: .82em;
+                    line-height: 1;
+                }
+                .ht-search-toggle-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    padding: 10px 0;
+                    border-top: 1px solid rgba(127, 127, 127, .22);
+                    border-bottom: 1px solid rgba(127, 127, 127, .22);
+                }
+                .ht-search-toggle {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    gap: 8px !important;
+                }
+                .ht-search-toggle::after {
+                    content: "";
+                    width: 6px;
+                    height: 6px;
+                    border-right: 1.5px solid currentColor;
+                    border-bottom: 1.5px solid currentColor;
+                    transform: rotate(45deg) translateY(-2px);
+                    transform-origin: center;
+                }
+                .ht-search-toggle[aria-expanded="true"]::after {
+                    transform: rotate(225deg) translate(-1px, -1px);
+                }
                 .ht-search-advanced[hidden] { display: none; }
+                .ht-search-advanced {
+                    padding: 12px;
+                    border: 1px solid rgba(127, 127, 127, .22);
+                    border-radius: 8px;
+                    background: rgba(127, 127, 127, .05);
+                }
                 .ht-search-error { margin: 9px 0 0; color: #b42318; }
                 .ht-search-dismissed { margin-top: 10px; }
                 .ht-search-dismissed[hidden] { display: none; }
@@ -2074,12 +2174,40 @@
                 .ht-search-result p { margin: 6px 0; }
                 .ht-search-result-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
                 .ht-search-result-tags span { padding: 2px 6px; border-radius: 999px; background: rgba(127, 127, 127, .12); }
-                .ht-search-results-head { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(127, 127, 127, .25); }
+                .ht-search-results-head { display: flex; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid rgba(127, 127, 127, .25); }
+                .ht-search-results-head[hidden] { display: none; }
                 .ht-search-discovery { display: grid; gap: 8px; margin-top: 10px; }
                 .ht-search-discovery[hidden],
                 .ht-search-related[hidden],
                 .ht-search-combinations[hidden] { display: none; }
-                .ht-search-empty { padding: 12px 0; }
+                .ht-search-prompt,
+                .ht-search-empty {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                    padding: 12px;
+                    border-radius: 8px;
+                    background: rgba(127, 127, 127, .07);
+                }
+                .ht-search-prompt > div,
+                .ht-search-empty {
+                    flex-direction: column;
+                }
+                .ht-search-prompt > div,
+                .ht-search-empty { display: flex; gap: 3px; }
+                .ht-search-prompt-mark {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 0 0 30px;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    background: rgba(127, 127, 127, .14);
+                    font-weight: 700;
+                }
+                .ht-search-prompt span:not(.ht-search-prompt-mark),
+                .ht-search-empty span { opacity: .76; }
                 @media (max-width: 600px) {
                     .ht-search-result-head, .ht-search-results-head { align-items: flex-start !important; flex-direction: column !important; }
                     .ht-search-simple, .ht-search-grid { grid-template-columns: 1fr; }
@@ -2105,12 +2233,12 @@
                         </label>
                     </div>
                     <div class="ht-search-quick">
-                        <span>Ricerche frequenti</span>
+                        <span class="ht-search-section-label">Hashtag più usati</span>
                         <div class="ht-search-quick-tags"></div>
                     </div>
                     <div class="ht-search-toggle-row">
-                        <button type="button" class="cs-btn cs-btn-sm ht-search-toggle" aria-expanded="false">
-                            Mostra ricerca avanzata
+                        <button type="button" class="cs-btn cs-btn-sm cs-btn-outer ht-search-toggle" aria-expanded="false">
+                            Filtri avanzati
                         </button>
                         <span class="ht-search-advanced-summary">Nessun filtro avanzato</span>
                     </div>
@@ -2184,7 +2312,7 @@
                             <div class="ht-search-dismissed-tags"></div>
                         </div>
                     </div>
-                    <div class="ht-search-results-head">
+                    <div class="ht-search-results-head" hidden>
                         <span class="ht-search-count" aria-live="polite">Inserisci una ricerca</span>
                         <span class="ht-search-local-note">Indice locale · pagine visitate su questo browser</span>
                     </div>
