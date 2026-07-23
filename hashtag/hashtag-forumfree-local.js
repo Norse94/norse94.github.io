@@ -4,7 +4,7 @@
     const scriptInfo = {
         sid: "local-hashtags-v1",
         name: "HashTags Local",
-        version: "1.4.0",
+        version: "1.5.0",
         settings: {
             blacklistSections: [],
             whitelistSections: [],
@@ -1117,7 +1117,6 @@
             const hasEditorApi = Boolean(this.commons.utilities?.replierForm?.textarea);
             if (hasEditorApi && (this.commons.location?.isTopic || this.commons.location?.isFullEditor)) {
                 this.mountSuggestionsWithRetry();
-                this.addAutocomplete();
             }
 
             window.addEventListener("pagehide", () => this.destroy(), { once: true });
@@ -1688,27 +1687,80 @@
             const container = this.suggestionBar?.querySelector(".ht-suggestions-panel");
             if (!container || !popover || !trigger) return;
 
-            popover.style.removeProperty("left");
-            popover.style.removeProperty("right");
             const containerRect = container.getBoundingClientRect();
             const triggerRect = trigger.getBoundingClientRect();
-            const popoverWidth = popover.getBoundingClientRect().width;
-            const centered = triggerRect.left
-                - containerRect.left
-                + (triggerRect.width - popoverWidth) / 2;
-            const maximum = Math.max(0, containerRect.width - popoverWidth);
-            const left = Math.max(0, Math.min(centered, maximum));
-            const anchor = Math.max(
+            const popoverRect = popover.getBoundingClientRect();
+            const width = popoverRect.width;
+            const height = popoverRect.height;
+            const viewportWidth = document.documentElement.clientWidth;
+            const viewportHeight = document.documentElement.clientHeight;
+            const padding = 8;
+            const gap = 8;
+            const spaces = {
+                bottom: viewportHeight - triggerRect.bottom - padding,
+                top: triggerRect.top - padding,
+                right: viewportWidth - triggerRect.right - padding,
+                left: triggerRect.left - padding
+            };
+            const required = {
+                bottom: height + gap,
+                top: height + gap,
+                right: width + gap,
+                left: width + gap
+            };
+            const placements = ["bottom", "top", "right", "left"];
+            const placement = placements.find((item) => spaces[item] >= required[item])
+                || [...placements].sort(
+                    (left, right) => spaces[right] / required[right] - spaces[left] / required[left]
+                )[0];
+
+            let viewportLeft;
+            let viewportTop;
+            if (placement === "bottom" || placement === "top") {
+                viewportLeft = triggerRect.left + (triggerRect.width - width) / 2;
+                viewportTop = placement === "bottom"
+                    ? triggerRect.bottom + gap
+                    : triggerRect.top - height - gap;
+            } else {
+                viewportLeft = placement === "right"
+                    ? triggerRect.right + gap
+                    : triggerRect.left - width - gap;
+                viewportTop = triggerRect.top + (triggerRect.height - height) / 2;
+            }
+
+            viewportLeft = Math.max(
+                padding,
+                Math.min(viewportLeft, viewportWidth - width - padding)
+            );
+            viewportTop = Math.max(
+                padding,
+                Math.min(viewportTop, viewportHeight - height - padding)
+            );
+
+            const localLeft = viewportLeft - containerRect.left;
+            const localTop = viewportTop - containerRect.top;
+            const anchorX = Math.max(
                 12,
                 Math.min(
-                    triggerRect.left - containerRect.left + triggerRect.width / 2 - left,
-                    popoverWidth - 12
+                    triggerRect.left + triggerRect.width / 2 - viewportLeft,
+                    width - 12
+                )
+            );
+            const anchorY = Math.max(
+                12,
+                Math.min(
+                    triggerRect.top + triggerRect.height / 2 - viewportTop,
+                    height - 12
                 )
             );
 
-            popover.style.left = `${left}px`;
+            popover.dataset.placement = placement;
+            popover.style.left = `${localLeft}px`;
             popover.style.right = "auto";
-            popover.style.setProperty("--ht-popover-anchor", `${anchor}px`);
+            popover.style.top = `${localTop}px`;
+            popover.style.bottom = "auto";
+            popover.style.setProperty("--ht-popover-anchor-x", `${anchorX}px`);
+            popover.style.setProperty("--ht-popover-anchor-y", `${anchorY}px`);
         }
 
         layoutSuggestionRow() {
@@ -3126,15 +3178,40 @@
                 .ht-suggestion-overflow-panel::before {
                     content: "";
                     position: absolute;
-                    top: -6px;
-                    left: var(--ht-popover-anchor, 50%);
                     box-sizing: border-box;
                     width: 11px;
                     height: 11px;
-                    border-top: 1px solid rgba(127, 127, 127, .3);
-                    border-left: 1px solid rgba(127, 127, 127, .3);
+                    border: 1px solid rgba(127, 127, 127, .3);
                     background: Canvas;
+                    pointer-events: none;
+                }
+                .ht-token-autocomplete[data-placement="bottom"]::before,
+                .ht-color-hint[data-placement="bottom"]::before,
+                .ht-suggestion-overflow-panel[data-placement="bottom"]::before {
+                    top: -6px;
+                    left: var(--ht-popover-anchor-x, 50%);
                     transform: translateX(-50%) rotate(45deg);
+                }
+                .ht-token-autocomplete[data-placement="top"]::before,
+                .ht-color-hint[data-placement="top"]::before,
+                .ht-suggestion-overflow-panel[data-placement="top"]::before {
+                    bottom: -6px;
+                    left: var(--ht-popover-anchor-x, 50%);
+                    transform: translateX(-50%) rotate(45deg);
+                }
+                .ht-token-autocomplete[data-placement="right"]::before,
+                .ht-color-hint[data-placement="right"]::before,
+                .ht-suggestion-overflow-panel[data-placement="right"]::before {
+                    top: var(--ht-popover-anchor-y, 50%);
+                    left: -6px;
+                    transform: translateY(-50%) rotate(45deg);
+                }
+                .ht-token-autocomplete[data-placement="left"]::before,
+                .ht-color-hint[data-placement="left"]::before,
+                .ht-suggestion-overflow-panel[data-placement="left"]::before {
+                    top: var(--ht-popover-anchor-y, 50%);
+                    right: -6px;
+                    transform: translateY(-50%) rotate(45deg);
                 }
                 .ht-token-autocomplete[hidden],
                 .ht-color-hint[hidden],
