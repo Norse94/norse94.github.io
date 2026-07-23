@@ -4,20 +4,26 @@
     const scriptInfo = {
         sid: "local-hashtags-v1",
         name: "HashTags Local",
-        version: "1.0.1",
+        version: "1.2.0",
         settings: {
             blacklistSections: [],
             whitelistSections: [],
             maxIndexedPosts: 1500,
             maxSuggestions: 8,
             suggestionDebounce: 250,
-            editorPollInterval: 750
+            editorPollInterval: 750,
+            aliasGroups: [
+                { canonical: "#IntelligenzaArtificiale", aliases: ["#AI"] },
+                { canonical: "#Cybersecurity", aliases: ["#Cyber"] },
+                { canonical: "#Droni", aliases: ["#UAV", "#UAS"] }
+            ]
         }
     };
 
     const HASHTAG_PATTERN = /#(?!\d+\b)[\p{L}][\p{L}\p{N}_+-]*/gu;
     const HASHTAG_IN_TEXT_PATTERN = /(^|[\s([{])(#(?!\d+\b)[\p{L}][\p{L}\p{N}_+-]*)/gu;
     const STORAGE_VERSION = 3;
+    const PREFERENCES_VERSION = 1;
     const CSS_ID = "ht-local-styles";
     const BAR_ID = "ht-suggestions";
 
@@ -40,6 +46,37 @@
         { tag: "#Geopolitica", terms: ["geopolitica", "strategia", "relazioni internazionali"] }
     ];
 
+    function hashtagShape(tag) {
+        const clean = String(tag || "").trim();
+        if (!clean) return "";
+        return clean.startsWith("#") ? clean : `#${clean}`;
+    }
+
+    const HASHTAG_ALIAS_LOOKUP = new Map();
+    const HASHTAG_ALIASES_BY_CANONICAL = new Map();
+
+    scriptInfo.settings.aliasGroups.forEach((group) => {
+        const canonical = hashtagShape(group.canonical);
+        if (!canonical) return;
+
+        const canonicalKey = canonical.toLowerCase();
+        const aliases = uniqueRawTags([canonical, ...(group.aliases || [])]);
+        HASHTAG_ALIASES_BY_CANONICAL.set(canonicalKey, aliases);
+        aliases.forEach((alias) => HASHTAG_ALIAS_LOOKUP.set(alias.toLowerCase(), canonical));
+    });
+
+    function uniqueRawTags(tags) {
+        const found = new Map();
+
+        tags.forEach((tag) => {
+            const shaped = hashtagShape(tag);
+            const key = shaped.toLowerCase();
+            if (shaped && !found.has(key)) found.set(key, shaped);
+        });
+
+        return [...found.values()];
+    }
+
     function normalizeSpace(value) {
         return String(value || "").replace(/\s+/g, " ").trim();
     }
@@ -52,9 +89,9 @@
     }
 
     function canonicalTag(tag) {
-        const clean = String(tag || "").trim();
-        if (!clean) return "";
-        return clean.startsWith("#") ? clean : `#${clean}`;
+        const shaped = hashtagShape(tag);
+        if (!shaped) return "";
+        return HASHTAG_ALIAS_LOOKUP.get(shaped.toLowerCase()) || shaped;
     }
 
     function uniqueTags(tags) {
@@ -71,6 +108,22 @@
 
     function extractHashtags(text) {
         return uniqueTags(String(text || "").match(HASHTAG_PATTERN) || []);
+    }
+
+    function parseHashtagList(value) {
+        return uniqueTags(
+            String(value || "")
+                .split(/[\s,;]+/)
+                .map((tag) => tag.trim())
+                .filter(Boolean)
+        );
+    }
+
+    function formatInputDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
     }
 
     function htmlToContainer(html) {
@@ -200,7 +253,9 @@
         constructor(commons) {
             this.commons = commons;
             const forum = commons.forum || {};
-            this.communityId = String(forum.cid || forum.id || forum.subdomain || "forum");
+            this.communityId = String(
+                forum.cid || forum.id || forum.subdomain || window.location.hostname || "forum"
+            );
             this.storageKey = `ht-local-index:${this.communityId}`;
             this.data = this.load();
         }
@@ -285,7 +340,10 @@
         }
 
         getPosts() {
-            return Object.values(this.data.posts);
+            return Object.values(this.data.posts).map((post) => ({
+                ...post,
+                hashtags: uniqueTags(Array.isArray(post.hashtags) ? post.hashtags : [])
+            }));
         }
 
         getHashtagStats(filter = {}) {
@@ -316,11 +374,36 @@
         }
 
         listHashtags(startsWith = "") {
-            const prefix = canonicalTag(startsWith).toLowerCase();
-            return [...this.getHashtagStats().values()]
-                .filter((item) => !prefix || item.tag.toLowerCase().startsWith(prefix))
+            const rawPrefix = hashtagShape(startsWith).toLowerCase();
+            const canonicalPrefix = canonicalTag(startsWith).toLowerCase();
+            const stats = this.getHashtagStats();
+
+            return this.getKnownTags()
+                .map((tag) => ({
+                    tag,
+                    count: stats.get(tag.toLowerCase())?.count || 0
+                }))
+                .filter((item) => {
+                    if (!rawPrefix) return true;
+                    if (item.tag.toLowerCase().startsWith(canonicalPrefix)) return true;
+
+                    const aliases = HASHTAG_ALIASES_BY_CANONICAL.get(item.tag.toLowerCase()) || [];
+                    return aliases.some((alias) => alias.toLowerCase().startsWith(rawPrefix));
+                })
                 .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag))
                 .slice(0, 20);
+        }
+
+        getAuthors() {
+            const authors = new Map();
+
+            this.getPosts().forEach((post) => {
+                const name = normalizeSpace(post.authorName);
+                const key = normalizeForSearch(name);
+                if (name && !authors.has(key)) authors.set(key, name);
+            });
+
+            return [...authors.values()].sort((left, right) => left.localeCompare(right));
         }
 
         getSections() {
@@ -345,6 +428,77 @@
             return [...sections.values()]
                 .map(({ id, title }) => ({ id, title }))
                 .sort((left, right) => left.title.localeCompare(right.title));
+        }
+    }
+
+    class LocalHashtagPreferences {
+        constructor(commons) {
+            const forum = commons.forum || {};
+            this.communityId = String(
+                forum.cid || forum.id || forum.subdomain || window.location.hostname || "forum"
+            );
+            this.storageKey = `ht-local-preferences:${this.communityId}`;
+            this.data = this.load();
+        }
+
+        load() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(this.storageKey) || "null");
+                if (
+                    parsed?.version === PREFERENCES_VERSION
+                    && parsed.dismissedBySection
+                    && typeof parsed.dismissedBySection === "object"
+                ) return parsed;
+            } catch (error) {
+                console.warn("[HashTags Local] Impossibile leggere le preferenze locali", error);
+            }
+
+            return { version: PREFERENCES_VERSION, dismissedBySection: {} };
+        }
+
+        save() {
+            try {
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+            } catch (error) {
+                console.warn("[HashTags Local] Impossibile salvare le preferenze locali", error);
+            }
+        }
+
+        sectionKey(sectionId) {
+            return String(Number(sectionId || 0));
+        }
+
+        getDismissed(sectionId) {
+            const tags = this.data.dismissedBySection[this.sectionKey(sectionId)] || [];
+            return uniqueTags(tags);
+        }
+
+        isDismissed(sectionId, tag) {
+            const key = canonicalTag(tag).toLowerCase();
+            return this.getDismissed(sectionId).some((item) => item.toLowerCase() === key);
+        }
+
+        dismiss(sectionId, tag) {
+            if (!Number(sectionId)) return;
+            const sectionKey = this.sectionKey(sectionId);
+            const tags = uniqueTags([
+                ...(this.data.dismissedBySection[sectionKey] || []),
+                canonicalTag(tag)
+            ]);
+            this.data.dismissedBySection[sectionKey] = tags;
+            this.save();
+        }
+
+        restore(sectionId, tag) {
+            if (!Number(sectionId)) return;
+            const sectionKey = this.sectionKey(sectionId);
+            const key = canonicalTag(tag).toLowerCase();
+            const tags = this.getDismissed(sectionId)
+                .filter((item) => item.toLowerCase() !== key);
+
+            if (tags.length) this.data.dismissedBySection[sectionKey] = tags;
+            else delete this.data.dismissedBySection[sectionKey];
+            this.save();
         }
     }
 
@@ -420,17 +574,35 @@
         constructor(commons) {
             this.commons = commons;
             this.index = new LocalHashtagIndex(commons);
+            this.preferences = new LocalHashtagPreferences(commons);
             this.modal = null;
             this.editorRow = null;
             this.suggestionBar = null;
             this.editorTimer = null;
             this.lastEditorContent = null;
+            this.replyForm = null;
+            this.selectedSuggestions = new Map();
+            this.suggestionMenu = null;
+            this.suggestionMenuTrigger = null;
+            this.longPressTimer = null;
+            this.longPressStart = null;
+            this.suppressNextSuggestionClick = false;
             this.refreshSuggestionsDebounced = debounce(
                 () => this.refreshSuggestions(),
                 scriptInfo.settings.suggestionDebounce
             );
             this.handleDocumentClick = this.handleDocumentClick.bind(this);
             this.handleDocumentKeydown = this.handleDocumentKeydown.bind(this);
+            this.handleDocumentChange = this.handleDocumentChange.bind(this);
+            this.handleDocumentContextMenu = this.handleDocumentContextMenu.bind(this);
+            this.handlePointerDown = this.handlePointerDown.bind(this);
+            this.handlePointerMove = this.handlePointerMove.bind(this);
+            this.handlePointerEnd = this.handlePointerEnd.bind(this);
+            this.handleReplySubmit = this.handleReplySubmit.bind(this);
+            this.handleWindowViewportChange = () => {
+                this.cancelLongPress();
+                this.closeSuggestionMenu();
+            };
         }
 
         async init() {
@@ -441,6 +613,14 @@
             this.modal = new CommonsModalAdapter(this.commons);
             document.addEventListener("click", this.handleDocumentClick);
             document.addEventListener("keydown", this.handleDocumentKeydown);
+            document.addEventListener("change", this.handleDocumentChange);
+            document.addEventListener("contextmenu", this.handleDocumentContextMenu);
+            document.addEventListener("pointerdown", this.handlePointerDown);
+            document.addEventListener("pointermove", this.handlePointerMove);
+            document.addEventListener("pointerup", this.handlePointerEnd);
+            document.addEventListener("pointercancel", this.handlePointerEnd);
+            window.addEventListener("resize", this.handleWindowViewportChange);
+            window.addEventListener("scroll", this.handleWindowViewportChange, true);
 
             const hasEditorApi = Boolean(this.commons.utilities?.replierForm?.textarea);
             if (hasEditorApi && (this.commons.location?.isTopic || this.commons.location?.isFullEditor)) {
@@ -453,8 +633,19 @@
 
         destroy() {
             clearInterval(this.editorTimer);
+            clearTimeout(this.longPressTimer);
             document.removeEventListener("click", this.handleDocumentClick);
             document.removeEventListener("keydown", this.handleDocumentKeydown);
+            document.removeEventListener("change", this.handleDocumentChange);
+            document.removeEventListener("contextmenu", this.handleDocumentContextMenu);
+            document.removeEventListener("pointerdown", this.handlePointerDown);
+            document.removeEventListener("pointermove", this.handlePointerMove);
+            document.removeEventListener("pointerup", this.handlePointerEnd);
+            document.removeEventListener("pointercancel", this.handlePointerEnd);
+            window.removeEventListener("resize", this.handleWindowViewportChange);
+            window.removeEventListener("scroll", this.handleWindowViewportChange, true);
+            this.replyForm?.removeEventListener("submit", this.handleReplySubmit, true);
+            this.suggestionMenu?.remove();
         }
 
         isSectionAllowed(sectionId) {
@@ -477,13 +668,14 @@
         mountSuggestions() {
             if (!this.isSectionAllowed(this.commons.location?.section?.id || 0)) return true;
 
+            const textarea = document.querySelector("textarea#Post");
             const existing = document.getElementById(BAR_ID);
             if (existing) {
                 this.suggestionBar = existing;
+                this.bindReplySubmit(textarea);
                 return true;
             }
 
-            const textarea = document.querySelector("textarea#Post");
             const editorRow = textarea?.closest("li.st-editor-container");
             const editorArea = editorRow?.closest("ul.st-editor-area");
 
@@ -495,22 +687,17 @@
             row.hidden = true;
             row.innerHTML = `
                 <div class="ht-suggestions-panel">
-                    <div class="ht-suggestions-head">
-                        <div class="ht-suggestions-heading">
-                            <strong>Hashtag suggeriti</strong>
-                            <span class="ht-suggestions-status"></span>
-                        </div>
-                        <button type="button" class="ht-open-search">
-                            Cerca nel forum
+                    <div class="ht-suggestions-header">
+                        <strong class="ht-suggestions-label">Hashtag suggeriti:</strong>
+                        <button type="button" class="ht-open-search" aria-label="Cerca hashtag" title="Cerca hashtag">
+                            <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <path d="m20 20-4.35-4.35"></path>
+                            </svg>
                         </button>
                     </div>
-                    <div class="ht-suggestions-list" role="list" aria-live="polite"></div>
-                    <div class="ht-suggestions-legend" aria-label="Origine dei suggerimenti">
-                        <span><i class="ht-legend-dot ht-legend-text"></i>Testo</span>
-                        <span><i class="ht-legend-dot ht-legend-link"></i>Link</span>
-                        <span><i class="ht-legend-dot ht-legend-topic"></i>Topic</span>
-                        <span><i class="ht-legend-dot ht-legend-section"></i>Sezione</span>
-                    </div>
+                    <div class="ht-suggestions-list" role="group" aria-label="Hashtag suggeriti" aria-live="polite"></div>
+                    <span class="ht-suggestions-status ht-sr-only" aria-live="polite"></span>
                 </div>
             `;
 
@@ -520,6 +707,7 @@
 
             this.editorRow = editorRow;
             this.suggestionBar = row;
+            this.bindReplySubmit(textarea);
             editorRow.addEventListener("input", this.refreshSuggestionsDebounced, true);
             editorRow.addEventListener("keyup", this.refreshSuggestionsDebounced, true);
 
@@ -530,6 +718,17 @@
 
             this.refreshSuggestions(true);
             return true;
+        }
+
+        bindReplySubmit(textarea) {
+            const form = textarea?.closest("form")
+                || document.forms?.REPLIER
+                || document.querySelector("form[name='REPLIER']");
+            if (!form || form === this.replyForm) return;
+
+            this.replyForm?.removeEventListener("submit", this.handleReplySubmit, true);
+            this.replyForm = form;
+            this.replyForm.addEventListener("submit", this.handleReplySubmit, true);
         }
 
         getEditorContent() {
@@ -549,6 +748,9 @@
             const domains = new Set(getDomains(links));
             const topicId = Number(this.commons.location?.topic?.id || 0);
             const sectionId = Number(this.commons.location?.section?.id || 0);
+            const dismissedTags = new Set(
+                this.preferences.getDismissed(sectionId).map((tag) => tag.toLowerCase())
+            );
             const topicStats = this.index.getHashtagStats({ topicId });
             const sectionStats = this.index.getHashtagStats({ sectionId });
             const globalStats = this.index.getHashtagStats();
@@ -557,7 +759,7 @@
             const add = (tag, points, source, reason) => {
                 const canonical = canonicalTag(tag);
                 const key = canonical.toLowerCase();
-                if (!canonical || insertedTags.has(key)) return;
+                if (!canonical || insertedTags.has(key) || dismissedTags.has(key)) return;
 
                 const item = scores.get(key) || {
                     tag: canonical,
@@ -647,48 +849,288 @@
             if (!force && content === this.lastEditorContent) return;
             this.lastEditorContent = content;
 
-            const suggestions = this.buildSuggestions(content);
+            const insertedTags = new Set(
+                extractHashtags(htmlToText(content)).map((tag) => tag.toLowerCase())
+            );
+            insertedTags.forEach((key) => this.selectedSuggestions.delete(key));
+
+            const sectionId = Number(this.commons.location?.section?.id || 0);
+            const dismissedTags = new Set(
+                this.preferences.getDismissed(sectionId).map((tag) => tag.toLowerCase())
+            );
+            dismissedTags.forEach((key) => this.selectedSuggestions.delete(key));
+
+            const currentSuggestions = this.buildSuggestions(content);
+            const suggestionsByTag = new Map(
+                currentSuggestions.map((item) => [item.tag.toLowerCase(), item])
+            );
+            this.selectedSuggestions.forEach((item, key) => {
+                if (!suggestionsByTag.has(key)) suggestionsByTag.set(key, item);
+            });
+            const suggestions = [...suggestionsByTag.values()];
             const list = this.suggestionBar.querySelector(".ht-suggestions-list");
             const status = this.suggestionBar.querySelector(".ht-suggestions-status");
             list.replaceChildren();
 
             suggestions.forEach((item) => {
+                const key = item.tag.toLowerCase();
+                const isSelected = this.selectedSuggestions.has(key);
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = `ht-suggestion ht-source-${item.source}`;
                 button.dataset.hashtag = item.tag;
-                button.setAttribute("role", "listitem");
-                button.setAttribute("aria-label", `${item.tag}: ${item.reason}`);
+                button.dataset.source = item.source;
+                button.dataset.reason = item.reason;
+                button.dataset.count = String(item.count || 0);
+                button.setAttribute("role", "checkbox");
+                button.setAttribute("aria-checked", String(isSelected));
+                button.setAttribute("aria-haspopup", "menu");
+                button.setAttribute("aria-expanded", "false");
+                button.setAttribute(
+                    "aria-label",
+                    `${item.tag}: ${item.reason}. ${isSelected
+                        ? "Selezionato; sarà aggiunto all'invio. Premi per deselezionarlo."
+                        : "Premi per aggiungerlo all'invio."}`
+                );
                 button.title = item.reason;
 
                 const tag = document.createElement("span");
                 tag.className = "ht-suggestion-tag";
                 tag.textContent = item.tag;
 
-                const reason = document.createElement("span");
-                reason.className = "ht-suggestion-reason";
-                reason.textContent = item.count ? `· ${item.count}` : "";
-
-                button.append(tag, reason);
+                button.appendChild(tag);
                 list.appendChild(button);
             });
 
-            status.textContent = suggestions.length
-                ? `${suggestions.length} suggerimenti aggiornati dal contenuto e dal contesto`
+            const selectedCount = this.selectedSuggestions.size;
+            status.textContent = selectedCount
+                ? `${selectedCount} ${selectedCount === 1 ? "hashtag selezionato" : "hashtag selezionati"}; saranno aggiunti all'invio`
+                : suggestions.length
+                    ? `${suggestions.length} suggerimenti disponibili`
                 : "Nessun suggerimento disponibile";
-            this.suggestionBar.hidden = false;
+            this.suggestionBar.hidden = !suggestions.length;
         }
 
-        insertHashtag(tag) {
+        toggleSuggestedHashtag(button) {
+            const tag = canonicalTag(button?.dataset.hashtag);
+            const key = tag.toLowerCase();
+            if (!tag) return;
+
+            if (this.selectedSuggestions.has(key)) {
+                this.selectedSuggestions.delete(key);
+            } else {
+                this.selectedSuggestions.set(key, {
+                    tag,
+                    source: button.dataset.source || "text",
+                    reason: button.dataset.reason || "suggerito dal contesto",
+                    count: Number(button.dataset.count || 0)
+                });
+            }
+
+            this.refreshSuggestions(true);
+        }
+
+        ensureSuggestionMenu() {
+            if (this.suggestionMenu?.isConnected) return this.suggestionMenu;
+
+            const menu = document.createElement("div");
+            menu.className = "ht-suggestion-menu";
+            menu.hidden = true;
+            menu.setAttribute("role", "menu");
+            menu.setAttribute("aria-label", "Azioni sul suggerimento");
+            menu.innerHTML = `
+                <button type="button" class="ht-dismiss-suggestion" role="menuitem">
+                    Non suggerire in questa sezione
+                </button>
+            `;
+            document.body.appendChild(menu);
+            this.suggestionMenu = menu;
+            return menu;
+        }
+
+        openSuggestionMenu(button) {
+            if (!button || !Number(this.commons.location?.section?.id || 0)) return;
+
+            this.closeSuggestionMenu();
+            const menu = this.ensureSuggestionMenu();
+            const tag = canonicalTag(button.dataset.hashtag);
+            menu.dataset.hashtag = tag;
+            menu.hidden = false;
+            button.setAttribute("aria-expanded", "true");
+            this.suggestionMenuTrigger = button;
+
+            const rect = button.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const padding = 8;
+            const preferredTop = rect.bottom + 6;
+            const top = preferredTop + menuRect.height <= window.innerHeight - padding
+                ? preferredTop
+                : Math.max(padding, rect.top - menuRect.height - 6);
+            const left = Math.max(
+                padding,
+                Math.min(rect.left, window.innerWidth - menuRect.width - padding)
+            );
+
+            menu.style.top = `${top}px`;
+            menu.style.left = `${left}px`;
+            menu.querySelector(".ht-dismiss-suggestion").focus();
+        }
+
+        closeSuggestionMenu(restoreFocus = false) {
+            if (!this.suggestionMenu || this.suggestionMenu.hidden) return;
+
+            const trigger = this.suggestionMenuTrigger;
+            this.suggestionMenu.hidden = true;
+            this.suggestionMenu.removeAttribute("data-hashtag");
+            trigger?.setAttribute("aria-expanded", "false");
+            this.suggestionMenuTrigger = null;
+
+            if (restoreFocus && trigger?.isConnected) trigger.focus();
+        }
+
+        dismissSuggestedHashtag(tag) {
+            const sectionId = Number(this.commons.location?.section?.id || 0);
             const canonical = canonicalTag(tag);
-            if (!canonical) return;
+            if (!sectionId || !canonical) return;
+
+            this.preferences.dismiss(sectionId, canonical);
+            this.selectedSuggestions.delete(canonical.toLowerCase());
+            this.closeSuggestionMenu();
+            this.refreshSuggestions(true);
+
+            const status = this.suggestionBar?.querySelector(".ht-suggestions-status");
+            if (status) status.textContent = `${canonical} non sarà più suggerito in questa sezione`;
+
+            setTimeout(() => {
+                const nextSuggestion = this.suggestionBar?.querySelector(".ht-suggestion");
+                const fallback = document.querySelector("textarea#Post");
+                (nextSuggestion || fallback)?.focus();
+            }, 0);
+        }
+
+        cancelLongPress() {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+            this.longPressStart = null;
+        }
+
+        handleDocumentContextMenu(event) {
+            const target = event.target instanceof Element
+                ? event.target.closest(".ht-suggestion")
+                : null;
+            if (!target) return;
+
+            event.preventDefault();
+            this.openSuggestionMenu(target);
+        }
+
+        handlePointerDown(event) {
+            const target = event.target instanceof Element
+                ? event.target.closest(".ht-suggestion")
+                : null;
+            if (!target || event.button !== 0 || event.pointerType === "mouse") return;
+
+            this.cancelLongPress();
+            this.longPressStart = {
+                pointerId: event.pointerId,
+                x: event.clientX,
+                y: event.clientY
+            };
+            this.longPressTimer = setTimeout(() => {
+                this.longPressTimer = null;
+                this.longPressStart = null;
+                this.suppressNextSuggestionClick = true;
+                this.openSuggestionMenu(target);
+                setTimeout(() => {
+                    this.suppressNextSuggestionClick = false;
+                }, 1000);
+            }, 550);
+        }
+
+        handlePointerMove(event) {
+            if (!this.longPressStart || event.pointerId !== this.longPressStart.pointerId) return;
+
+            const distance = Math.hypot(
+                event.clientX - this.longPressStart.x,
+                event.clientY - this.longPressStart.y
+            );
+            if (distance > 10) this.cancelLongPress();
+        }
+
+        handlePointerEnd(event) {
+            if (!this.longPressStart || event.pointerId !== this.longPressStart.pointerId) return;
+            this.cancelLongPress();
+        }
+
+        isPublishSubmit(event) {
+            const submitter = event.submitter;
+            if (!submitter) return true;
+
+            const name = normalizeForSearch(submitter.getAttribute("name"));
+            const value = normalizeForSearch(
+                submitter.value || submitter.textContent || submitter.getAttribute("title")
+            );
+            if (
+                name === "full"
+                || name.includes("preview")
+                || value.includes("full editor")
+                || value.includes("preview")
+                || value.includes("anteprima")
+            ) return false;
+            return true;
+        }
+
+        moveEditorCaretToEnd() {
+            const visualEditor = document.querySelector(
+                "#st-visual-editor [contenteditable='true'], .st-editor [contenteditable='true']"
+            );
+            const visualIsActive = visualEditor
+                && visualEditor.getClientRects().length
+                && getComputedStyle(visualEditor).display !== "none";
+
+            if (visualIsActive) {
+                const range = document.createRange();
+                range.selectNodeContents(visualEditor);
+                range.collapse(false);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                visualEditor.focus();
+                return;
+            }
+
+            const textarea = document.querySelector("textarea#Post");
+            if (!textarea) return;
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+
+        appendSelectedSuggestions() {
+            if (!this.selectedSuggestions.size) return;
 
             const content = this.getEditorContent();
-            const existing = new Set(extractHashtags(htmlToText(content)).map((value) => value.toLowerCase()));
-            if (existing.has(canonical.toLowerCase())) return;
+            const existing = new Set(
+                extractHashtags(htmlToText(content)).map((tag) => tag.toLowerCase())
+            );
+            const tags = [...this.selectedSuggestions.values()]
+                .map((item) => item.tag)
+                .filter((tag) => !existing.has(tag.toLowerCase()));
 
-            this.commons.utilities.replierForm.textarea.addContent(` ${canonical} `);
-            setTimeout(() => this.refreshSuggestions(true), 50);
+            this.selectedSuggestions.clear();
+            if (!tags.length) {
+                this.refreshSuggestions(true);
+                return;
+            }
+
+            this.moveEditorCaretToEnd();
+            const prefix = htmlToText(content) ? "\n" : "";
+            this.commons.utilities.replierForm.textarea.addContent(`${prefix}${tags.join(" ")}`);
+            this.lastEditorContent = null;
+        }
+
+        handleReplySubmit(event) {
+            if (!this.isPublishSubmit(event)) return;
+            this.appendSelectedSuggestions();
         }
 
         addAutocomplete() {
@@ -745,6 +1187,7 @@
                     matches.forEach((match) => {
                         const prefix = match[1] || "";
                         const tag = match[2];
+                        const canonical = canonicalTag(tag);
                         const start = match.index + prefix.length;
 
                         fragment.append(document.createTextNode(text.slice(cursor, start)));
@@ -752,9 +1195,9 @@
                         const button = document.createElement("button");
                         button.type = "button";
                         button.className = "ht-entity";
-                        button.dataset.hashtag = tag;
-                        button.textContent = tag;
-                        button.setAttribute("aria-label", `Cerca ${tag}`);
+                        button.dataset.hashtag = canonical;
+                        button.textContent = canonical;
+                        button.setAttribute("aria-label", `Cerca ${canonical}`);
                         fragment.append(button);
 
                         cursor = start + tag.length;
@@ -821,6 +1264,12 @@
 
             sectionSelect.value = selectedSection;
 
+            const authors = root.querySelector(".ht-search-authors");
+            authors.replaceChildren();
+            this.index.getAuthors().forEach((author) => {
+                authors.appendChild(new Option(author, author));
+            });
+
             const quick = root.querySelector(".ht-search-quick-tags");
             quick.replaceChildren();
             this.index.listHashtags().slice(0, 6).forEach((item) => {
@@ -831,6 +1280,35 @@
                 button.textContent = `${item.tag} · ${item.count}`;
                 quick.appendChild(button);
             });
+
+            this.renderDismissedPreferences(root);
+            this.updatePeriodFields(root);
+        }
+
+        renderDismissedPreferences(root) {
+            const sectionId = Number(this.commons.location?.section?.id || 0);
+            const container = root.querySelector(".ht-search-dismissed");
+            const list = root.querySelector(".ht-search-dismissed-tags");
+            if (!container || !list) return;
+
+            const tags = sectionId ? this.preferences.getDismissed(sectionId) : [];
+            list.replaceChildren();
+            tags.forEach((tag) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "cs-btn cs-btn-sm ht-search-restore-tag";
+                button.dataset.hashtag = tag;
+                button.textContent = `Ripristina ${tag}`;
+                list.appendChild(button);
+            });
+
+            container.hidden = !tags.length;
+        }
+
+        updatePeriodFields(root) {
+            const period = root.querySelector(".ht-search-period")?.value || "all";
+            const customDates = root.querySelector(".ht-search-custom-dates");
+            if (customDates) customDates.hidden = period !== "custom";
         }
 
         collapseAdvanced(root) {
@@ -855,28 +1333,88 @@
                 root.querySelector(".ht-search-operator").value !== "all",
                 Boolean(root.querySelector(".ht-search-section").value),
                 Boolean(root.querySelector(".ht-search-topic").value.trim()),
-                Boolean(root.querySelector(".ht-search-from").value),
-                Boolean(root.querySelector(".ht-search-to").value),
+                Boolean(root.querySelector(".ht-search-excluded").value.trim()),
+                Boolean(root.querySelector(".ht-search-author").value.trim()),
+                root.querySelector(".ht-search-period").value !== "all",
                 Number(root.querySelector(".ht-search-frequency").value) > 0,
                 root.querySelector(".ht-search-sort").value !== "date"
             ].filter(Boolean).length;
         }
 
+        resolveSearchDates(period, customFrom, customTo) {
+            if (period === "custom") return { from: customFrom, to: customTo };
+            if (period === "all") return { from: "", to: "" };
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const from = new Date(today);
+
+            if (period === "7") from.setDate(from.getDate() - 6);
+            else if (period === "30") from.setDate(from.getDate() - 29);
+            else if (period === "365") from.setFullYear(from.getFullYear() - 1);
+
+            return { from: formatInputDate(from), to: formatInputDate(today) };
+        }
+
         getSearchState(root) {
             const query = root.querySelector(".ht-search-query").value.trim();
+            const period = root.querySelector(".ht-search-period").value;
+            const dates = this.resolveSearchDates(
+                period,
+                root.querySelector(".ht-search-from").value,
+                root.querySelector(".ht-search-to").value
+            );
             return {
                 query,
                 queryTags: extractHashtags(query).map((tag) => tag.toLowerCase()),
                 words: tokenize(query.replace(HASHTAG_PATTERN, " ")),
+                excludedTags: parseHashtagList(
+                    root.querySelector(".ht-search-excluded").value
+                ).map((tag) => tag.toLowerCase()),
+                author: normalizeForSearch(root.querySelector(".ht-search-author").value.trim()),
                 kind: root.querySelector(".ht-search-kind").value,
                 operator: root.querySelector(".ht-search-operator").value,
                 sectionId: root.querySelector(".ht-search-section").value,
                 topic: normalizeForSearch(root.querySelector(".ht-search-topic").value.trim()),
-                from: root.querySelector(".ht-search-from").value,
-                to: root.querySelector(".ht-search-to").value,
+                period,
+                from: dates.from,
+                to: dates.to,
+                fromTime: dates.from ? new Date(`${dates.from}T00:00:00`).getTime() : 0,
+                toTime: dates.to ? new Date(`${dates.to}T23:59:59.999`).getTime() : 0,
                 minFrequency: Number(root.querySelector(".ht-search-frequency").value),
                 sort: root.querySelector(".ht-search-sort").value
             };
+        }
+
+        validateSearchState(root, state) {
+            const error = root.querySelector(".ht-search-error");
+            const from = root.querySelector(".ht-search-from");
+            const to = root.querySelector(".ht-search-to");
+            const invalidRange = Boolean(
+                state.from
+                && state.to
+                && state.fromTime > state.toTime
+            );
+
+            from.removeAttribute("aria-invalid");
+            to.removeAttribute("aria-invalid");
+            error.hidden = true;
+            error.textContent = "";
+
+            if (!invalidRange) return true;
+
+            from.setAttribute("aria-invalid", "true");
+            to.setAttribute("aria-invalid", "true");
+            error.textContent = "La data iniziale deve precedere o coincidere con la data finale.";
+            error.hidden = false;
+
+            const advanced = root.querySelector(".ht-search-advanced");
+            const toggle = root.querySelector(".ht-search-toggle");
+            advanced.hidden = false;
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.textContent = "Nascondi ricerca avanzata";
+            from.focus();
+            return false;
         }
 
         topicFrequencies(posts) {
@@ -899,22 +1437,30 @@
         }
 
         basePostFilter(post, state) {
-            const date = String(post.date || "").slice(0, 10);
+            const postTime = new Date(post.date).getTime();
             const haystack = normalizeForSearch(`${post.topicTitle} ${post.excerpt} ${post.authorName} ${post.sectionTitle}`);
+            const author = normalizeForSearch(post.authorName);
 
             return (!state.sectionId || String(post.sectionId) === state.sectionId)
                 && (!state.topic || normalizeForSearch(post.topicTitle).includes(state.topic))
-                && (!state.from || date >= state.from)
-                && (!state.to || date <= state.to)
+                && (!state.author || author.includes(state.author))
+                && (!state.fromTime || postTime >= state.fromTime)
+                && (!state.toTime || postTime <= state.toTime)
                 && state.words.every((word) => haystack.includes(word));
         }
 
-        matchesTags(tags, state) {
+        matchesPositiveTags(tags, state) {
             if (!state.queryTags.length) return true;
-            const available = new Set(tags.map((tag) => tag.toLowerCase()));
+            const available = new Set(uniqueTags(tags).map((tag) => tag.toLowerCase()));
             return state.operator === "all"
                 ? state.queryTags.every((tag) => available.has(tag))
                 : state.queryTags.some((tag) => available.has(tag));
+        }
+
+        matchesTags(tags, state) {
+            const available = new Set(uniqueTags(tags).map((tag) => tag.toLowerCase()));
+            if (state.excludedTags.some((tag) => available.has(tag))) return false;
+            return this.matchesPositiveTags(tags, state);
         }
 
         searchPosts(state) {
@@ -975,8 +1521,164 @@
                     : right.date.localeCompare(left.date));
         }
 
+        buildSearchDiscovery(matches, kind, state) {
+            const matchedPostsById = new Map();
+            const matchedItems = kind === "topic"
+                ? matches.flatMap((topic) => topic.posts)
+                : matches;
+
+            matchedItems.forEach((post) => {
+                matchedPostsById.set(`${post.topicId}:${post.postId}`, post);
+            });
+            const matchedPosts = [...matchedPostsById.values()];
+            const topicIds = new Set(matchedPosts.map((post) => String(post.topicId)));
+            const contextPosts = this.index.getPosts()
+                .filter((post) => topicIds.has(String(post.topicId)))
+                .filter((post) => this.basePostFilter(post, state))
+                .filter((post) => {
+                    const tags = new Set(post.hashtags.map((tag) => tag.toLowerCase()));
+                    return !state.excludedTags.some((tag) => tags.has(tag));
+                });
+
+            const preferenceSectionId = Number(
+                state.sectionId || this.commons.location?.section?.id || 0
+            );
+            const blocked = new Set([
+                ...state.queryTags,
+                ...state.excludedTags,
+                ...this.preferences.getDismissed(preferenceSectionId)
+                    .map((tag) => tag.toLowerCase())
+            ]);
+            const scores = new Map();
+            const globalStats = this.index.getHashtagStats();
+
+            const addRelated = (tag, points, signal) => {
+                const canonical = canonicalTag(tag);
+                const key = canonical.toLowerCase();
+                if (!canonical || blocked.has(key)) return;
+
+                const current = scores.get(key) || {
+                    tag: canonical,
+                    score: 0,
+                    postSignals: 0,
+                    topicSignals: 0,
+                    count: globalStats.get(key)?.count || 0
+                };
+                current.score += points;
+                current[signal] += 1;
+                scores.set(key, current);
+            };
+
+            matchedPosts.forEach((post) => {
+                if (
+                    state.queryTags.length
+                    && !state.queryTags.some((tag) =>
+                        post.hashtags.some((item) => item.toLowerCase() === tag))
+                ) return;
+
+                uniqueTags(post.hashtags).forEach((tag) => addRelated(tag, 3, "postSignals"));
+            });
+
+            const contextByTopic = new Map();
+            contextPosts.forEach((post) => {
+                const key = String(post.topicId);
+                if (!contextByTopic.has(key)) contextByTopic.set(key, []);
+                contextByTopic.get(key).push(post);
+            });
+            contextByTopic.forEach((posts) => {
+                const tags = uniqueTags(posts.flatMap((post) => post.hashtags));
+                tags.forEach((tag) => addRelated(tag, 1, "topicSignals"));
+            });
+
+            const related = [...scores.values()]
+                .sort((left, right) =>
+                    right.score - left.score
+                    || right.postSignals - left.postSignals
+                    || right.count - left.count
+                    || left.tag.localeCompare(right.tag))
+                .slice(0, 5);
+
+            const pairCounts = new Map();
+            matchedPosts.forEach((post) => {
+                const tags = uniqueTags(post.hashtags)
+                    .filter((tag) => !state.excludedTags.includes(tag.toLowerCase()))
+                    .filter((tag) => !this.preferences.isDismissed(preferenceSectionId, tag))
+                    .slice(0, 12)
+                    .sort((left, right) => left.localeCompare(right));
+
+                for (let left = 0; left < tags.length; left += 1) {
+                    for (let right = left + 1; right < tags.length; right += 1) {
+                        const pair = [tags[left], tags[right]];
+                        if (
+                            state.queryTags.length
+                            && pair.every((tag) => state.queryTags.includes(tag.toLowerCase()))
+                        ) continue;
+
+                        const key = pair.map((tag) => tag.toLowerCase()).join("|");
+                        const current = pairCounts.get(key) || { tags: pair, count: 0 };
+                        current.count += 1;
+                        pairCounts.set(key, current);
+                    }
+                }
+            });
+
+            const combinations = [...pairCounts.values()]
+                .sort((left, right) =>
+                    right.count - left.count
+                    || left.tags.join(" ").localeCompare(right.tags.join(" ")))
+                .slice(0, 3);
+
+            return { related, combinations };
+        }
+
+        renderSearchDiscovery(root, matches, kind, state) {
+            const container = root.querySelector(".ht-search-discovery");
+            const relatedGroup = root.querySelector(".ht-search-related");
+            const relatedList = root.querySelector(".ht-search-related-tags");
+            const combinationGroup = root.querySelector(".ht-search-combinations");
+            const combinationList = root.querySelector(".ht-search-combination-tags");
+            const discovery = this.buildSearchDiscovery(matches, kind, state);
+
+            relatedList.replaceChildren();
+            discovery.related.forEach((item) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "cs-btn cs-btn-sm ht-search-discovery-tag";
+                button.dataset.tags = JSON.stringify([item.tag]);
+                button.title = `${item.postSignals} corrispondenze nello stesso post, ${item.topicSignals} nel topic`;
+                button.textContent = `${item.tag} · ${item.score}`;
+                relatedList.appendChild(button);
+            });
+
+            combinationList.replaceChildren();
+            discovery.combinations.forEach((item) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "cs-btn cs-btn-sm ht-search-discovery-tag";
+                button.dataset.tags = JSON.stringify(item.tags);
+                button.title = `${item.count} ${item.count === 1 ? "post" : "post"} con questa combinazione`;
+                button.textContent = `${item.tags.join(" + ")} · ${item.count}`;
+                combinationList.appendChild(button);
+            });
+
+            relatedGroup.hidden = !discovery.related.length;
+            combinationGroup.hidden = !discovery.combinations.length;
+            container.hidden = !discovery.related.length && !discovery.combinations.length;
+        }
+
+        addDiscoveryTagsToQuery(root, tags) {
+            const query = root.querySelector(".ht-search-query");
+            const words = normalizeSpace(query.value.replace(HASHTAG_PATTERN, " "));
+            const currentTags = extractHashtags(query.value);
+            const mergedTags = uniqueTags([...currentTags, ...tags]);
+            query.value = [words, ...mergedTags].filter(Boolean).join(" ");
+            this.runSearch(root);
+        }
+
         runSearch(root) {
             const state = this.getSearchState(root);
+            if (!this.validateSearchState(root, state)) return;
+
             this.collapseAdvanced(root);
             const activeFilters = this.advancedFilterCount(root);
             root.querySelector(".ht-search-advanced-summary").textContent = activeFilters
@@ -984,19 +1686,21 @@
                 : "Nessun filtro avanzato";
 
             const matches = state.kind === "topic" ? this.searchTopics(state) : this.searchPosts(state);
-            this.renderSearchResults(root, matches, state.kind);
+            this.renderSearchResults(root, matches, state.kind, state);
         }
 
         renderSearchPrompt(root) {
             root.querySelector(".ht-search-count").textContent = "Inserisci una ricerca";
             root.querySelector(".ht-search-results").replaceChildren();
+            root.querySelector(".ht-search-discovery").hidden = true;
         }
 
-        renderSearchResults(root, matches, kind) {
+        renderSearchResults(root, matches, kind, state) {
             const results = root.querySelector(".ht-search-results");
             const count = root.querySelector(".ht-search-count");
             results.replaceChildren();
             count.textContent = `${matches.length} ${matches.length === 1 ? "risultato" : "risultati"}`;
+            this.renderSearchDiscovery(root, matches, kind, state);
 
             if (!matches.length) {
                 const empty = document.createElement("p");
@@ -1052,6 +1756,25 @@
             const target = event.target instanceof Element ? event.target : null;
             if (!target) return;
 
+            const dismissAction = target.closest(".ht-dismiss-suggestion");
+            if (dismissAction) {
+                this.dismissSuggestedHashtag(this.suggestionMenu?.dataset.hashtag);
+                return;
+            }
+
+            const suggestion = target.closest(".ht-suggestion");
+            if (suggestion && this.suppressNextSuggestionClick) {
+                event.preventDefault();
+                this.suppressNextSuggestionClick = false;
+                return;
+            }
+
+            if (
+                this.suggestionMenu
+                && !this.suggestionMenu.hidden
+                && !target.closest(".ht-suggestion-menu")
+            ) this.closeSuggestionMenu();
+
             const entity = target.closest(".ht-entity");
             if (entity) {
                 event.preventDefault();
@@ -1059,9 +1782,8 @@
                 return;
             }
 
-            const suggestion = target.closest(".ht-suggestion");
             if (suggestion) {
-                this.insertHashtag(suggestion.dataset.hashtag);
+                this.toggleSuggestedHashtag(suggestion);
                 return;
             }
 
@@ -1073,9 +1795,31 @@
             const root = target.closest(".ht-search-modal") || this.modal?.nativeElement;
             if (!root?.querySelector?.(".ht-search-shell")) return;
 
+            const restoreTag = target.closest(".ht-search-restore-tag");
+            if (restoreTag) {
+                const sectionId = Number(this.commons.location?.section?.id || 0);
+                this.preferences.restore(sectionId, restoreTag.dataset.hashtag);
+                this.renderDismissedPreferences(root);
+                this.refreshSuggestions(true);
+                return;
+            }
+
+            const discoveryTag = target.closest(".ht-search-discovery-tag");
+            if (discoveryTag) {
+                try {
+                    const tags = JSON.parse(discoveryTag.dataset.tags || "[]");
+                    this.addDiscoveryTagsToQuery(root, tags);
+                } catch {
+                    // Il dataset è generato internamente; un valore non valido viene ignorato.
+                }
+                return;
+            }
+
             const quickTag = target.closest(".ht-search-quick-tag");
             if (quickTag) {
-                root.querySelector(".ht-search-query").value = quickTag.dataset.hashtag || quickTag.textContent;
+                root.querySelector(".ht-search-query").value = canonicalTag(
+                    quickTag.dataset.hashtag || quickTag.textContent
+                );
                 this.runSearch(root);
                 return;
             }
@@ -1097,12 +1841,37 @@
 
         handleDocumentKeydown(event) {
             const target = event.target instanceof Element ? event.target : null;
+
+            if (event.key === "Escape" && this.suggestionMenu && !this.suggestionMenu.hidden) {
+                event.preventDefault();
+                this.closeSuggestionMenu(true);
+                return;
+            }
+
+            const suggestion = target?.closest(".ht-suggestion");
+            if (
+                suggestion
+                && (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10"))
+            ) {
+                event.preventDefault();
+                this.openSuggestionMenu(suggestion);
+                return;
+            }
+
             if (event.key !== "Enter" || !target?.matches(".ht-search-query")) return;
 
             const root = target.closest(".ht-search-modal") || this.modal?.nativeElement;
             if (!root) return;
             event.preventDefault();
             this.runSearch(root);
+        }
+
+        handleDocumentChange(event) {
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target?.matches(".ht-search-period")) return;
+
+            const root = target.closest(".ht-search-modal") || this.modal?.nativeElement;
+            if (root) this.updatePeriodFields(root);
         }
 
         addStyles() {
@@ -1116,73 +1885,83 @@
                     box-sizing: border-box !important;
                     width: 100% !important;
                     margin: 0 !important;
-                    padding: 10px 2% !important;
+                    padding: 6px 2% !important;
                     list-style: none !important;
                     text-align: left !important;
                     background: transparent !important;
                 }
                 .ht-suggestions-row .ht-suggestions-panel {
-                    display: block !important;
+                    display: grid !important;
                     box-sizing: border-box !important;
                     width: 100% !important;
                     margin: 0 !important;
-                    padding: 13px !important;
-                    border: 1px solid rgba(127, 127, 127, .18) !important;
-                    border-radius: 12px !important;
-                    background: rgba(127, 127, 127, .075) !important;
-                    text-align: left !important;
-                }
-                .ht-suggestions-row .ht-suggestions-head {
-                    display: flex !important;
-                    align-items: flex-start !important;
-                    justify-content: space-between !important;
-                    width: 100% !important;
-                    margin: 0 0 10px !important;
                     padding: 0 !important;
-                    gap: 12px !important;
+                    gap: 7px !important;
+                    border: 0 !important;
+                    background: transparent !important;
                     text-align: left !important;
                 }
-                .ht-suggestions-row .ht-suggestions-heading {
-                    display: block !important;
+                .ht-suggestions-row .ht-suggestions-header {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    box-sizing: border-box !important;
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    gap: 7px !important;
+                }
+                .ht-suggestions-row .ht-suggestions-label {
+                    display: inline !important;
+                    flex: 0 0 auto !important;
                     width: auto !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    text-align: left !important;
-                }
-                .ht-suggestions-head strong,
-                .ht-suggestions-status {
-                    display: block !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    text-align: left !important;
-                }
-                .ht-suggestions-head strong { font-size: 1.08em !important; line-height: 1.3 !important; }
-                .ht-suggestions-status { margin-top: 2px !important; opacity: .68; font-size: .82em !important; }
-                .ht-suggestions-row .ht-open-search {
-                    appearance: none !important;
-                    flex: 0 0 auto !important;
-                    box-sizing: border-box !important;
-                    margin: 0 !important;
-                    padding: 7px 11px !important;
-                    border: 1px solid rgba(80, 120, 190, .45) !important;
-                    border-radius: 8px !important;
-                    background: rgba(255, 255, 255, .72) !important;
-                    color: inherit !important;
-                    font: inherit !important;
+                    font-size: inherit !important;
                     line-height: 1.2 !important;
-                    cursor: pointer !important;
-                    box-shadow: none !important;
+                    text-align: left !important;
                 }
-                .ht-suggestions-row .ht-open-search:hover { background: rgba(80, 120, 190, .12) !important; }
                 .ht-suggestions-row .ht-suggestions-list {
                     display: flex !important;
                     align-items: center !important;
                     flex-wrap: wrap !important;
+                    min-width: 0 !important;
                     width: 100% !important;
                     margin: 0 !important;
                     padding: 0 !important;
                     gap: 7px !important;
                     text-align: left !important;
+                }
+                .ht-suggestions-row .ht-open-search {
+                    appearance: none !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    flex: 0 0 auto !important;
+                    box-sizing: border-box !important;
+                    width: 30px !important;
+                    height: 30px !important;
+                    margin: 0 !important;
+                    padding: 5px !important;
+                    border: 0 !important;
+                    border-radius: 6px !important;
+                    background: transparent !important;
+                    color: inherit !important;
+                    cursor: pointer !important;
+                    box-shadow: none !important;
+                }
+                .ht-suggestions-row .ht-open-search:hover,
+                .ht-suggestions-row .ht-open-search:focus-visible {
+                    background: rgba(127, 127, 127, .12) !important;
+                }
+                .ht-suggestions-row .ht-open-search svg {
+                    display: block !important;
+                    flex: 0 0 auto !important;
+                    fill: none !important;
+                    stroke: currentColor !important;
+                    stroke-width: 2 !important;
+                    stroke-linecap: round !important;
                 }
                 .ht-suggestions-row .ht-suggestion {
                     appearance: none !important;
@@ -1192,11 +1971,11 @@
                     width: auto !important;
                     min-width: 0 !important;
                     margin: 0 !important;
-                    padding: 6px 9px !important;
+                    padding: 5px 9px !important;
                     gap: 5px !important;
                     border: 1px solid rgba(127, 127, 127, .24) !important;
                     border-radius: 999px !important;
-                    background: rgba(255, 255, 255, .76) !important;
+                    background: rgba(127, 127, 127, .08) !important;
                     color: inherit !important;
                     font: inherit !important;
                     font-weight: 400 !important;
@@ -1210,38 +1989,84 @@
                     border-color: rgba(80, 120, 190, .45) !important;
                     background: rgba(80, 120, 190, .10) !important;
                 }
+                .ht-suggestions-row .ht-suggestion[aria-checked="true"] {
+                    border-color: rgba(80, 120, 190, .68) !important;
+                    background: rgba(127, 127, 127, .08) !important;
+                    box-shadow: inset 0 0 0 1px rgba(80, 120, 190, .28) !important;
+                }
+                .ht-suggestions-row .ht-suggestion[aria-checked="true"]::after {
+                    content: "✓";
+                    flex: 0 0 auto;
+                    margin-left: 1px;
+                }
                 .ht-suggestion-tag { white-space: nowrap; }
-                .ht-suggestion-reason { opacity: .62; font-size: .9em; white-space: nowrap; }
-                .ht-suggestion::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #4a90e2; }
+                .ht-suggestion::before { content: ""; flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #4a90e2; }
                 .ht-source-link::before { background: #f2994a; }
                 .ht-source-topic::before { background: #48b86a; }
                 .ht-source-section::before { background: #d96aa7; }
-                .ht-suggestions-row .ht-suggestions-legend {
-                    display: flex !important;
-                    align-items: center !important;
-                    flex-wrap: wrap !important;
-                    width: 100% !important;
-                    margin: 10px 0 0 !important;
-                    padding: 0 !important;
-                    gap: 10px !important;
-                    opacity: .66;
-                    font-size: .8em;
-                    text-align: left !important;
+                .ht-suggestion-menu {
+                    position: fixed;
+                    z-index: 2147483646;
+                    box-sizing: border-box;
+                    max-width: calc(100vw - 16px);
+                    padding: 4px;
+                    border: 1px solid rgba(127, 127, 127, .35);
+                    border-radius: 8px;
+                    background: Canvas;
+                    color: CanvasText;
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
                 }
-                .ht-suggestions-legend span { display: inline-flex !important; align-items: center !important; gap: 4px !important; margin: 0 !important; padding: 0 !important; }
-                .ht-legend-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4a90e2; }
-                .ht-legend-link { background: #f2994a; }
-                .ht-legend-topic { background: #48b86a; }
-                .ht-legend-section { background: #d96aa7; }
+                .ht-suggestion-menu[hidden] { display: none !important; }
+                .ht-suggestion-menu button {
+                    appearance: none;
+                    display: block;
+                    box-sizing: border-box;
+                    width: 100%;
+                    margin: 0;
+                    padding: 7px 9px;
+                    border: 0;
+                    border-radius: 5px;
+                    background: transparent;
+                    color: inherit;
+                    font: inherit;
+                    text-align: left;
+                    cursor: pointer;
+                }
+                .ht-suggestion-menu button:hover,
+                .ht-suggestion-menu button:focus { background: rgba(127, 127, 127, .14); }
+                .ht-sr-only {
+                    position: absolute !important;
+                    width: 1px !important;
+                    height: 1px !important;
+                    padding: 0 !important;
+                    margin: -1px !important;
+                    overflow: hidden !important;
+                    clip: rect(0, 0, 0, 0) !important;
+                    white-space: nowrap !important;
+                    border: 0 !important;
+                }
                 .ht-entity { display: inline; border: 0; border-radius: 3px; padding: 0 2px; background: rgba(255, 220, 40, .28); color: inherit; font: inherit; cursor: pointer; }
                 .ht-search-simple, .ht-search-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; }
                 .ht-search-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
                 .ht-search-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
                 .ht-search-field input, .ht-search-field select { width: 100%; box-sizing: border-box; }
+                .ht-search-custom-dates { grid-column: 1 / -1; }
+                .ht-search-custom-dates[hidden] { display: none; }
                 .ht-search-quick { margin-top: 10px; }
                 .ht-search-quick-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
                 .ht-search-toggle-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
                 .ht-search-advanced[hidden] { display: none; }
+                .ht-search-error { margin: 9px 0 0; color: #b42318; }
+                .ht-search-dismissed { margin-top: 10px; }
+                .ht-search-dismissed[hidden] { display: none; }
+                .ht-search-dismissed-tags,
+                .ht-search-related-tags,
+                .ht-search-combination-tags {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    margin-top: 5px;
+                }
                 .ht-search-local-note, .ht-search-advanced-summary, .ht-search-result-meta { opacity: .72; font-size: .85em; }
                 .ht-search-result { padding: 10px 0; border-top: 1px solid rgba(127, 127, 127, .25); }
                 .ht-search-result-head { display: flex; justify-content: space-between; gap: 8px; }
@@ -1250,11 +2075,14 @@
                 .ht-search-result-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
                 .ht-search-result-tags span { padding: 2px 6px; border-radius: 999px; background: rgba(127, 127, 127, .12); }
                 .ht-search-results-head { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(127, 127, 127, .25); }
+                .ht-search-discovery { display: grid; gap: 8px; margin-top: 10px; }
+                .ht-search-discovery[hidden],
+                .ht-search-related[hidden],
+                .ht-search-combinations[hidden] { display: none; }
                 .ht-search-empty { padding: 12px 0; }
                 @media (max-width: 600px) {
-                    .ht-suggestions-row .ht-suggestions-head, .ht-search-result-head, .ht-search-results-head { align-items: flex-start !important; flex-direction: column !important; }
+                    .ht-search-result-head, .ht-search-results-head { align-items: flex-start !important; flex-direction: column !important; }
                     .ht-search-simple, .ht-search-grid { grid-template-columns: 1fr; }
-                    .ht-suggestions-row .ht-open-search { align-self: flex-start !important; }
                 }
             `;
             document.head.appendChild(style);
@@ -1306,12 +2134,23 @@
                                 <input type="search" class="textinput ht-search-topic" placeholder="Es. Mediterraneo">
                             </label>
                             <label class="ht-search-field">
-                                <span>Dal</span>
-                                <input type="date" class="textinput ht-search-from">
+                                <span>Autore</span>
+                                <input type="search" class="textinput ht-search-author" list="ht-search-author-list" placeholder="Nome o parte del nome">
+                            </label>
+                            <datalist id="ht-search-author-list" class="ht-search-authors"></datalist>
+                            <label class="ht-search-field">
+                                <span>Escludi hashtag</span>
+                                <input type="search" class="textinput ht-search-excluded" placeholder="#Tag1, Tag2…">
                             </label>
                             <label class="ht-search-field">
-                                <span>Al</span>
-                                <input type="date" class="textinput ht-search-to">
+                                <span>Periodo</span>
+                                <select class="textinput ht-search-period">
+                                    <option value="all">Qualsiasi data</option>
+                                    <option value="7">Ultimi 7 giorni</option>
+                                    <option value="30">Ultimi 30 giorni</option>
+                                    <option value="365">Ultimi 12 mesi</option>
+                                    <option value="custom">Intervallo personalizzato</option>
+                                </select>
                             </label>
                             <label class="ht-search-field">
                                 <span>Frequenza nel topic</span>
@@ -1328,11 +2167,36 @@
                                     <option value="frequency">Più usati</option>
                                 </select>
                             </label>
+                            <div class="ht-search-custom-dates ht-search-grid" hidden>
+                                <label class="ht-search-field">
+                                    <span>Dal</span>
+                                    <input type="date" class="textinput ht-search-from">
+                                </label>
+                                <label class="ht-search-field">
+                                    <span>Al</span>
+                                    <input type="date" class="textinput ht-search-to">
+                                </label>
+                            </div>
+                        </div>
+                        <p class="ht-search-error" role="alert" hidden></p>
+                        <div class="ht-search-dismissed" hidden>
+                            <span>Suggerimenti esclusi in questa sezione</span>
+                            <div class="ht-search-dismissed-tags"></div>
                         </div>
                     </div>
                     <div class="ht-search-results-head">
                         <span class="ht-search-count" aria-live="polite">Inserisci una ricerca</span>
                         <span class="ht-search-local-note">Indice locale · pagine visitate su questo browser</span>
+                    </div>
+                    <div class="ht-search-discovery" hidden>
+                        <div class="ht-search-related" hidden>
+                            <strong>Correlati:</strong>
+                            <div class="ht-search-related-tags"></div>
+                        </div>
+                        <div class="ht-search-combinations" hidden>
+                            <strong>Combinazioni frequenti:</strong>
+                            <div class="ht-search-combination-tags"></div>
+                        </div>
                     </div>
                     <div class="ht-search-results"></div>
                 </div>
