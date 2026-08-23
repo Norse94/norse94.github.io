@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.11 */
+/* FD EMBED LINK build 2026-07-06.12 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.11",
+    version: "2026-07-06.12",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -18,6 +18,20 @@
   const EDITOR_BUTTON_TITLE = "Embed Link";
   const IMAGE_URL_RE = /\.(?:jpe?g|png|gif|webp|avif|svg)(?:[?#].*)?$/i;
   const ID_PREFIX = "fd-embed-link-";
+  const EDITOR_SURFACE_SELECTOR = [
+    "textarea",
+    "[contenteditable='true']",
+    "[contenteditable='']",
+    ".wysibb-body",
+    ".note-editable",
+    ".sceditor-container",
+    ".cke_editable"
+  ].join(",");
+  const EDITOR_SIGNAL_SELECTOR = [
+    EDITOR_SURFACE_SELECTOR,
+    "input[name='submit_post']",
+    "button[name='submit_post']"
+  ].join(",");
   const CONFIRMATION_RETRY_DELAYS_MS = [500, 1500, 3500, 7000, 12000];
   const PRESENCE_RECHECK_DELAY_MS = 65000;
   const HTML_ENTITY_MAP = {
@@ -75,11 +89,11 @@
     confirmationRetryAttempts: 0,
     confirmationRetryReason: "",
     lastConfirmationAt: "",
-    integrationAttempts: 0,
-    integrationTimer: 0,
-    integrationInterval: 0,
     integrationObserver: null,
-    pasteTargets: new WeakSet()
+    integrationMutationBatches: 0,
+    integrationRelevantBatches: 0,
+    initializedEditors: new WeakSet(),
+    handledPasteEvents: new WeakSet()
   };
 
   function commons() {
@@ -473,6 +487,31 @@
     return [...new Set(items)];
   }
 
+  function getEditorSurfaces(root) {
+    if (!root) {
+      return [];
+    }
+
+    const items = [];
+    if (root.nodeType === 1 && root.matches && root.matches(EDITOR_SURFACE_SELECTOR)) {
+      items.push(root);
+    }
+    if (root.querySelectorAll) {
+      items.push(...root.querySelectorAll(EDITOR_SURFACE_SELECTOR));
+    }
+    return [...new Set(items)];
+  }
+
+  function nodeContainsEditor(node) {
+    if (!node || node.nodeType !== 1) {
+      return false;
+    }
+    return Boolean(
+      (node.matches && node.matches(EDITOR_SIGNAL_SELECTOR)) ||
+      (node.querySelector && node.querySelector(EDITOR_SIGNAL_SELECTOR))
+    );
+  }
+
   function getEditorText() {
     const textarea = getEditorTextarea();
     return textarea ? textarea.value || "" : "";
@@ -583,17 +622,15 @@
     return `https://translate.google.com/translate?${params.toString()}`;
   }
 
-  function renderTranslationLinkHtml(metadata, url, options = {}) {
+  function renderTranslationLinkHtml(metadata, url) {
     const language = normalizeLanguageCode(metadata && metadata.language);
     const href = language && language !== "it" ? googleTranslateUrl(url) : "";
     if (!href) {
       return "";
     }
 
-    const editableAttr = options.nonEditable ? " data-editable=\"false\"" : "";
-
     return [
-      `<a class="fd-embed-translate"${editableAttr} href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`,
+      `<a class="fd-embed-translate" href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`,
       "<span class=\"fd-embed-translate__mark\" aria-hidden=\"true\">G</span>",
       "<span>Apri in Google Traduttore</span>",
       "</a>"
@@ -1065,9 +1102,9 @@
     const idAttrs = linkId
       ? ` data-fd-link-id="${escapeAttr(linkId)}" data-fd-embed-id="${escapeAttr(linkId)}"`
       : "";
-    const translationLink = renderTranslationLinkHtml(metadata, safeUrl, { nonEditable: true });
+    const translationLink = renderTranslationLinkHtml(metadata, safeUrl);
     const translationBlock = translationLink
-      ? `<span class="fd-tracked-link__translation">${translationLink}</span>`
+      ? `<span class="fd-tracked-link__translation" data-editable="false">${translationLink}</span>`
       : "";
 
     return [
@@ -2060,6 +2097,10 @@
   }
 
   function handlePaste(event) {
+    if (event && typeof event === "object" && state.handledPasteEvents.has(event)) {
+      return event.defaultPrevented ? false : true;
+    }
+
     if (!isEditorPasteEvent(event)) {
       return true;
     }
@@ -2076,6 +2117,9 @@
       return true;
     }
 
+    if (event && typeof event === "object") {
+      state.handledPasteEvents.add(event);
+    }
     event.stopPropagation();
     event.preventDefault();
     state.pasteText = text.trim();
@@ -2087,17 +2131,12 @@
 
   function isEditorPasteEvent(event) {
     const target = event && event.target;
-    const textarea = getEditorTextarea();
 
     if (!target || !target.closest) {
-      return Boolean(textarea);
+      return Boolean(getEditorTextarea());
     }
 
-    if (textarea && (target === textarea || target.closest("textarea") === textarea)) {
-      return true;
-    }
-
-    if (target.closest("[contenteditable='true'], [contenteditable=''], .wysibb-body, .note-editable, .sceditor-container, .cke_editable")) {
+    if (target.closest(EDITOR_SURFACE_SELECTOR)) {
       return true;
     }
 
@@ -2247,22 +2286,26 @@
     }
 
     if (!state.visualButtonRegistered) {
-      console.log("editor!");
-      C.utilities.queue.push({
-        tag: "ve:externals:add",
-        event: {
-          ...buttonConfig,
-          serviceType: "link"
-        }
-      });
-      state.visualButtonRegistered = true;
+      try {
+        console.log("editor!");
+        C.utilities.queue.push({
+          tag: "ve:externals:add",
+          event: {
+            ...buttonConfig,
+            serviceType: "link"
+          }
+        });
+        state.visualButtonRegistered = true;
+      } catch (error) {
+        state.lastModalError = error && error.message ? error.message : String(error || "");
+      }
     }
 
-    state.buttonsRegistered = state.classicButtonRegistered || state.visualButtonRegistered;
+    state.buttonsRegistered = state.classicButtonRegistered && state.visualButtonRegistered;
     return state.buttonsRegistered;
   }
 
-  function registerPasteEvent() {
+  function registerPasteEvent(root) {
     const C = commons();
     const textarea = C && C.utilities && C.utilities.replierForm && C.utilities.replierForm.textarea;
     if (!state.textareaApiPasteRegistered && textarea && typeof textarea.addEvent === "function") {
@@ -2270,22 +2313,16 @@
       state.textareaApiPasteRegistered = true;
     }
 
-    let boundAny = false;
-    for (const item of getEditorTextareas()) {
-      if (!state.pasteTargets.has(item)) {
+    for (const item of getEditorSurfaces(root)) {
+      if (!state.initializedEditors.has(item)) {
         item.addEventListener("paste", handlePaste, true);
-        state.pasteTargets.add(item);
+        state.initializedEditors.add(item);
         state.pasteTargetCount += 1;
       }
-      boundAny = true;
     }
 
-    if (state.textareaApiPasteRegistered || boundAny) {
-      state.pasteRegistered = true;
-      return true;
-    }
-
-    return false;
+    state.pasteRegistered = state.textareaApiPasteRegistered || state.pasteTargetCount > 0;
+    return state.pasteRegistered;
   }
 
   function isVisibleElement(element) {
@@ -2320,47 +2357,36 @@
     });
   }
 
-  function scheduleIntegrationRetry() {
-    window.clearTimeout(state.integrationTimer);
-
-    const buttonsReady = registerEditorButtons();
-    const pasteReady = registerPasteEvent();
-
-    if (buttonsReady && pasteReady) {
-      return;
-    }
-
-    state.integrationAttempts += 1;
-    if (state.integrationAttempts === 80 || state.integrationAttempts % 120 === 0) {
-      const details = diagnostics();
-      if (!buttonsReady || !pasteReady) {
-        console.warn("[FDEmbedLink] editor non agganciato completamente", details);
-      } else if (!state.visualButtonRegistered) {
-        console.info("[FDEmbedLink] editor classico agganciato; coda visuale non disponibile in questa pagina", details);
-      }
-    }
-
-    state.integrationTimer = window.setTimeout(scheduleIntegrationRetry, state.integrationAttempts < 20 ? 250 : 1500);
-  }
-
   function refreshIntegration() {
-    state.integrationAttempts = 0;
-    scheduleIntegrationRetry();
+    registerEditorButtons();
+    registerPasteEvent(document);
     return diagnostics();
   }
 
   function startIntegrationWatcher() {
-    if (!state.integrationInterval) {
-      state.integrationInterval = window.setInterval(() => {
-        registerEditorButtons();
-        registerPasteEvent();
-      }, 2000);
-    }
-
     if (!state.integrationObserver && document.body && window.MutationObserver) {
-      state.integrationObserver = new MutationObserver(() => {
+      state.integrationObserver = new MutationObserver((records) => {
+        state.integrationMutationBatches += 1;
+
+        const editorRoots = [];
+        for (const record of records) {
+          for (const node of record.addedNodes) {
+            if (nodeContainsEditor(node)) {
+              editorRoots.push(node);
+            }
+          }
+        }
+
+        if (!editorRoots.length) {
+          return;
+        }
+
+        state.integrationRelevantBatches += 1;
         registerEditorButtons();
-        registerPasteEvent();
+        registerPasteEvent(null);
+        for (const root of editorRoots) {
+          registerPasteEvent(root);
+        }
       });
       state.integrationObserver.observe(document.body, {
         childList: true,
@@ -2430,8 +2456,10 @@
         confirmationRetryReason: state.confirmationRetryReason,
         submitFallbackUsed: state.submitFallbackUsed,
         lastSubmitFallbackPostId: state.lastSubmitFallbackPostId,
-        integrationAttempts: state.integrationAttempts,
-        integrationIntervalActive: Boolean(state.integrationInterval),
+        initializedEditorCount: state.pasteTargetCount,
+        integrationMutationBatches: state.integrationMutationBatches,
+        integrationRelevantBatches: state.integrationRelevantBatches,
+        integrationPollingActive: false,
         integrationObserverActive: Boolean(state.integrationObserver)
       }
     };
@@ -2442,8 +2470,8 @@
       return;
     }
 
-    if (!commons()) {
-      window.setTimeout(init, 120);
+    if (!document.body) {
+      document.addEventListener("DOMContentLoaded", init, { once: true });
       return;
     }
 
@@ -2452,11 +2480,14 @@
     removeLegacyEditorButtons();
     document.addEventListener("click", handleDocumentClick);
     document.addEventListener("change", handleDocumentChange);
-    document.addEventListener("paste", handlePaste, true);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
+    registerEditorButtons();
+    registerPasteEvent(document);
     startIntegrationWatcher();
-    scheduleIntegrationRetry();
+    if (document.readyState !== "complete") {
+      window.addEventListener("load", refreshIntegration, { once: true });
+    }
     confirmPublishedEmbeds();
   }
 
