@@ -138,6 +138,7 @@
 .fd-tracked-link__translation {
   display: inline-flex;
   max-width: 100%;
+  margin-left: 1px;
 }
 
 .fd-tracked-link__translation .fd-embed-translate {
