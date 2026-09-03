@@ -1,0 +1,2852 @@
+/* FD EMBED LINK development blacklist build 2026-09-03.2 (forum 2026-07-06.15) */
+(() => {
+  "use strict";
+
+  const CONFIG = {
+    appTitle: "FD EMBED LINK",
+    version: "2026-09-03.2-blacklist-dev",
+    edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
+    allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
+    maxImages: 5,
+    minimumImageWidth: 640,
+    minimumImageHeight: 360,
+    imageValidationTimeoutMs: 8000,
+    requestTimeoutMs: 20000,
+    pendingStorageKey: "fd_embed_link_pending_v1",
+    submitStorageKey: "fd_embed_link_submit_v1",
+    pasteInterceptionStorageKey: "fd_embed_link_paste_interception_v1"
+  };
+
+  const APP_TITLE = CONFIG.appTitle;
+  const EDITOR_BUTTON_TITLE = "Embed Link";
+  const BLACKLIST_REFRESH_MS = 60_000;
+  const ID_PREFIX = "fd-embed-link-";
+  const EDITOR_SURFACE_SELECTOR = [
+    "textarea",
+    "[contenteditable='true']",
+    "[contenteditable='']",
+    ".wysibb-body",
+    ".note-editable",
+    ".sceditor-container",
+    ".cke_editable"
+  ].join(",");
+  const EDITOR_SIGNAL_SELECTOR = [
+    EDITOR_SURFACE_SELECTOR,
+    "input[name='submit_post']",
+    "button[name='submit_post']"
+  ].join(",");
+  const CONFIRMATION_RETRY_DELAYS_MS = [500, 1500, 3500, 7000, 12000];
+  const PRESENCE_RECHECK_DELAY_MS = 65000;
+  const HTML_ENTITY_MAP = {
+    amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " ",
+    agrave: "à", aacute: "á", acirc: "â", atilde: "ã", auml: "ä", aring: "å", aelig: "æ",
+    ccedil: "ç", egrave: "è", eacute: "é", ecirc: "ê", euml: "ë",
+    igrave: "ì", iacute: "í", icirc: "î", iuml: "ï",
+    eth: "ð", ntilde: "ñ", ograve: "ò", oacute: "ó", ocirc: "ô", otilde: "õ", ouml: "ö", oslash: "ø",
+    ugrave: "ù", uacute: "ú", ucirc: "û", uuml: "ü", yacute: "ý", thorn: "þ", yuml: "ÿ",
+    Agrave: "À", Aacute: "Á", Acirc: "Â", Atilde: "Ã", Auml: "Ä", Aring: "Å", AElig: "Æ",
+    Ccedil: "Ç", Egrave: "È", Eacute: "É", Ecirc: "Ê", Euml: "Ë",
+    Igrave: "Ì", Iacute: "Í", Icirc: "Î", Iuml: "Ï",
+    ETH: "Ð", Ntilde: "Ñ", Ograve: "Ò", Oacute: "Ó", Ocirc: "Ô", Otilde: "Õ", Ouml: "Ö", Oslash: "Ø",
+    Ugrave: "Ù", Uacute: "Ú", Ucirc: "Û", Uuml: "Ü", Yacute: "Ý", THORN: "Þ",
+    euro: "€", pound: "£", yen: "¥", cent: "¢", copy: "©", reg: "®", trade: "™",
+    deg: "°", plusmn: "±", micro: "µ", para: "¶", middot: "·",
+    laquo: "«", raquo: "»", bdquo: "„", sbquo: "‚",
+    lsquo: "'", rsquo: "'", ldquo: "\"", rdquo: "\"",
+    ndash: "-", mdash: "-", hellip: "...", bull: "•"
+  };
+
+  const state = {
+    initialized: false,
+    buttonsRegistered: false,
+    classicButtonRegistered: false,
+    visualButtonRegistered: false,
+    pasteRegistered: false,
+    textareaApiPasteRegistered: false,
+    pasteTargetCount: 0,
+    pasteDisabled: false,
+    pasteInterceptionEnabled: true,
+    pasteText: "",
+    preview: null,
+    previewRequestId: 0,
+    previewController: null,
+    previewLoading: false,
+    previewRequestedUrl: "",
+    previewDisplayedUrl: "",
+    previewCacheHit: null,
+    previewMetadataUrls: null,
+    previewImageValidation: null,
+    createInFlight: false,
+    commonsModal: null,
+    modalCloseAttempts: 0,
+    lastModalClose: null,
+    lastOpenAttempt: null,
+    lastModalError: "",
+    lastPreviewExistingCount: 0,
+    lastPreviewExistingUrls: [],
+    lastPresenceCheck: null,
+    lastPresenceDetails: [],
+    lastPresenceReport: null,
+    presenceRecheckTimers: new Map(),
+    lastPublishTransport: "",
+    lastPublishConfirmedIds: [],
+    lastPublishQueuedIds: [],
+    lastPublishFailedIds: [],
+    lastPublishStatusCheck: null,
+    lastPlainLinkId: "",
+    lastPlainLinkUrl: "",
+    lastPlainLinkError: "",
+    submitFallbackUsed: 0,
+    lastSubmitFallbackPostId: 0,
+    confirmationPromise: null,
+    confirmationRetryTimer: 0,
+    confirmationRetryAttempts: 0,
+    confirmationRetryReason: "",
+    lastConfirmationAt: "",
+    integrationObserver: null,
+    integrationMutationBatches: 0,
+    integrationRelevantBatches: 0,
+    initializedEditors: new WeakSet(),
+    handledPasteEvents: new WeakSet(),
+    blacklistRules: [],
+    blacklistLoaded: false,
+    blacklistUpdatedAt: "",
+    blacklistRefreshTimer: 0
+  };
+
+  function commons() {
+    return window.Commons || null;
+  }
+
+  function isConfigured() {
+    return /^https:\/\/[a-z0-9-]+\.functions\.supabase\.co\/embed-link$/i.test(CONFIG.edgeEndpoint);
+  }
+
+  function toast(type, title, content) {
+    const C = commons();
+    if (C && C.toast && typeof C.toast.show === "function") {
+      C.toast.show({
+        class: ["cs-toast-" + (type || "info")],
+        title: title || APP_TITLE,
+        content: content || "",
+        ttl: 5000
+      });
+      return;
+    }
+
+    if (content) {
+      console.log("[FDEmbedLink] " + title + ": " + content);
+    }
+  }
+
+  function closeModal() {
+    state.modalCloseAttempts += 1;
+
+    if (state.commonsModal) {
+      const modal = state.commonsModal;
+      state.commonsModal = null;
+      if (typeof modal.hide === "function") {
+        state.lastModalClose = { at: new Date().toISOString(), hadInstance: true, method: "instance.hide" };
+        modal.hide();
+        return;
+      }
+      if (typeof modal.close === "function") {
+        state.lastModalClose = { at: new Date().toISOString(), hadInstance: true, method: "instance.close" };
+        modal.close();
+        return;
+      }
+      if (typeof modal.toggle === "function") {
+        state.lastModalClose = { at: new Date().toISOString(), hadInstance: true, method: "instance.toggle" };
+        modal.toggle();
+        return;
+      }
+    }
+
+    const C = commons();
+    if (C && C.modal && typeof C.modal.close === "function") {
+      state.lastModalClose = { at: new Date().toISOString(), hadInstance: false, method: "commons.close" };
+      C.modal.close();
+      return;
+    }
+
+    state.lastModalClose = { at: new Date().toISOString(), hadInstance: false, method: "none" };
+  }
+
+  function showModal(title, content, footer, className) {
+    try {
+      const C = commons();
+      const modalClasses = getModalClasses(className, "cs-modal-w60");
+      if (!C || !C.modal) {
+        state.lastModalError = "API modal Commons non disponibile.";
+        toast("error", APP_TITLE, state.lastModalError);
+        return 0;
+      }
+
+      if (typeof C.modal.create === "function") {
+        closeModal();
+        let created = null;
+        created = C.modal.create({
+          className: modalClasses,
+          title,
+          content,
+          footer,
+          events: {
+            "hide-end": () => {
+              if (state.commonsModal === created) {
+                state.commonsModal = null;
+              }
+            }
+          }
+        });
+        state.commonsModal = created;
+        if (created && typeof created.show === "function") {
+          created.show();
+          return "create.show";
+        }
+        if (created && typeof created.toggle === "function") {
+          created.toggle();
+          return "create.toggle";
+        }
+        return "create";
+      }
+
+      if (typeof C.modal.set === "function") {
+        return C.modal.set({
+          class: modalClasses,
+          title,
+          content,
+          footer
+        }, true);
+      }
+
+      state.lastModalError = "API modal Commons non disponibile.";
+      toast("error", APP_TITLE, state.lastModalError);
+      return 0;
+    } catch (error) {
+      state.lastModalError = error instanceof Error ? error.message : String(error);
+      console.error("[FDEmbedLink] apertura modal fallita", error);
+      toast("error", APP_TITLE, state.lastModalError || "Impossibile aprire il modal.");
+      return 0;
+    }
+  }
+
+  function getModalClasses(className, fallbackClassName) {
+    const widthClasses = String(className || fallbackClassName || "").split(/\s+/).filter(Boolean);
+    const hasTextAlignment = widthClasses.some((item) => /^cs-modal-text-(?:left|center|right)$/.test(item));
+    const baseClasses = hasTextAlignment ? ["fd-embed-modal"] : ["fd-embed-modal", "cs-modal-text-left"];
+    return baseClasses.concat(widthClasses);
+  }
+
+  function markOpenStep(step, extra) {
+    if (!state.lastOpenAttempt) {
+      state.lastOpenAttempt = {
+        startedAt: new Date().toISOString(),
+        steps: []
+      };
+    }
+
+    state.lastOpenAttempt.steps.push({
+      step,
+      at: new Date().toISOString(),
+      ...(extra || {})
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function escapeText(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
+  }
+
+  function decodeTextEntities(value) {
+    let text = String(value == null ? "" : value);
+
+    for (let index = 0; index < 3; index += 1) {
+      const decoded = text
+        .replace(/&#(\d+);/g, (match, code) => decodeEntityCodePoint(code, 10) || match)
+        .replace(/&#x([0-9a-f]+);/gi, (match, code) => decodeEntityCodePoint(code, 16) || match)
+        .replace(/&([a-zA-Z][a-zA-Z0-9]+);/g, (match, name) => decodeNamedEntity(name, match));
+
+      if (decoded === text) {
+        return decoded;
+      }
+      text = decoded;
+    }
+
+    return text;
+  }
+
+  function decodeEntityCodePoint(value, radix) {
+    const code = Number.parseInt(value, radix);
+    if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) {
+      return "";
+    }
+
+    try {
+      return String.fromCodePoint(code);
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function decodeNamedEntity(name, fallback) {
+    return Object.prototype.hasOwnProperty.call(HTML_ENTITY_MAP, name)
+      ? HTML_ENTITY_MAP[name]
+      : fallback;
+  }
+
+  function normalizeSpace(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function loadPasteInterceptionPreference() {
+    try {
+      return localStorage.getItem(CONFIG.pasteInterceptionStorageKey) !== "off";
+    } catch (_error) {
+      return true;
+    }
+  }
+
+  function savePasteInterceptionPreference(enabled) {
+    state.pasteInterceptionEnabled = Boolean(enabled);
+    try {
+      localStorage.setItem(CONFIG.pasteInterceptionStorageKey, enabled ? "on" : "off");
+    } catch (_error) {
+      // Preference persistence is best-effort only.
+    }
+    updatePasteInterceptionSwitch();
+  }
+
+  function updatePasteInterceptionSwitch() {
+    const input = document.querySelector("[data-fd-embed-paste-toggle]");
+    const stateLabel = document.querySelector("[data-fd-embed-paste-state]");
+    if (input) {
+      input.checked = state.pasteInterceptionEnabled;
+    }
+    if (stateLabel) {
+      stateLabel.textContent = state.pasteInterceptionEnabled ? "On" : "Off";
+    }
+  }
+
+  function truncate(value, maxLength) {
+    const text = normalizeSpace(value);
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return text.slice(0, Math.max(0, maxLength - 1)).trimEnd() + "...";
+  }
+
+  function parseUrl(value) {
+    const raw = normalizeSpace(value);
+    if (!raw || /\s/.test(raw)) {
+      return null;
+    }
+
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        return null;
+      }
+      return url;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function incompleteUrlError(value) {
+    const raw = normalizeSpace(value);
+    let decoded = raw;
+
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch (_error) {
+      // The original value is enough for the truncation check.
+    }
+
+    if (raw.includes("...") || raw.includes("…") || decoded.includes("...") || decoded.includes("…")) {
+      return "Il link sembra incompleto o abbreviato. Incolla l'URL completo, senza puntini di sospensione.";
+    }
+
+    return "";
+  }
+
+  function isUrlBlacklisted(value) {
+    const url = parseUrl(value);
+    if (!url) {
+      return null;
+    }
+
+    const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+    let pathname = url.pathname;
+    try {
+      pathname = decodeURIComponent(pathname);
+    } catch (_error) {
+      // The encoded pathname remains safe for matching.
+    }
+    pathname = pathname.toLowerCase();
+
+    return state.blacklistRules.find((rule) => {
+      const type = String(rule && rule.type || "").toLowerCase();
+      const ruleValue = String(rule && rule.value || "").toLowerCase();
+      if (type === "extension") {
+        return Boolean(ruleValue && pathname.endsWith(ruleValue));
+      }
+      if (type !== "domain" || !ruleValue) {
+        return false;
+      }
+      if (ruleValue.endsWith(".")) {
+        const base = ruleValue.slice(0, -1);
+        const labels = hostname.split(".");
+        return labels.some((label, index) => label === base && index < labels.length - 1);
+      }
+      return hostname === ruleValue || hostname.endsWith("." + ruleValue);
+    }) || null;
+  }
+
+  async function refreshBlacklistRules() {
+    try {
+      const data = await requestEdge("blacklist-rules", { user: getUser() });
+      state.blacklistRules = Array.isArray(data.rules) ? data.rules : [];
+      state.blacklistLoaded = true;
+      state.blacklistUpdatedAt = new Date().toISOString();
+    } catch (error) {
+      state.blacklistLoaded = false;
+      console.warn("[FDEmbedLink] blacklist non disponibile", error);
+    }
+  }
+
+  function getDomain(value) {
+    try {
+      return new URL(value).hostname.replace(/^www\./i, "");
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function getUser() {
+    const C = commons();
+    const user = C && C.user ? C.user : {};
+    return {
+      id: Number(user.id || 0),
+      nickname: user.nickname || null,
+      isGuest: Boolean(user.isGuest || !user.id)
+    };
+  }
+
+  function isAllowedForumLocation() {
+    const host = location.hostname.toLowerCase();
+    const allowedHosts = CONFIG.allowedForumHosts.map((item) => item.toLowerCase());
+    const C = commons();
+    const forum = C && C.forum ? C.forum : {};
+
+    if (location.protocol === "file:") {
+      return true;
+    }
+
+    if (allowedHosts.some((allowedHost) => host === allowedHost || host === "www." + allowedHost)) {
+      return true;
+    }
+
+    return allowedHosts.includes(String(forum.subdomain || "").toLowerCase() + "." + String(forum.domain || "").toLowerCase());
+  }
+
+  function getForumContext() {
+    const C = commons();
+    const forum = C && C.forum ? C.forum : {};
+    const locationInfo = C && C.location ? C.location : {};
+    const topicId = Number(locationInfo.topic && locationInfo.topic.id || getTopicIdFromUrl() || 0);
+    const topicTitle = getTopicTitle(locationInfo);
+
+    return {
+      forumId: Number(forum.id || 0),
+      forumDomain: forum.domain || location.hostname,
+      forumSubdomain: forum.subdomain || "",
+      topicId,
+      topicTitle,
+      pageUrl: window.location.href
+    };
+  }
+
+  function getTopicTitle(locationInfo) {
+    const commonsTitle = locationInfo && locationInfo.topic && locationInfo.topic.title;
+    if (commonsTitle) {
+      const cleanedCommonsTitle = cleanForumTopicTitle(commonsTitle);
+      if (cleanedCommonsTitle) {
+        return cleanedCommonsTitle;
+      }
+    }
+
+    const title = normalizeSpace(document.title || "");
+    if (!title) {
+      return null;
+    }
+
+    return cleanForumTopicTitle(title);
+  }
+
+  function cleanForumTopicTitle(value) {
+    const title = normalizeSpace(value || "")
+      .replace(/\s*[-|•]\s*(ForumFree|ForumCommunity).*$/i, "")
+      .replace(/\s*[-|•]\s*difesaitalia\.forumfree\.it.*$/i, "")
+      .replace(/\s*[-|•]\s*difesa\.forumfree\.it.*$/i, "")
+      .trim();
+
+    if (!title || /^stai\s+modificando\s+un\s+messaggio\s+nella\s+discussione\b/i.test(title)) {
+      return null;
+    }
+
+    return title;
+  }
+
+  function getTopicIdFromUrl() {
+    try {
+      return Number(new URL(window.location.href).searchParams.get("t") || 0);
+    } catch (_error) {
+      const match = String(window.location.search || "").match(/[?&]t=(\d+)/);
+      return match ? Number(match[1]) : 0;
+    }
+  }
+
+  function assertCanUse() {
+    const user = getUser();
+    if (user.isGuest) {
+      toast("error", APP_TITLE, "Devi essere autenticato per generare una card.");
+      return false;
+    }
+
+    if (!isAllowedForumLocation()) {
+      toast("error", APP_TITLE, "Questo script e configurato per " + CONFIG.allowedForumHosts.join(", ") + ".");
+      return false;
+    }
+
+    return true;
+  }
+
+  function getEditorTextarea() {
+    return document.querySelector("textarea[name='Post']") ||
+      document.querySelector("textarea[name='post']") ||
+      document.querySelector("textarea[name='message']") ||
+      document.querySelector("textarea[id*='Post']") ||
+      document.querySelector("textarea[id*='post']") ||
+      document.querySelector("textarea");
+  }
+
+  function getEditorTextareas() {
+    const items = Array.from(document.querySelectorAll([
+      "textarea[name='Post']",
+      "textarea[name='post']",
+      "textarea[name='message']",
+      "textarea[id*='Post']",
+      "textarea[id*='post']",
+      "textarea"
+    ].join(",")));
+    return [...new Set(items)];
+  }
+
+  function getEditorSurfaces(root) {
+    if (!root) {
+      return [];
+    }
+
+    const items = [];
+    if (root.nodeType === 1 && root.matches && root.matches(EDITOR_SURFACE_SELECTOR)) {
+      items.push(root);
+    }
+    if (root.querySelectorAll) {
+      items.push(...root.querySelectorAll(EDITOR_SURFACE_SELECTOR));
+    }
+    return [...new Set(items)];
+  }
+
+  function nodeContainsEditor(node) {
+    if (!node || node.nodeType !== 1) {
+      return false;
+    }
+    return Boolean(
+      (node.matches && node.matches(EDITOR_SIGNAL_SELECTOR)) ||
+      (node.querySelector && node.querySelector(EDITOR_SIGNAL_SELECTOR))
+    );
+  }
+
+  function getEditorText() {
+    const textarea = getEditorTextarea();
+    return textarea ? textarea.value || "" : "";
+  }
+
+  function addContentToEditor(content) {
+    const C = commons();
+    if (C && C.utilities && C.utilities.replierForm && C.utilities.replierForm.textarea &&
+        typeof C.utilities.replierForm.textarea.addContent === "function") {
+      try {
+        C.utilities.replierForm.textarea.addContent({ prefix: content });
+        return true;
+      } catch (_error) {
+        C.utilities.replierForm.textarea.addContent(content);
+        return true;
+      }
+    }
+
+    const textarea = getEditorTextarea();
+    if (!textarea) {
+      toast("error", APP_TITLE, "Textarea editor non trovata.");
+      return false;
+    }
+
+    const start = textarea.selectionStart || textarea.value.length;
+    const end = textarea.selectionEnd || textarea.value.length;
+    textarea.value = textarea.value.slice(0, start) + content + textarea.value.slice(end);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  }
+
+  async function requestEdge(action, payload, options = {}) {
+    if (!isConfigured()) {
+      throw new Error("Configura CONFIG.edgeEndpoint con l'URL della Supabase Edge Function.");
+    }
+
+    const controller = new AbortController();
+    const externalSignal = options.signal || null;
+    const abortFromExternalSignal = () => controller.abort(externalSignal && externalSignal.reason);
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        abortFromExternalSignal();
+      } else {
+        externalSignal.addEventListener("abort", abortFromExternalSignal, { once: true });
+      }
+    }
+    const timeout = setTimeout(() => controller.abort(), CONFIG.requestTimeoutMs);
+
+    try {
+      const response = await fetch(CONFIG.edgeEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ ...payload, action }),
+        signal: controller.signal,
+        keepalive: Boolean(options.keepalive)
+      });
+
+      const text = await response.text();
+      let data = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (_error) {
+          data = { error: text };
+        }
+      }
+
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.error || data.message || "Richiesta non riuscita.");
+      }
+
+      return data;
+    } finally {
+      clearTimeout(timeout);
+      if (externalSignal) {
+        externalSignal.removeEventListener("abort", abortFromExternalSignal);
+      }
+    }
+  }
+
+  function isAbortError(error) {
+    return Boolean(error && (
+      error.name === "AbortError" ||
+      error.code === 20 ||
+      /abort/i.test(String(error.message || ""))
+    ));
+  }
+
+  function normalizeMetadata(raw, fallbackUrl) {
+    const metadata = raw && raw.metadata ? raw.metadata : raw || {};
+    const sourceUrl = metadata.sourceUrl || metadata.source_url || fallbackUrl;
+    const finalUrl = metadata.finalUrl || metadata.final_url || metadata.canonicalUrl || sourceUrl;
+    const images = normalizeImages(metadata.images || metadata.candidateImages || metadata.candidate_images || []);
+
+    return {
+      sourceUrl,
+      finalUrl,
+      canonicalUrl: metadata.canonicalUrl || metadata.canonical_url || finalUrl,
+      domain: metadata.domain || metadata.sourceDomain || metadata.source_domain || getDomain(finalUrl),
+      title: decodeTextEntities(metadata.title || finalUrl),
+      description: decodeTextEntities(metadata.description || metadata.excerpt || ""),
+      author: decodeTextEntities(metadata.author || ""),
+      publishedAt: metadata.publishedAt || metadata.published_at || metadata.articlePublishedAt || "",
+      language: normalizeLanguageCode(metadata.language || metadata.lang || metadata.locale || ""),
+      images
+    };
+  }
+
+  function normalizeLanguageCode(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    const match = /^([a-z]{2,3})(?:[-_]|$)/.exec(normalized);
+    return match ? match[1] : "";
+  }
+
+  function googleTranslateUrl(url) {
+    const parsed = parseUrl(url);
+    if (!parsed) {
+      return "";
+    }
+
+    const params = new URLSearchParams({
+      sl: "auto",
+      tl: "it",
+      u: parsed.href
+    });
+    return `https://translate.google.com/translate?${params.toString()}`;
+  }
+
+  function renderTranslationLinkHtml(metadata, url) {
+    const language = normalizeLanguageCode(metadata && metadata.language);
+    const href = language && language !== "it" ? googleTranslateUrl(url) : "";
+    if (!href) {
+      return "";
+    }
+
+    return [
+      `<a class="fd-embed-translate" href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer nofollow">`,
+      "<span class=\"fd-embed-translate__mark\" aria-hidden=\"true\">G</span>",
+      "<span>Apri in Google Traduttore</span>",
+      "</a>"
+    ].join("");
+  }
+
+  function normalizeExistingPublications(raw) {
+    const items = Array.isArray(raw) ? raw : [];
+    return items.map((item) => {
+      const postUrl = item && (item.postUrl || item.post_url) ? String(item.postUrl || item.post_url) : "";
+      const topicTitle = item && (item.topicTitle || item.topic_title) ? String(item.topicTitle || item.topic_title) : "";
+      return {
+        id: item && item.id ? String(item.id) : "",
+        status: item && item.status ? String(item.status) : "",
+        postUrl,
+        topicTitle: topicTitle || "Discussione",
+        sourceUrl: item && (item.sourceUrl || item.source_url) ? String(item.sourceUrl || item.source_url) : "",
+        finalUrl: item && (item.finalUrl || item.final_url) ? String(item.finalUrl || item.final_url) : "",
+        canonicalUrl: item && (item.canonicalUrl || item.canonical_url) ? String(item.canonicalUrl || item.canonical_url) : "",
+        postId: item && (item.postId || item.post_id) || null,
+        topicId: item && (item.topicId || item.topic_id) || null,
+        confirmedAt: item && (item.confirmedAt || item.confirmed_at) || ""
+      };
+    }).filter((item) => item.postUrl && (!item.status || item.status === "published"));
+  }
+
+  function dedupeExistingPublicationsByTopic(existingPublications) {
+    const seen = new Set();
+    const deduped = [];
+
+    (existingPublications || []).forEach((item) => {
+      const key = existingPublicationTopicKey(item);
+      if (!key || seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+      deduped.push(item);
+    });
+
+    return deduped;
+  }
+
+  function existingPublicationTopicKey(item) {
+    if (!item) {
+      return "";
+    }
+
+    if (item.topicId) {
+      return "topic:" + String(item.topicId);
+    }
+
+    try {
+      const url = new URL(item.postUrl || "", window.location.origin);
+      const topicId = url.searchParams.get("t");
+      if (topicId) {
+        return "topic:" + topicId;
+      }
+
+      const entryMatch = String(url.hash || "").match(/^#entry(\d+)$/);
+      if (entryMatch) {
+        return "post:" + entryMatch[1];
+      }
+
+      return "url:" + url.origin + url.pathname + url.search + url.hash;
+    } catch (_error) {
+      return item.postUrl ? "url:" + String(item.postUrl) : "";
+    }
+  }
+
+  async function verifyExistingPublications(existingPublications, metadata, options = {}) {
+    if (!existingPublications || !existingPublications.length) {
+      state.lastPresenceCheck = { checked: 0, present: 0, missing: 0, unverified: 0 };
+      state.lastPresenceDetails = [];
+      return [];
+    }
+
+    const verifiable = existingPublications.filter((item) => canVerifyExistingPublication(item));
+    const unverified = existingPublications.filter((item) => !canVerifyExistingPublication(item));
+    if (!verifiable.length) {
+      state.lastPresenceCheck = {
+        checked: 0,
+        present: 0,
+        missing: 0,
+        unverified: unverified.length
+      };
+      state.lastPresenceDetails = unverified.map((item) => presenceDetail(item, "unverified", "record non verificabile"));
+      return [];
+    }
+
+    try {
+      const postsById = await fetchForumPostsByIds(verifiable.map((item) => Number(item.postId)));
+      const present = [];
+      const missing = [];
+      const unavailable = [];
+
+      verifiable.forEach((item) => {
+        const currentPagePublication = findCurrentPagePublication(item);
+        if (currentPagePublication) {
+          present.push(currentPagePublication);
+          return;
+        }
+
+        const post = postsById[String(item.postId)];
+        if (!post || typeof post.content !== "string") {
+          unavailable.push({ item, reason: "post non restituito da api.php" });
+          return;
+        }
+
+        const consistencyError = forumPostConsistencyError(item, post);
+        if (consistencyError) {
+          unavailable.push({ item, reason: consistencyError });
+          return;
+        }
+
+        if (contentHasExistingPublication(post.content, item, metadata)) {
+          present.push(enrichPublicationFromForumPost(item, post));
+        } else {
+          missing.push(enrichPublicationFromForumPost(item, post));
+        }
+      });
+
+      const reportItems = present.map((item) => ({ ...item, presence: "present" }))
+        .concat(missing.map((item) => ({ ...item, presence: "missing" })))
+        .concat(unavailable.map(({ item, reason }) => ({
+          ...item,
+          presence: "unavailable",
+          presenceReason: reason
+        })));
+      if (reportItems.length) {
+        await reportPublicationPresence(reportItems);
+      }
+      if (missing.length && !options.isRecheck) {
+        scheduleMissingPresenceRecheck(missing, metadata);
+      }
+
+      state.lastPresenceCheck = {
+        checked: verifiable.length,
+        present: present.length,
+        missing: missing.length,
+        unverified: unverified.length + unavailable.length
+      };
+      state.lastPresenceDetails = unverified.map((item) => presenceDetail(item, "unverified", "record non verificabile"))
+        .concat(unavailable.map(({ item, reason }) => presenceDetail(item, "unavailable", reason)))
+        .concat(missing.map((item) => presenceDetail(item, "missing", "marker UUID non trovato")))
+        .concat(present.map((item) => presenceDetail(item, "present", "marker UUID trovato")));
+
+      return present;
+    } catch (error) {
+      console.warn("[FDEmbedLink] existing publication presence check failed", error);
+      state.lastPresenceCheck = {
+        checked: 0,
+        present: 0,
+        missing: 0,
+        unverified: existingPublications.length,
+        error: error && error.message ? error.message : String(error)
+      };
+      state.lastPresenceDetails = existingPublications.map((item) => presenceDetail(item, "unverified", "errore verifica"));
+      return [];
+    }
+  }
+
+  function scheduleMissingPresenceRecheck(publications, metadata) {
+    const items = (publications || []).filter((item) => item && item.id && item.postId && item.postUrl);
+    const key = items.map((item) => String(item.id)).sort().join(",");
+    if (!key || state.presenceRecheckTimers.has(key)) {
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      state.presenceRecheckTimers.delete(key);
+      await verifyExistingPublications(items, metadata, { isRecheck: true });
+    }, PRESENCE_RECHECK_DELAY_MS);
+    state.presenceRecheckTimers.set(key, timer);
+  }
+
+  function canVerifyExistingPublication(item) {
+    if (!item || !item.id || !item.postId || !item.postUrl) {
+      return false;
+    }
+
+    try {
+      const url = new URL(item.postUrl, window.location.origin);
+      return url.origin === window.location.origin;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function findCurrentPagePublication(item) {
+    if (!item || !item.id || typeof document === "undefined") {
+      return null;
+    }
+
+    const marker = Array.from(document.querySelectorAll("[data-fd-embed-id], .fd-embed-link"))
+      .find((element) => contentHasEmbedId(element.outerHTML || "", item.id));
+    if (!marker) {
+      return null;
+    }
+
+    const postElement = marker.closest ? marker.closest("li.post[id], li[id^='ee']") : null;
+    if (!postElement) {
+      return null;
+    }
+
+    const postId = postIdFromElement(postElement);
+    if (!postId) {
+      return null;
+    }
+
+    const context = getForumContext();
+    const preferredLink = postElement.querySelector(`.lt.Sub a[href*="?t="][href*="#entry${postId}"]`);
+    const anchorLink = preferredLink || postElement.querySelector(`a[href*="?t="][href*="#entry${postId}"], a[href*="entry${postId}"]`);
+    const postUrl = normalizePostUrl(anchorLink && anchorLink.href ? anchorLink.href : window.location.href, context.topicId, postId);
+
+    return {
+      ...item,
+      postId,
+      postUrl,
+      topicId: context.topicId || item.topicId,
+      topicTitle: context.topicTitle || item.topicTitle
+    };
+  }
+
+  function postIdFromElement(element) {
+    const rawId = element && element.id ? String(element.id) : "";
+    const match = rawId.match(/^ee(\d+)$/i) || rawId.match(/^e?(\d+)$/i) || rawId.match(/(\d+)/);
+    return match ? Number(match[1]) || 0 : 0;
+  }
+
+  async function fetchForumPostsByIds(postIds) {
+    const ids = [...new Set(postIds.map((id) => Number(id || 0)).filter(Boolean))];
+    const postsById = {};
+
+    for (let index = 0; index < ids.length; index += 20) {
+      const chunk = ids.slice(index, index + 20);
+      const url = window.location.origin + "/api.php?p=" + encodeURIComponent(chunk.join(",")) + "&cookie=1";
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          accept: "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("API ForumFree non disponibile (" + response.status + ").");
+      }
+
+      const data = await response.json();
+      chunk.forEach((postId) => {
+        const item = data && data["p" + postId];
+        if (item && typeof item === "object") {
+          postsById[String(postId)] = item;
+        }
+      });
+    }
+
+    return postsById;
+  }
+
+  function enrichPublicationFromForumPost(item, post) {
+    const info = post && post.info ? post.info : {};
+    const topicTitle = normalizeSpace(info.topic_title || "");
+    return {
+      ...item,
+      topicTitle: topicTitle || item.topicTitle,
+      topicId: info.topic_id || item.topicId
+    };
+  }
+
+  function forumPostConsistencyError(item, post) {
+    const info = post && post.info ? post.info : {};
+    const expected = forumIdsFromPostUrl(item.postUrl);
+    const actualTopicId = Number(info.topic_id || 0);
+    if (expected.topicId && actualTopicId && actualTopicId !== expected.topicId) {
+      return "topic_id API diverso dal post_url";
+    }
+
+    return "";
+  }
+
+  function forumIdsFromPostUrl(postUrl) {
+    try {
+      const url = new URL(postUrl, window.location.origin);
+      const topicId = Number(url.searchParams.get("t") || 0);
+      const entryMatch = String(url.hash || "").match(/^#entry(\d+)$/);
+      return {
+        topicId: Number.isFinite(topicId) ? topicId : 0,
+        postId: entryMatch ? Number(entryMatch[1]) : 0
+      };
+    } catch (_error) {
+      return { topicId: 0, postId: 0 };
+    }
+  }
+
+  function presenceDetail(item, presence, reason) {
+    return {
+      id: item && item.id ? item.id : "",
+      presence,
+      reason,
+      postId: item && item.postId ? item.postId : null,
+      postUrl: item && item.postUrl ? item.postUrl : "",
+      topicTitle: item && item.topicTitle ? item.topicTitle : ""
+    };
+  }
+
+  function contentHasExistingPublication(content, publication, _metadata) {
+    const text = String(content || "");
+    if (publication.id && contentHasEmbedId(text, publication.id)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  async function reportPublicationPresence(publications) {
+    const payload = publications
+      .filter((item) => item && item.id && item.postUrl && ["present", "missing", "unavailable"].includes(item.presence))
+      .map((item) => ({
+        id: item.id,
+        postUrl: item.postUrl,
+        postId: item.postId || null,
+        topicTitle: item.topicTitle || "",
+        presence: item.presence,
+        reason: item.presenceReason || ""
+      }));
+
+    if (!payload.length) {
+      return;
+    }
+
+    state.lastPresenceReport = {
+      sent: payload.length,
+      missing: payload.filter((item) => item.presence === "missing").length,
+      present: payload.filter((item) => item.presence === "present").length,
+      unavailable: payload.filter((item) => item.presence === "unavailable").length,
+      at: new Date().toISOString()
+    };
+
+    try {
+      const result = await requestEdge("presence", {
+        publications: payload,
+        user: getUser()
+      }, { keepalive: true });
+      state.lastPresenceReport = {
+        sent: payload.length,
+        missing: payload.filter((item) => item.presence === "missing").length,
+        present: payload.filter((item) => item.presence === "present").length,
+        unavailable: payload.filter((item) => item.presence === "unavailable").length,
+        ok: true,
+        result,
+        updated: Array.isArray(result && result.results)
+          ? result.results.filter((item) => item && item.updated).length
+          : 0,
+        at: new Date().toISOString()
+      };
+    } catch (error) {
+      console.warn("[FDEmbedLink] presence report failed", error);
+      state.lastPresenceReport = {
+        sent: payload.length,
+        missing: payload.filter((item) => item.presence === "missing").length,
+        present: payload.filter((item) => item.presence === "present").length,
+        unavailable: payload.filter((item) => item.presence === "unavailable").length,
+        ok: false,
+        error: error && error.message ? error.message : String(error),
+        at: new Date().toISOString()
+      };
+    }
+  }
+
+  function normalizeImages(images) {
+    const seen = new Set();
+    const out = [];
+
+    for (const item of Array.isArray(images) ? images : []) {
+      const url = typeof item === "string" ? item : item && item.url;
+      if (!url || seen.has(url)) {
+        continue;
+      }
+      seen.add(url);
+      out.push({
+        url,
+        source: typeof item === "object" && item.source ? item.source : "page"
+      });
+      if (out.length >= CONFIG.maxImages) {
+        break;
+      }
+    }
+
+    return out;
+  }
+
+  function validateCandidateImage(candidate, signal) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      let settled = false;
+      let timeout = 0;
+
+      const finish = (result) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeout);
+        image.onload = null;
+        image.onerror = null;
+        if (signal) {
+          signal.removeEventListener("abort", handleAbort);
+        }
+        resolve(result);
+      };
+      const handleAbort = () => {
+        image.src = "";
+        finish({ image: candidate, valid: false, reason: "aborted", width: 0, height: 0 });
+      };
+
+      image.onload = () => {
+        const width = Number(image.naturalWidth || 0);
+        const height = Number(image.naturalHeight || 0);
+        const valid = width >= CONFIG.minimumImageWidth && height >= CONFIG.minimumImageHeight;
+        finish({
+          image: candidate,
+          valid,
+          reason: valid ? "valid" : "too-small",
+          width,
+          height
+        });
+      };
+      image.onerror = () => finish({
+        image: candidate,
+        valid: false,
+        reason: "load-error",
+        width: 0,
+        height: 0
+      });
+      timeout = window.setTimeout(() => {
+        image.src = "";
+        finish({ image: candidate, valid: false, reason: "timeout", width: 0, height: 0 });
+      }, CONFIG.imageValidationTimeoutMs);
+
+      if (signal) {
+        if (signal.aborted) {
+          handleAbort();
+          return;
+        }
+        signal.addEventListener("abort", handleAbort, { once: true });
+      }
+      image.src = candidate.url;
+    });
+  }
+
+  async function validateCandidateImages(images, signal) {
+    const candidates = Array.isArray(images) ? images.slice(0, CONFIG.maxImages) : [];
+    const results = await Promise.all(candidates.map((candidate) => validateCandidateImage(candidate, signal)));
+    return {
+      images: results.filter((result) => result.valid).map((result) => ({
+        ...result.image,
+        width: result.width,
+        height: result.height
+      })),
+      report: {
+        received: candidates.length,
+        valid: results.filter((result) => result.valid).length,
+        discarded: results.filter((result) => !result.valid && result.reason !== "aborted").map((result) => ({
+          url: result.image.url,
+          reason: result.reason,
+          width: result.width,
+          height: result.height
+        }))
+      }
+    };
+  }
+
+  function getSelectedImage(metadata) {
+    if (!metadata || !metadata.images || !metadata.images.length) {
+      return { url: "", index: -1 };
+    }
+
+    const index = Math.max(0, Number(state.preview && state.preview.selectedImageIndex || 0));
+    const image = metadata.images[index] || metadata.images[0];
+    return {
+      url: image.url,
+      index: metadata.images.indexOf(image)
+    };
+  }
+
+  function renderCardHtml(metadata, embedId, selectedImageUrl, options = {}) {
+    const url = metadata.finalUrl || metadata.sourceUrl;
+    const title = truncate(decodeTextEntities(metadata.title || url), 160);
+    const description = truncate(decodeTextEntities(metadata.description || ""), 260);
+    const domain = metadata.domain || getDomain(url);
+    const author = truncate(decodeTextEntities(metadata.author || ""), 80);
+    const publishedAt = metadata.publishedAt || "";
+    const displayDate = formatDisplayDate(publishedAt);
+    const compactClass = options.compact ? " fd-embed-link--compact" : "";
+    const noImageClass = selectedImageUrl ? "" : " fd-embed-link--no-image";
+    const markerClass = embedId ? " " + getEmbedMarkerClass(embedId) : "";
+    const idAttr = embedId ? ` data-fd-embed-id="${escapeAttr(embedId)}"` : "";
+    const translationLink = renderTranslationLinkHtml(metadata, url);
+    const mediaLink = selectedImageUrl
+      ? `<a class="fd-embed-link__media" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow"><img class="fd-embed-link__image" src="${escapeAttr(selectedImageUrl)}" alt=""></a>`
+      : "";
+    const imageBlock = selectedImageUrl
+      ? translationLink
+        ? `<div class="fd-embed-link__media-wrap">${mediaLink}<div class="fd-embed-link__translation-overlay">${translationLink}</div></div>`
+        : mediaLink
+      : "";
+    const translationFooter = !selectedImageUrl && translationLink
+      ? `<div class="fd-embed-link__translation-footer">${translationLink}</div>`
+      : "";
+    const sourceBlock = domain
+      ? `<div class="fd-embed-link__source"><span class="fd-embed-link__source-mark" aria-hidden="true"></span><span class="fd-embed-link__source-text">${escapeText(domain)}</span></div>`
+      : "";
+    const excerptBlock = description ? `<p class="fd-embed-link__excerpt">${escapeText(description)}</p>` : "";
+    const metaParts = [];
+
+    if (author) {
+      metaParts.push(`<span class="fd-embed-link__author">${escapeText(author)}</span>`);
+    }
+
+    if (author && displayDate) {
+      metaParts.push("<span class=\"fd-embed-link__dot\" aria-hidden=\"true\"></span>");
+    }
+
+    if (displayDate) {
+      metaParts.push(`<span class="fd-embed-link__date" data-datetime="${escapeAttr(toIsoDate(publishedAt))}">${escapeText(displayDate)}</span>`);
+    }
+
+    const metaBlock = metaParts.length ? `<div class="fd-embed-link__meta">${metaParts.join("")}</div>` : "";
+
+    return [
+      `<div class="fd-embed-link${compactClass}${noImageClass}${markerClass}" data-editable="false"${idAttr}>`,
+      imageBlock,
+      "<div class=\"fd-embed-link__body\">",
+      sourceBlock,
+      `<a class="fd-embed-link__title" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer nofollow">${escapeText(title)}</a>`,
+      excerptBlock,
+      metaBlock,
+      "</div>",
+      translationFooter,
+      "</div>"
+    ].filter(Boolean).join("");
+  }
+
+  function renderTrackedLinkHtml(url, linkId, metadata = {}) {
+    const href = parseUrl(url);
+    const safeUrl = href ? href.href : String(url || "");
+    const markerClass = linkId ? " " + getTrackedLinkMarkerClass(linkId) + " " + getEmbedMarkerClass(linkId) : "";
+    const idAttrs = linkId
+      ? ` data-fd-link-id="${escapeAttr(linkId)}" data-fd-embed-id="${escapeAttr(linkId)}"`
+      : "";
+    const translationLink = renderTranslationLinkHtml(metadata, safeUrl);
+    const translationBlock = translationLink
+      ? `<span class="fd-tracked-link__translation" data-editable="false">${translationLink}</span>`
+      : "";
+
+    return [
+      `<span class="fd-tracked-link${markerClass}" data-fd-link-kind="plain"${idAttrs}>`,
+      `<a href="${escapeAttr(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeText(safeUrl)}</a>`,
+      translationBlock,
+      "</span>"
+    ].join("");
+  }
+
+  function getEmbedMarkerClass(embedId) {
+    return "fd-embed-link-id-" + String(embedId || "").replace(/[^a-zA-Z0-9_-]/g, "-");
+  }
+
+  function getTrackedLinkMarkerClass(linkId) {
+    return "fd-tracked-link-id-" + String(linkId || "").replace(/[^a-zA-Z0-9_-]/g, "-");
+  }
+
+  function contentHasEmbedId(content, embedId) {
+    const text = String(content || "");
+    const markerClass = getEmbedMarkerClass(embedId);
+    const trackedClass = getTrackedLinkMarkerClass(embedId);
+    return text.includes(`data-fd-embed-id="${embedId}"`) ||
+      text.includes(`data-fd-embed-id='${embedId}'`) ||
+      text.includes(`data-fd-link-id="${embedId}"`) ||
+      text.includes(`data-fd-link-id='${embedId}'`) ||
+      text.includes(markerClass) ||
+      text.includes(trackedClass);
+  }
+
+  function contentHasPendingEmbed(content, embedId, pendingItem) {
+    if (contentHasEmbedId(content, embedId)) {
+      return true;
+    }
+
+    if (pendingItem && pendingItem.kind === "plain") {
+      return contentHasPendingUrl(content, pendingItem);
+    }
+
+    return contentHasPendingEmbedUrl(content, pendingItem);
+  }
+
+  function contentHasPendingEmbedUrl(content, pendingItem) {
+    const text = String(content || "");
+    if (!text.includes("fd-embed-link")) {
+      return false;
+    }
+
+    return contentHasPendingUrl(text, pendingItem);
+  }
+
+  function contentHasPendingUrl(content, pendingItem) {
+    const text = String(content || "");
+    return getPendingUrls(pendingItem).some((url) => (
+      text.includes(url) ||
+      text.includes(escapeHtml(url)) ||
+      text.includes(encodeURI(url))
+    ));
+  }
+
+  function pickUrlFallbackEmbedIds(content, ids, pending, allowedIds) {
+    const matches = ids.filter((id) => {
+      if (allowedIds && allowedIds.indexOf(id) === -1) {
+        return false;
+      }
+      return contentHasPendingEmbedUrl(content, pending[id]);
+    });
+
+    if (!matches.length) {
+      return [];
+    }
+
+    const byUrl = {};
+    matches.forEach((id) => {
+      const key = getPendingUrls(pending[id])[0] || id;
+      const current = byUrl[key];
+      if (!current || Number(pending[id].createdAt || 0) > Number(pending[current].createdAt || 0)) {
+        byUrl[key] = id;
+      }
+    });
+
+    return Object.keys(byUrl).map((key) => byUrl[key]);
+  }
+
+  function pickPlainUrlFallbackEmbedIds(content, ids, pending, allowedIds) {
+    const matches = ids.filter((id) => {
+      if (allowedIds && allowedIds.indexOf(id) === -1) {
+        return false;
+      }
+      return contentHasPendingUrl(content, pending[id]);
+    });
+
+    if (!matches.length) {
+      return [];
+    }
+
+    const byUrl = {};
+    matches.forEach((id) => {
+      const key = getPendingUrls(pending[id])[0] || id;
+      const current = byUrl[key];
+      if (!current || Number(pending[id].createdAt || 0) > Number(pending[current].createdAt || 0)) {
+        byUrl[key] = id;
+      }
+    });
+
+    return Object.keys(byUrl).map((key) => byUrl[key]);
+  }
+
+  function getPendingUrls(pendingItem) {
+    const urls = [];
+    ["sourceUrl", "finalUrl", "canonicalUrl"].forEach((key) => {
+      const value = pendingItem && pendingItem[key] ? String(pendingItem[key]) : "";
+      if (value && urls.indexOf(value) === -1) {
+        urls.push(value);
+      }
+    });
+    return urls;
+  }
+
+  function formatDisplayDate(value) {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return normalizeSpace(value);
+    }
+
+    return date.toLocaleDateString("it-IT", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+  }
+
+  function toIsoDate(value) {
+    if (!value) {
+      return "";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toISOString();
+  }
+
+  function renderUrlModal(initialUrl) {
+    const inputId = ID_PREFIX + "url";
+    return [
+      "<div class=\"fd-embed-form\">",
+      `  <input class="fd-embed-input" id="${inputId}" type="url" value="${escapeAttr(initialUrl || "")}" placeholder="https://example.com/articolo">`,
+      "  <p class=\"fd-embed-error\" data-fd-embed-error hidden></p>",
+      "</div>"
+    ].join("\n");
+  }
+
+  function renderUrlFooter() {
+    const checked = state.pasteInterceptionEnabled ? " checked" : "";
+    const stateText = state.pasteInterceptionEnabled ? "On" : "Off";
+    return [
+      "<div class=\"fd-embed-url-footer\">",
+      "  <label class=\"fd-embed-paste-switch\">",
+      "    <span>Intercetta Link</span>",
+      "    <span class=\"fd-embed-switch-control\">",
+      `      <input type="checkbox" data-fd-embed-paste-toggle${checked}>`,
+      "      <span class=\"fd-embed-switch-track\" aria-hidden=\"true\"><span class=\"fd-embed-switch-thumb\"></span></span>",
+      `      <span class="fd-embed-switch-state" data-fd-embed-paste-state>${stateText}</span>`,
+      "    </span>",
+      "  </label>",
+      "  <div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
+      "    <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"url-cancel\">Annulla</button>",
+      "    <button class=\"cs-btn cs-btn-sm cs-btn-outer-green el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"url-preview\">Anteprima</button>",
+      "  </div>",
+      "</div>"
+    ].join("\n");
+  }
+
+  function renderPasteModal(errorMessage) {
+    if (!errorMessage) {
+      return "";
+    }
+
+    return [
+      "<div class=\"fd-embed-form\">",
+      `  <p class="fd-embed-error" data-fd-embed-error role="alert">${escapeText(errorMessage)}</p>`,
+      "</div>"
+    ].join("\n");
+  }
+
+  function renderPasteFooter(hasError) {
+    const confirmDisabled = hasError ? " disabled aria-disabled=\"true\"" : "";
+    return [
+      "<div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
+      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-yellow cs-modal-close el-cancel-session\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"paste-disable\">Disabilita temporaneamente</button>",
+      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"paste-normal\">Annulla</button>",
+      `  <button class="cs-btn cs-btn-sm cs-btn-outer-green cs-modal-close el-confirm" type="button" data-cs-events="" data-fd-embed-action="paste-confirm"${confirmDisabled}>Conferma</button>`,
+      "</div>"
+    ].join("\n");
+  }
+
+  function renderPreviewContent() {
+    const preview = state.preview;
+    const metadata = preview.metadata;
+    const existingPublications = preview.existingPublications || [];
+    const selected = getSelectedImage(metadata);
+    const card = renderCardHtml(metadata, "", selected.url, { compact: false })
+      .replace("<img class=\"fd-embed-link__image\"", "<img data-fd-embed-preview-image class=\"fd-embed-link__image\"");
+    const existingBlock = renderExistingPublicationsBlock(existingPublications);
+    const images = metadata.images.length ? [
+      "<div class=\"fd-embed-field fd-embed-cover-picker el-img-preview-container\">",
+      "  <strong>Scegli l'immagine di copertina:</strong>",
+      "  <div class=\"fd-embed-images\">",
+      metadata.images.map((image, index) => {
+        const checked = index === selected.index ? " checked" : "";
+        const selectedClass = index === selected.index ? " is-selected" : "";
+        return [
+          `    <label class="fd-embed-image-choice${selectedClass}" data-fd-embed-image-index="${index}">`,
+          `      <input type="radio" name="fd-embed-image" value="${index}"${checked}>`,
+          `      <img src="${escapeAttr(image.url)}" alt="">`,
+          "    </label>"
+        ].join("\n");
+      }).join("\n"),
+      "  </div>",
+      "</div>"
+    ].join("\n") : "<p class=\"fd-embed-hint\">Nessuna immagine valida trovata. L'Embed Link verra inserito senza copertina.</p>";
+
+    return [
+      existingBlock,
+      images,
+      card
+    ].join("\n");
+  }
+
+  function renderPreviewModal() {
+    const requestId = state.preview ? state.preview.requestId : "";
+    return `<div class="fd-embed-preview" data-fd-preview-request-id="${escapeAttr(requestId)}">${renderPreviewContent()}</div>`;
+  }
+
+  function renderExistingPublicationsBlock(existingPublications) {
+    if (!existingPublications || !existingPublications.length) {
+      return "";
+    }
+
+    const links = existingPublications.map((item) => (
+      `<a href="${escapeAttr(item.postUrl)}" target="_blank" rel="noopener noreferrer nofollow">${escapeText(item.topicTitle)}</a>`
+    )).join(", ");
+
+    return [
+      "<div class=\"fd-embed-existing\" role=\"note\">",
+      `  <p><strong>Attenzione!</strong><br>Sei sicuro di voler inviare questo Embed Link? Risulta gia pubblicato in ${links}</p>`,
+      "</div>"
+    ].join("\n");
+  }
+
+  function renderPreviewFooter() {
+    return [
+      "<div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
+      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"preview-cancel\">Annulla</button>",
+      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-green el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"preview-insert\">Inserisci</button>",
+      "</div>"
+    ].join("\n");
+  }
+
+  function showUrlError(message) {
+    const error = document.querySelector("[data-fd-embed-error]");
+    if (!error) {
+      toast("error", APP_TITLE, message);
+      return;
+    }
+    error.textContent = message;
+    error.hidden = false;
+  }
+
+  async function openUrlModal(initialUrl) {
+    state.lastOpenAttempt = {
+      startedAt: new Date().toISOString(),
+      initialUrl: initialUrl || "",
+      steps: []
+    };
+    markOpenStep("open-url-modal-called");
+
+    if (!assertCanUse()) {
+      markOpenStep("assert-can-use-failed");
+      return;
+    }
+
+    try {
+      const modalId = showModal("Inserisci l'URL per l'Embed Link", renderUrlModal(initialUrl), renderUrlFooter(), "fd-embed-modal-preview cs-modal-w50");
+      markOpenStep("show-modal-called", { modalId });
+      if (modalId === 0) {
+        markOpenStep("modal-api-unavailable", { error: state.lastModalError });
+        return;
+      }
+
+      const input = await waitForElement("#" + ID_PREFIX + "url", 500);
+      if (input) {
+        markOpenStep("url-input-found");
+        input.focus();
+        input.select();
+        return;
+      }
+
+      state.lastModalError = "Campo URL del modal Commons non trovato.";
+      markOpenStep("url-input-not-found", { modalApiReady: hasAnyModalApi() });
+      toast("error", APP_TITLE, state.lastModalError);
+    } catch (error) {
+      state.lastModalError = error instanceof Error ? error.message : String(error);
+      markOpenStep("open-url-modal-error", { error: state.lastModalError });
+      console.error("[FDEmbedLink] openUrlModal failed", error);
+      toast("error", APP_TITLE, state.lastModalError || "Impossibile aprire il modal.");
+    }
+  }
+
+  function waitForElement(selector, timeoutMs) {
+    const existing = document.querySelector(selector);
+    if (existing) {
+      return Promise.resolve(existing);
+    }
+
+    return new Promise((resolve) => {
+      const startedAt = Date.now();
+      const tick = () => {
+        const found = document.querySelector(selector);
+        if (found) {
+          resolve(found);
+          return;
+        }
+        if (Date.now() - startedAt >= timeoutMs) {
+          resolve(null);
+          return;
+        }
+        window.setTimeout(tick, 25);
+      };
+      tick();
+    });
+  }
+
+  function hasAnyModalApi() {
+    const C = commons();
+    return Boolean(C && C.modal && (
+      typeof C.modal.create === "function" ||
+      typeof C.modal.set === "function"
+    ));
+  }
+
+  function cancelActivePreviewRequest() {
+    if (state.previewController) {
+      state.previewController.abort();
+      state.previewController = null;
+    }
+    state.previewLoading = false;
+  }
+
+  function clearPreviewFlow(options = {}) {
+    cancelActivePreviewRequest();
+    state.previewRequestId += 1;
+    state.preview = null;
+    if (options.clearPaste !== false) {
+      state.pasteText = "";
+    }
+  }
+
+  function isCurrentPreviewRequest(requestId, controller) {
+    return state.previewRequestId === requestId &&
+      state.previewController === controller &&
+      !controller.signal.aborted;
+  }
+
+  function setPreviewInsertBusy(busy) {
+    const button = document.querySelector('[data-fd-embed-action="preview-insert"]');
+    if (!button) {
+      return;
+    }
+    button.disabled = Boolean(busy);
+    button.setAttribute("aria-disabled", busy ? "true" : "false");
+  }
+
+  async function openPreviewForUrl(rawUrl) {
+    if (!assertCanUse()) {
+      return;
+    }
+
+    cancelActivePreviewRequest();
+    const requestId = state.previewRequestId + 1;
+    state.previewRequestId = requestId;
+    state.preview = null;
+    state.previewRequestedUrl = String(rawUrl || "").trim();
+    state.previewDisplayedUrl = "";
+    state.previewCacheHit = null;
+    state.previewMetadataUrls = null;
+    state.previewImageValidation = null;
+
+    const incompleteError = incompleteUrlError(rawUrl);
+    if (incompleteError) {
+      showUrlError(incompleteError);
+      return;
+    }
+
+    const parsed = parseUrl(rawUrl);
+    if (!parsed) {
+      showUrlError("Inserisci un URL http o https valido, senza testo aggiuntivo.");
+      return;
+    }
+
+    const blacklistMatch = isUrlBlacklisted(parsed.href);
+    if (blacklistMatch) {
+      showUrlError("Questo URL e nella blacklist e viene lasciato come link normale.");
+      return;
+    }
+
+    const requestedUrl = parsed.href;
+    const controller = new AbortController();
+    state.previewController = controller;
+    state.previewLoading = true;
+    state.previewRequestedUrl = requestedUrl;
+    state.previewDisplayedUrl = "";
+    state.previewCacheHit = null;
+    state.previewMetadataUrls = null;
+    state.previewImageValidation = null;
+    state.preview = null;
+    toast("info", APP_TITLE, "Recupero anteprima in corso...");
+
+    try {
+      const data = await requestEdge("preview", {
+        url: requestedUrl,
+        forum: getForumContext(),
+        user: getUser()
+      }, { signal: controller.signal });
+      if (!isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+
+      const metadata = normalizeMetadata(data, requestedUrl);
+      const imageValidation = await validateCandidateImages(metadata.images, controller.signal);
+      if (!isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+      metadata.images = imageValidation.images;
+      state.previewImageValidation = imageValidation.report;
+      const existingPublications = await verifyExistingPublications(
+        normalizeExistingPublications(data.existingPublications || data.existing_publications),
+        metadata
+      );
+      if (!isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+
+      const visibleExistingPublications = dedupeExistingPublicationsByTopic(existingPublications);
+      state.lastPreviewExistingCount = visibleExistingPublications.length;
+      state.lastPreviewExistingUrls = visibleExistingPublications.map((item) => item.postUrl).slice(0, 5);
+      const selectedImageIndex = metadata.images.length ? 0 : -1;
+      state.preview = {
+        sourceUrl: requestedUrl,
+        requestedUrl,
+        requestId,
+        metadata,
+        existingPublications: visibleExistingPublications,
+        selectedImageIndex
+      };
+      state.previewDisplayedUrl = metadata.finalUrl || metadata.canonicalUrl || metadata.sourceUrl || requestedUrl;
+      state.previewCacheHit = Boolean(data.cache && data.cache.hit);
+      state.previewMetadataUrls = {
+        sourceUrl: metadata.sourceUrl || "",
+        finalUrl: metadata.finalUrl || "",
+        canonicalUrl: metadata.canonicalUrl || ""
+      };
+      state.previewLoading = false;
+      state.previewController = null;
+      if (state.pasteText === String(rawUrl || "").trim()) {
+        state.pasteText = "";
+      }
+
+      closeModal();
+      showModal("Anteprima Embed Link", renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
+    } catch (error) {
+      if (isAbortError(error) || !isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+      state.previewLoading = false;
+      state.previewController = null;
+      showUrlError(error.message || "Impossibile generare l'anteprima.");
+    } finally {
+      if (state.previewRequestId === requestId && state.previewController === controller) {
+        state.previewLoading = false;
+        state.previewController = null;
+      }
+    }
+  }
+
+  async function createAndInsertEmbed() {
+    if (state.createInFlight || !state.preview || !state.preview.metadata) {
+      return;
+    }
+
+    const previewSnapshot = state.preview;
+    const metadataSnapshot = previewSnapshot.metadata;
+    const selected = getSelectedImage(metadataSnapshot);
+    state.createInFlight = true;
+    setPreviewInsertBusy(true);
+
+    try {
+      toast("info", APP_TITLE, "Creo la card...");
+      const data = await requestEdge("create", {
+        metadata: metadataSnapshot,
+        selectedImageUrl: selected.url || null,
+        selectedImageIndex: selected.index,
+        context: getForumContext(),
+        user: getUser()
+      });
+      const embedId = data.embedId || data.id;
+      const publishToken = data.publishToken || data.publish_token;
+      const metadata = normalizeMetadata(data.metadata || metadataSnapshot, previewSnapshot.sourceUrl);
+      const html = renderCardHtml(metadata, embedId, selected.url);
+
+      if (!embedId || !publishToken) {
+        throw new Error("La Edge Function non ha restituito embedId o publishToken.");
+      }
+
+      addContentToEditor("\n" + html + "\n");
+      storePendingEmbed(embedId, publishToken, metadata, { kind: "embed" });
+      if (state.preview === previewSnapshot) {
+        clearPreviewFlow();
+      }
+      toast("success", APP_TITLE, "Card inserita nell'editor.");
+    } catch (error) {
+      toast("error", APP_TITLE, error.message || "Creazione non riuscita.");
+    } finally {
+      state.createInFlight = false;
+      setPreviewInsertBusy(false);
+    }
+  }
+
+  async function createAndInsertPlainLink(rawUrl) {
+    const parsed = parseUrl(rawUrl);
+    if (!parsed || isDirectImageUrl(parsed.href)) {
+      addContentToEditor(rawUrl || "");
+      closeModal();
+      return;
+    }
+
+    try {
+      toast("info", APP_TITLE, "Creo il link tracciato...");
+      const data = await requestEdge("create-plain", {
+        url: parsed.href,
+        context: getForumContext(),
+        user: getUser()
+      });
+      const linkId = data.linkId || data.embedId || data.id;
+      const publishToken = data.publishToken || data.publish_token;
+      const metadata = normalizeMetadata(data.metadata || {
+        sourceUrl: parsed.href,
+        finalUrl: parsed.href,
+        canonicalUrl: parsed.href,
+        domain: getDomain(parsed.href),
+        title: parsed.href,
+        images: []
+      }, parsed.href);
+
+      if (!linkId || !publishToken) {
+        throw new Error("La Edge Function non ha restituito linkId o publishToken.");
+      }
+
+      addContentToEditor(renderTrackedLinkHtml(metadata.finalUrl || parsed.href, linkId, metadata));
+      storePendingEmbed(linkId, publishToken, metadata, { kind: "plain" });
+      state.lastPlainLinkId = String(linkId);
+      state.lastPlainLinkUrl = metadata.finalUrl || parsed.href;
+      state.lastPlainLinkError = "";
+      closeModal();
+      toast("success", APP_TITLE, "Link tracciato inserito nell'editor.");
+    } catch (error) {
+      state.lastPlainLinkId = "";
+      state.lastPlainLinkUrl = parsed.href;
+      state.lastPlainLinkError = error && error.message ? error.message : String(error);
+      console.warn("[FDEmbedLink] plain link tracking failed", error);
+      addContentToEditor(parsed.href);
+      closeModal();
+      toast("info", APP_TITLE, "Link inserito senza tracking: creazione record non riuscita.");
+    }
+  }
+
+  function getPendingEmbeds() {
+    try {
+      return JSON.parse(sessionStorage.getItem(CONFIG.pendingStorageKey) || "{}") || {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function setPendingEmbeds(value) {
+    sessionStorage.setItem(CONFIG.pendingStorageKey, JSON.stringify(value));
+  }
+
+  function storePendingEmbed(embedId, publishToken, metadata, options = {}) {
+    const pending = getPendingEmbeds();
+    pending[embedId] = {
+      id: embedId,
+      publishToken,
+      kind: options.kind || "embed",
+      sourceUrl: metadata.sourceUrl,
+      finalUrl: metadata.finalUrl,
+      canonicalUrl: metadata.canonicalUrl,
+      userId: getUser().id,
+      createdAt: Date.now()
+    };
+    setPendingEmbeds(pending);
+  }
+
+  function uniqueIds(values) {
+    return (Array.isArray(values) ? values : [])
+      .map((value) => String(value || ""))
+      .filter((value, index, all) => value && all.indexOf(value) === index);
+  }
+
+  function publishResultConfirmedIds(result, requestedIds) {
+    const allowed = uniqueIds(requestedIds);
+    const confirmed = [];
+
+    if (result && Array.isArray(result.confirmedIds)) {
+      confirmed.push(...result.confirmedIds);
+    }
+
+    const rows = result && Array.isArray(result.results) ? result.results : [];
+    rows.forEach((row) => {
+      const id = row && row.id ? String(row.id) : "";
+      const status = row && row.status ? String(row.status).toLowerCase() : "";
+
+      if (!id) {
+        return;
+      }
+      if (allowed.length && allowed.indexOf(id) === -1) {
+        return;
+      }
+      if (row.updated === true || status === "published") {
+        confirmed.push(id);
+      }
+    });
+
+    return uniqueIds(confirmed);
+  }
+
+  function applyPublishResultToRemaining(remaining, result, requestedIds) {
+    const ids = uniqueIds(requestedIds);
+    const confirmedIds = publishResultConfirmedIds(result, ids);
+    const queuedIds = result && result.queued ? uniqueIds(result.queuedIds || ids) : [];
+    const failedIds = ids.filter((id) => confirmedIds.indexOf(id) === -1 && queuedIds.indexOf(id) === -1);
+
+    state.lastPublishTransport = result && result.transport || "";
+    state.lastPublishConfirmedIds = confirmedIds;
+    state.lastPublishQueuedIds = queuedIds;
+    state.lastPublishFailedIds = failedIds;
+
+    confirmedIds.forEach((id) => {
+      delete remaining[id];
+    });
+
+    if (queuedIds.length) {
+      const queuedAt = Date.now();
+      queuedIds.forEach((id) => {
+        if (!remaining[id]) {
+          return;
+        }
+
+        remaining[id] = {
+          ...remaining[id],
+          publishQueuedAt: queuedAt,
+          publishAttempts: Number(remaining[id].publishAttempts || 0) + 1,
+          lastPublishTransport: result && result.transport || "beacon",
+          lastPublishError: result && result.error || ""
+        };
+      });
+    }
+
+    return confirmedIds;
+  }
+
+  function finishPendingConfirmation(remaining, submittedIds) {
+    setPendingEmbeds(remaining);
+    if (submittedIds.length && submittedIds.every((id) => !remaining[id])) {
+      sessionStorage.removeItem(CONFIG.submitStorageKey);
+    }
+  }
+
+  async function reconcileQueuedPublishStatus(remaining) {
+    const embeds = Object.keys(remaining)
+      .filter((id) => remaining[id] && remaining[id].publishQueuedAt && remaining[id].publishToken)
+      .map((id) => ({
+        id,
+        publishToken: remaining[id].publishToken
+      }));
+
+    if (!embeds.length || !isConfigured()) {
+      state.lastPublishStatusCheck = embeds.length ? { checked: embeds.length, confirmedIds: [], skipped: true } : null;
+      return [];
+    }
+
+    try {
+      const result = await requestEdge("publish-status", { embeds, user: getUser() });
+      const ids = embeds.map((item) => item.id);
+      const confirmedIds = publishResultConfirmedIds(result, ids);
+
+      confirmedIds.forEach((id) => {
+        delete remaining[id];
+      });
+
+      state.lastPublishStatusCheck = {
+        checked: embeds.length,
+        confirmedIds,
+        results: result && Array.isArray(result.results) ? result.results : []
+      };
+
+      return confirmedIds;
+    } catch (error) {
+      state.lastPublishStatusCheck = {
+        checked: embeds.length,
+        confirmedIds: [],
+        error: error && error.message || String(error)
+      };
+      return [];
+    }
+  }
+
+  function rememberSubmitEmbeds() {
+    const text = getEditorText();
+    const pending = getPendingEmbeds();
+    const ids = Object.keys(pending).filter((id) => contentHasPendingEmbed(text, id, pending[id]));
+
+    if (!ids.length) {
+      return;
+    }
+
+    const currentPostId = getPostIdFromUrl();
+    sessionStorage.setItem(CONFIG.submitStorageKey, JSON.stringify({
+      ids,
+      p: currentPostId,
+      action: currentPostId ? "update" : "create",
+      topicId: getForumContext().topicId,
+      lastPostId: getLastKnownPostId(),
+      userId: getUser().id,
+      createdAt: Date.now()
+    }));
+  }
+
+  function getSubmitInfo() {
+    try {
+      return JSON.parse(sessionStorage.getItem(CONFIG.submitStorageKey) || "{}") || {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function isFreshSubmitInfo(submitInfo) {
+    const createdAt = Number(submitInfo && submitInfo.createdAt || 0);
+    return Boolean(createdAt && Date.now() - createdAt < 30 * 60 * 1000);
+  }
+
+  function getPostIdFromUrl() {
+    try {
+      return Number(new URL(window.location.href).searchParams.get("p") || 0);
+    } catch (_error) {
+      const match = String(window.location.search || "").match(/[?&]p=(\d+)/);
+      return match ? Number(match[1]) : 0;
+    }
+  }
+
+  function getLastKnownPostId() {
+    const C = commons();
+    const posts = C && C.location && Array.isArray(C.location.posts) ? C.location.posts : [];
+    return posts.reduce((max, post) => Math.max(max, getPostId(post) || 0), 0);
+  }
+
+  function buildPostUrl(post) {
+    const postId = getPostId(post);
+    const topicId = getForumContext().topicId;
+    const element = post && post.nativeElement;
+
+    if (element && postId) {
+      const preferredLink = element.querySelector(`.lt.Sub a[href*="?t="][href*="#entry${postId}"]`);
+      if (preferredLink && preferredLink.href) {
+        return normalizePostUrl(preferredLink.href, topicId, postId);
+      }
+
+      const anchorLink = element.querySelector(`a[href*="?t="][href*="#entry${postId}"], a[href*="entry${postId}"]`);
+      if (anchorLink && anchorLink.href) {
+        return normalizePostUrl(anchorLink.href, topicId, postId);
+      }
+    }
+
+    if (topicId && postId) {
+      return normalizePostUrl(window.location.href, topicId, postId);
+    }
+
+    return postId ? window.location.href.split("#")[0] + "#entry" + postId : window.location.href;
+  }
+
+  function getPostHtml(post) {
+    return String(post && post.content || "") + " " + (post && post.nativeElement ? post.nativeElement.innerHTML : "");
+  }
+
+  function getPostAuthorId(post) {
+    return Number(post && post.author && post.author.id || 0);
+  }
+
+  function isOwnPost(post, user) {
+    const authorId = getPostAuthorId(post);
+    return !(user.id && authorId && authorId !== user.id);
+  }
+
+  function getPostId(post) {
+    const directId = Number(post && post.id || 0);
+    if (directId) {
+      return directId;
+    }
+
+    const element = post && post.nativeElement;
+    if (!element) {
+      return 0;
+    }
+
+    const candidates = [
+      element,
+      element.closest ? element.closest("li[id]") : null,
+      element.querySelector ? element.querySelector("li[id]") : null
+    ];
+
+    for (const candidate of candidates) {
+      const rawId = candidate && candidate.id ? String(candidate.id) : "";
+      const match = rawId.match(/^e?(\d+)$/i) || rawId.match(/(\d+)/);
+      if (match) {
+        return Number(match[1]) || 0;
+      }
+    }
+
+    return 0;
+  }
+
+  function findSubmittedFallbackPost(posts, submitInfo, user) {
+    if (!isFreshSubmitInfo(submitInfo)) {
+      return null;
+    }
+
+    const submittedPostId = Number(submitInfo.p || 0);
+    if (submittedPostId) {
+      return posts.find((post) => getPostId(post) === submittedPostId && isOwnPost(post, user)) || null;
+    }
+
+    const lastPostId = Number(submitInfo.lastPostId || 0);
+    const ownPosts = posts.filter((post) => isOwnPost(post, user) && getPostId(post));
+    const newerPosts = ownPosts
+      .filter((post) => getPostId(post) > lastPostId)
+      .sort((a, b) => getPostId(b) - getPostId(a));
+
+    if (newerPosts.length) {
+      return newerPosts[0];
+    }
+
+    return ownPosts.length ? ownPosts[ownPosts.length - 1] : null;
+  }
+
+  function normalizePostUrl(rawUrl, topicId, postId) {
+    try {
+      const url = new URL(rawUrl, window.location.origin);
+      const resolvedTopicId = topicId || Number(url.searchParams.get("t") || 0);
+      if (resolvedTopicId && postId) {
+        const params = new URLSearchParams();
+        params.set("t", String(resolvedTopicId));
+        const st = url.searchParams.get("st") || currentTopicPageOffset();
+        if (st && Number(st) > 0) {
+          params.set("st", String(Number(st)));
+        }
+        return url.origin + "/?" + params.toString() + "#entry" + encodeURIComponent(String(postId));
+      }
+      return url.href;
+    } catch (_error) {
+      if (topicId && postId) {
+        const st = currentTopicPageOffset();
+        const stPart = st && Number(st) > 0 ? "&st=" + encodeURIComponent(String(Number(st))) : "";
+        return window.location.origin + "/?t=" + encodeURIComponent(String(topicId)) + stPart + "#entry" + encodeURIComponent(String(postId));
+      }
+      return window.location.href;
+    }
+  }
+
+  function currentTopicPageOffset() {
+    try {
+      const value = new URL(window.location.href).searchParams.get("st") || "";
+      return Number(value) > 0 ? String(Number(value)) : "";
+    } catch (_error) {
+      const match = String(window.location.search || "").match(/[?&]st=(\d+)/);
+      return match && Number(match[1]) > 0 ? String(Number(match[1])) : "";
+    }
+  }
+
+  function pendingConfirmationNeedsRetry(remaining, submitInfo) {
+    const submittedIds = Array.isArray(submitInfo && submitInfo.ids) ? submitInfo.ids : [];
+    const hasFreshSubmitted = isFreshSubmitInfo(submitInfo) && submittedIds.some((id) => remaining[id]);
+    const hasQueuedBeacon = Object.keys(remaining).some((id) => (
+      remaining[id] && remaining[id].publishQueuedAt && remaining[id].publishToken
+    ));
+    return hasFreshSubmitted || hasQueuedBeacon;
+  }
+
+  function resetConfirmationRetry() {
+    window.clearTimeout(state.confirmationRetryTimer);
+    state.confirmationRetryTimer = 0;
+    state.confirmationRetryAttempts = 0;
+    state.confirmationRetryReason = "";
+  }
+
+  function scheduleConfirmationRetry(reason) {
+    if (state.confirmationRetryTimer || state.confirmationRetryAttempts >= CONFIRMATION_RETRY_DELAYS_MS.length) {
+      return false;
+    }
+
+    const delay = CONFIRMATION_RETRY_DELAYS_MS[state.confirmationRetryAttempts];
+    state.confirmationRetryReason = reason || "pending";
+    state.confirmationRetryTimer = window.setTimeout(() => {
+      state.confirmationRetryTimer = 0;
+      state.confirmationRetryAttempts += 1;
+      confirmPublishedEmbeds();
+    }, delay);
+    return true;
+  }
+
+  async function confirmPublishedEmbeds() {
+    if (state.confirmationPromise) {
+      return state.confirmationPromise;
+    }
+
+    const promise = runPublishedEmbedConfirmation();
+    state.confirmationPromise = promise;
+    try {
+      return await promise;
+    } finally {
+      if (state.confirmationPromise === promise) {
+        state.confirmationPromise = null;
+      }
+    }
+  }
+
+  async function runPublishedEmbedConfirmation() {
+    state.lastConfirmationAt = new Date().toISOString();
+    const pending = getPendingEmbeds();
+    const ids = Object.keys(pending);
+    if (!ids.length) {
+      resetConfirmationRetry();
+      return;
+    }
+
+    const user = getUser();
+    const remaining = { ...pending };
+    const submitInfo = getSubmitInfo();
+    const submittedIds = Array.isArray(submitInfo.ids) ? submitInfo.ids : [];
+    const attemptedIds = new Set();
+
+    await reconcileQueuedPublishStatus(remaining);
+
+    const C = commons();
+    if (!C || !C.location || !Array.isArray(C.location.posts) || !C.location.posts.length) {
+      finishPendingConfirmation(remaining, submittedIds);
+      if (pendingConfirmationNeedsRetry(remaining, submitInfo)) {
+        scheduleConfirmationRetry("posts-not-ready");
+      } else {
+        resetConfirmationRetry();
+      }
+      return;
+    }
+
+    for (const post of C.location.posts) {
+      if (!isOwnPost(post, user)) {
+        continue;
+      }
+
+      const activeIds = Object.keys(remaining).filter((id) => !attemptedIds.has(id));
+      if (!activeIds.length) {
+        break;
+      }
+
+      const html = getPostHtml(post);
+      let foundIds = activeIds.filter((id) => contentHasEmbedId(html, id));
+      if (!foundIds.length) {
+        foundIds = pickUrlFallbackEmbedIds(html, activeIds, pending, submittedIds.length ? submittedIds : null);
+      }
+      if (!foundIds.length) {
+        continue;
+      }
+
+      const embeds = foundIds.map((id) => ({
+        id,
+        publishToken: pending[id].publishToken
+      }));
+
+      try {
+        const context = getForumContext();
+        const result = await publishEmbeds(embeds, {
+          id: getPostId(post) || null,
+          topicId: context.topicId,
+          topicTitle: context.topicTitle,
+          url: buildPostUrl(post)
+        });
+
+        foundIds.forEach((id) => attemptedIds.add(id));
+        applyPublishResultToRemaining(remaining, result, foundIds);
+      } catch (error) {
+        foundIds.forEach((id) => attemptedIds.add(id));
+        console.warn("[FDEmbedLink] publish failed", error);
+      }
+    }
+
+    const remainingIds = Object.keys(remaining).filter((id) => !attemptedIds.has(id));
+    const fallbackPost = remainingIds.length ? findSubmittedFallbackPost(C.location.posts, submitInfo, user) : null;
+    if (fallbackPost) {
+      const html = getPostHtml(fallbackPost);
+      const foundIds = pickPlainUrlFallbackEmbedIds(html, remainingIds, pending, submittedIds.length ? submittedIds : null);
+      if (foundIds.length) {
+        const embeds = foundIds.map((id) => ({
+          id,
+          publishToken: pending[id].publishToken
+        }));
+
+        try {
+          const context = getForumContext();
+          const result = await publishEmbeds(embeds, {
+            id: getPostId(fallbackPost) || null,
+            topicId: context.topicId,
+            topicTitle: context.topicTitle,
+            url: buildPostUrl(fallbackPost)
+          });
+
+          state.submitFallbackUsed += 1;
+          state.lastSubmitFallbackPostId = getPostId(fallbackPost) || 0;
+          foundIds.forEach((id) => attemptedIds.add(id));
+          applyPublishResultToRemaining(remaining, result, foundIds);
+        } catch (error) {
+          foundIds.forEach((id) => attemptedIds.add(id));
+          console.warn("[FDEmbedLink] submit fallback publish failed", error);
+        }
+      }
+    }
+
+    finishPendingConfirmation(remaining, submittedIds);
+    if (pendingConfirmationNeedsRetry(remaining, submitInfo)) {
+      scheduleConfirmationRetry("pending-after-scan");
+    } else {
+      resetConfirmationRetry();
+    }
+  }
+
+  async function publishEmbeds(embeds, post) {
+    const payload = {
+      embeds,
+      post,
+      user: getUser()
+    };
+
+    if (!isConfigured()) {
+      throw new Error("Configura CONFIG.edgeEndpoint con l'URL della Supabase Edge Function.");
+    }
+
+    let fetchError = null;
+    const requestedIds = embeds.map((item) => item.id);
+
+    try {
+      const result = await requestEdge("publish", payload, { keepalive: true });
+      return { ...result, transport: "fetch" };
+    } catch (error) {
+      fetchError = error;
+      if (!navigator.sendBeacon) {
+        throw error;
+      }
+    }
+
+    if (navigator.sendBeacon) {
+      const blob = new Blob([JSON.stringify({ ...payload, action: "publish" })], {
+        type: "application/json"
+      });
+      const sent = navigator.sendBeacon(CONFIG.edgeEndpoint, blob);
+      if (sent) {
+        return {
+          ok: false,
+          queued: true,
+          beacon: true,
+          transport: "beacon",
+          queuedIds: requestedIds,
+          confirmedIds: [],
+          error: fetchError && fetchError.message || ""
+        };
+      }
+    }
+
+    const result = await requestEdge("publish", payload, { keepalive: true });
+    return { ...result, transport: "fetch-retry" };
+  }
+
+  function handlePaste(event) {
+    if (event && typeof event === "object" && state.handledPasteEvents.has(event)) {
+      return event.defaultPrevented ? false : true;
+    }
+
+    if (!isEditorPasteEvent(event)) {
+      return true;
+    }
+
+    if (state.pasteDisabled || !state.pasteInterceptionEnabled || !assertCanUse()) {
+      return true;
+    }
+
+    const clipboard = event.clipboardData || window.clipboardData;
+    const text = clipboard ? clipboard.getData("text/plain") : "";
+    const url = parseUrl(text);
+
+    if (!url || !state.blacklistLoaded || isUrlBlacklisted(url.href)) {
+      return true;
+    }
+
+    if (event && typeof event === "object") {
+      state.handledPasteEvents.add(event);
+    }
+    event.stopPropagation();
+    event.preventDefault();
+    state.pasteText = text.trim();
+    const incompleteError = incompleteUrlError(state.pasteText);
+    const errorClass = incompleteError ? " fd-embed-modal-paste-has-error" : "";
+    showModal("Vuoi inserire un Embed Link?", renderPasteModal(incompleteError), renderPasteFooter(Boolean(incompleteError)), "fd-embed-modal-paste fd-embed-modal-preview cs-modal-w50" + errorClass);
+    return false;
+  }
+
+  function isEditorPasteEvent(event) {
+    const target = event && event.target;
+
+    if (!target || !target.closest) {
+      return Boolean(getEditorTextarea());
+    }
+
+    if (target.closest(EDITOR_SURFACE_SELECTOR)) {
+      return true;
+    }
+
+    const submit = document.querySelector('input[name="submit_post"], button[name="submit_post"]');
+    const form = submit && submit.closest ? submit.closest("form") : null;
+    return Boolean(form && form.contains(target));
+  }
+
+  function handleImageChoice(target) {
+    const label = target.closest("[data-fd-embed-image-index]");
+    const previewRoot = label && label.closest(".fd-embed-preview");
+    if (!label || !previewRoot || !state.preview ||
+      Number(previewRoot.getAttribute("data-fd-preview-request-id")) !== state.preview.requestId) {
+      return;
+    }
+
+    const index = Number(label.getAttribute("data-fd-embed-image-index"));
+    if (!Number.isFinite(index)) {
+      return;
+    }
+
+    state.preview.selectedImageIndex = index;
+
+    previewRoot.querySelectorAll(".fd-embed-image-choice").forEach((item) => {
+      item.classList.toggle("is-selected", item === label);
+    });
+
+    const radio = label.querySelector("input[type='radio']");
+    if (radio) {
+      radio.checked = true;
+    }
+
+    const image = state.preview.metadata.images[index];
+    const previewImage = previewRoot.querySelector("[data-fd-embed-preview-image]");
+    if (image && previewImage) {
+      previewImage.setAttribute("src", image.url);
+    }
+  }
+
+  function handlePreviewImageError(event) {
+    const failedImage = event.target;
+    if (!failedImage || failedImage.tagName !== "IMG") {
+      return;
+    }
+    const previewRoot = failedImage.closest(".fd-embed-preview");
+    if (!previewRoot || !state.preview || !state.preview.metadata ||
+      Number(previewRoot.getAttribute("data-fd-preview-request-id")) !== state.preview.requestId) {
+      return;
+    }
+
+    const failedUrl = failedImage.currentSrc || failedImage.getAttribute("src") || "";
+    const images = state.preview.metadata.images || [];
+    const selected = getSelectedImage(state.preview.metadata);
+    const remaining = images.filter((image) => image.url !== failedUrl);
+    if (remaining.length === images.length) {
+      return;
+    }
+
+    state.preview.metadata.images = remaining;
+    const selectedIndex = remaining.findIndex((image) => image.url === selected.url);
+    state.preview.selectedImageIndex = selectedIndex >= 0 ? selectedIndex : (remaining.length ? 0 : -1);
+    const report = state.previewImageValidation || { received: images.length, valid: images.length, discarded: [] };
+    report.valid = remaining.length;
+    if (!report.discarded.some((item) => item.url === failedUrl)) {
+      report.discarded.push({ url: failedUrl, reason: "load-error", width: 0, height: 0 });
+    }
+    state.previewImageValidation = report;
+    previewRoot.innerHTML = renderPreviewContent();
+  }
+
+  function handleDocumentClick(event) {
+    const imageLabel = event.target.closest("[data-fd-embed-image-index]");
+    if (imageLabel) {
+      handleImageChoice(imageLabel);
+    }
+
+    const actionButton = event.target.closest("[data-fd-embed-action]");
+    if (!actionButton) {
+      return;
+    }
+
+    if (actionButton.disabled) {
+      return;
+    }
+
+    event.preventDefault();
+    const action = actionButton.getAttribute("data-fd-embed-action");
+
+    if (action === "url-cancel" || action === "preview-cancel") {
+      clearPreviewFlow();
+      closeModal();
+      return;
+    }
+
+    if (action === "url-preview") {
+      if (state.previewLoading) {
+        return;
+      }
+      const input = document.getElementById(ID_PREFIX + "url");
+      openPreviewForUrl(input ? input.value : "");
+      return;
+    }
+
+    if (action === "paste-disable") {
+      state.pasteDisabled = true;
+      addContentToEditor(state.pasteText);
+      clearPreviewFlow();
+      closeModal();
+      toast("info", APP_TITLE, "Intercettazione link disabilitata fino al refresh.");
+      return;
+    }
+
+    if (action === "paste-normal") {
+      const pasted = state.pasteText;
+      clearPreviewFlow();
+      createAndInsertPlainLink(pasted);
+      return;
+    }
+
+    if (action === "paste-confirm") {
+      if (state.previewLoading) {
+        return;
+      }
+      const pasted = state.pasteText;
+      closeModal();
+      openPreviewForUrl(pasted);
+      return;
+    }
+
+    if (action === "preview-insert") {
+      if (state.createInFlight) {
+        return;
+      }
+      createAndInsertEmbed();
+      closeModal();
+    }
+  }
+
+  function handleDocumentChange(event) {
+    const toggle = event.target && event.target.closest
+      ? event.target.closest("[data-fd-embed-paste-toggle]")
+      : null;
+    if (!toggle) {
+      return;
+    }
+
+    savePasteInterceptionPreference(Boolean(toggle.checked));
+    toast("info", APP_TITLE, toggle.checked
+      ? "Intercettazione link riattivata."
+      : "Intercettazione link disattivata.");
+  }
+
+  function handleSubmitCapture(event) {
+    const target = event.target;
+    if (target && target.matches && target.matches('input[name="submit_post"], button[name="submit_post"]')) {
+      rememberSubmitEmbeds();
+    }
+  }
+
+  function removeLegacyEditorButtons() {
+    document.querySelectorAll([
+      "[data-fd-embed-fallback]",
+      "[data-fd-embed-fallback-button]",
+      "[data-fd-embed-inline-wrapper]",
+      "[data-fd-embed-inline-button]"
+    ].join(",")).forEach((element) => {
+      element.remove();
+    });
+  }
+
+  function registerEditorButtons() {
+    const C = commons();
+    if (!C || !C.utilities) {
+      return false;
+    }
+
+    const replierForm = C.utilities.replierForm || {};
+    const buttons = replierForm.buttons;
+    const buttonConfig = {
+      title: EDITOR_BUTTON_TITLE,
+      event: async () => {
+        await openUrlModal("");
+      },
+      allowCustomEditors: false
+    };
+
+    if (!state.classicButtonRegistered && buttons && typeof buttons.add === "function") {
+      try {
+        buttons.add(buttonConfig);
+        state.classicButtonRegistered = true;
+      } catch (error) {
+        state.lastModalError = error && error.message ? error.message : String(error || "");
+      }
+    }
+
+    if (!state.visualButtonRegistered) {
+      try {
+        console.log("editor!");
+        C.utilities.queue.push({
+          tag: "ve:externals:add",
+          event: {
+            ...buttonConfig,
+            serviceType: "link"
+          }
+        });
+        state.visualButtonRegistered = true;
+      } catch (error) {
+        state.lastModalError = error && error.message ? error.message : String(error || "");
+      }
+    }
+
+    state.buttonsRegistered = state.classicButtonRegistered && state.visualButtonRegistered;
+    return state.buttonsRegistered;
+  }
+
+  function registerPasteEvent(root) {
+    const C = commons();
+    const textarea = C && C.utilities && C.utilities.replierForm && C.utilities.replierForm.textarea;
+    if (!state.textareaApiPasteRegistered && textarea && typeof textarea.addEvent === "function") {
+      textarea.addEvent("paste", handlePaste);
+      state.textareaApiPasteRegistered = true;
+    }
+
+    for (const item of getEditorSurfaces(root)) {
+      if (!state.initializedEditors.has(item)) {
+        item.addEventListener("paste", handlePaste, true);
+        state.initializedEditors.add(item);
+        state.pasteTargetCount += 1;
+      }
+    }
+
+    state.pasteRegistered = state.textareaApiPasteRegistered || state.pasteTargetCount > 0;
+    return state.pasteRegistered;
+  }
+
+  function isVisibleElement(element) {
+    if (!element || element.hidden) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(element);
+    if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+      return false;
+    }
+
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function elementLabelMatches(element, text) {
+    const values = [
+      element.tagName === "INPUT" ? element.value : element.textContent,
+      element.getAttribute("title"),
+      element.getAttribute("aria-label"),
+      element.getAttribute("alt")
+    ];
+    return values.some((value) => normalizeSpace(value) === text);
+  }
+
+  function findVisibleNativeEditorButton(text) {
+    const selector = "button, a, input[type='button'], input[type='submit'], [role='button']";
+    return Array.from(document.querySelectorAll(selector)).some((element) => {
+      return elementLabelMatches(element, text) &&
+        isVisibleElement(element);
+    });
+  }
+
+  function refreshIntegration() {
+    registerEditorButtons();
+    registerPasteEvent(document);
+    return diagnostics();
+  }
+
+  function startIntegrationWatcher() {
+    if (!state.integrationObserver && document.body && window.MutationObserver) {
+      state.integrationObserver = new MutationObserver((records) => {
+        state.integrationMutationBatches += 1;
+
+        const editorRoots = [];
+        for (const record of records) {
+          for (const node of record.addedNodes) {
+            if (nodeContainsEditor(node)) {
+              editorRoots.push(node);
+            }
+          }
+        }
+
+        if (!editorRoots.length) {
+          return;
+        }
+
+        state.integrationRelevantBatches += 1;
+        registerEditorButtons();
+        registerPasteEvent(null);
+        for (const root of editorRoots) {
+          registerPasteEvent(root);
+        }
+      });
+      state.integrationObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+  }
+
+  function diagnostics() {
+    const C = commons();
+    const utilities = C && C.utilities ? C.utilities : null;
+    const replierForm = utilities && utilities.replierForm ? utilities.replierForm : null;
+    const textareaApi = replierForm && replierForm.textarea ? replierForm.textarea : null;
+    const buttons = replierForm && replierForm.buttons ? replierForm.buttons : null;
+
+    return {
+      app: APP_TITLE,
+      version: CONFIG.version,
+      configured: isConfigured(),
+      host: location.hostname,
+      allowedLocation: isAllowedForumLocation(),
+      commonsReady: Boolean(C),
+      utilitiesReady: Boolean(utilities),
+      replierFormReady: Boolean(replierForm),
+      classicButtonApiReady: Boolean(buttons && typeof buttons.add === "function"),
+      classicButtonRegistered: state.classicButtonRegistered,
+      classicButtonVisible: findVisibleNativeEditorButton(EDITOR_BUTTON_TITLE),
+      modalCreateReady: Boolean(C && C.modal && typeof C.modal.create === "function"),
+      modalSetReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
+      modalApiReady: hasAnyModalApi(),
+      commonsModalOpen: Boolean(state.commonsModal),
+      modalCloseAttempts: state.modalCloseAttempts,
+      lastModalClose: state.lastModalClose,
+      lastModalError: state.lastModalError,
+      lastOpenAttempt: state.lastOpenAttempt,
+      lastPreviewExistingCount: state.lastPreviewExistingCount,
+      lastPreviewExistingUrls: state.lastPreviewExistingUrls,
+      previewRequestId: state.previewRequestId,
+      previewLoading: state.previewLoading,
+      previewRequestedUrl: state.previewRequestedUrl,
+      previewDisplayedUrl: state.previewDisplayedUrl,
+      previewCacheHit: state.previewCacheHit,
+      previewMetadataUrls: state.previewMetadataUrls,
+      previewImageValidation: state.previewImageValidation,
+      previewStateRequestId: state.preview ? state.preview.requestId : null,
+      createInFlight: state.createInFlight,
+      lastPresenceCheck: state.lastPresenceCheck,
+      lastPresenceDetails: state.lastPresenceDetails,
+      lastPresenceReport: state.lastPresenceReport,
+      presenceRecheckCount: state.presenceRecheckTimers.size,
+      lastPublishTransport: state.lastPublishTransport,
+      lastPublishConfirmedIds: state.lastPublishConfirmedIds,
+      lastPublishQueuedIds: state.lastPublishQueuedIds,
+      lastPublishFailedIds: state.lastPublishFailedIds,
+      lastPublishStatusCheck: state.lastPublishStatusCheck,
+      lastPlainLinkId: state.lastPlainLinkId,
+      lastPlainLinkUrl: state.lastPlainLinkUrl,
+      lastPlainLinkError: state.lastPlainLinkError,
+      blacklist: {
+        loaded: state.blacklistLoaded,
+        updatedAt: state.blacklistUpdatedAt,
+        ruleCount: state.blacklistRules.length
+      },
+      lastConfirmationAt: state.lastConfirmationAt,
+      submitInfo: getSubmitInfo(),
+      visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
+      textareaApiReady: Boolean(textareaApi && typeof textareaApi.addEvent === "function" && typeof textareaApi.addContent === "function"),
+      domTextareaReady: Boolean(getEditorTextarea()),
+      domTextareaCount: getEditorTextareas().length,
+      user: getUser(),
+      state: {
+        initialized: state.initialized,
+        classicButtonRegistered: state.classicButtonRegistered,
+        visualButtonRegistered: state.visualButtonRegistered,
+        pasteRegistered: state.pasteRegistered,
+        pasteInterceptionEnabled: state.pasteInterceptionEnabled,
+        pasteTemporarilyDisabled: state.pasteDisabled,
+        textareaApiPasteRegistered: state.textareaApiPasteRegistered,
+        pasteTargetCount: state.pasteTargetCount,
+        confirmationInFlight: Boolean(state.confirmationPromise),
+        confirmationRetryActive: Boolean(state.confirmationRetryTimer),
+        confirmationRetryAttempts: state.confirmationRetryAttempts,
+        confirmationRetryReason: state.confirmationRetryReason,
+        submitFallbackUsed: state.submitFallbackUsed,
+        lastSubmitFallbackPostId: state.lastSubmitFallbackPostId,
+        initializedEditorCount: state.pasteTargetCount,
+        integrationMutationBatches: state.integrationMutationBatches,
+        integrationRelevantBatches: state.integrationRelevantBatches,
+        integrationPollingActive: false,
+        integrationObserverActive: Boolean(state.integrationObserver)
+      }
+    };
+  }
+
+  function init() {
+    if (state.initialized) {
+      return;
+    }
+
+    if (!document.body) {
+      document.addEventListener("DOMContentLoaded", init, { once: true });
+      return;
+    }
+
+    state.initialized = true;
+    state.pasteInterceptionEnabled = loadPasteInterceptionPreference();
+    removeLegacyEditorButtons();
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("error", handlePreviewImageError, true);
+    document.addEventListener("change", handleDocumentChange);
+    document.addEventListener("click", handleSubmitCapture, true);
+    document.addEventListener("submit", rememberSubmitEmbeds, true);
+    registerEditorButtons();
+    registerPasteEvent(document);
+    startIntegrationWatcher();
+    refreshBlacklistRules();
+    state.blacklistRefreshTimer = window.setInterval(refreshBlacklistRules, BLACKLIST_REFRESH_MS);
+    if (document.readyState !== "complete") {
+      window.addEventListener("load", refreshIntegration, { once: true });
+    }
+    confirmPublishedEmbeds();
+  }
+
+  const api = {
+    version: CONFIG.version,
+    config: CONFIG,
+    init,
+    openUrlModal,
+    handlePaste,
+    buildHtml: renderCardHtml,
+    buildTrackedLinkHtml: renderTrackedLinkHtml,
+    confirmPublishedEmbeds,
+    diagnostics,
+    refreshIntegration,
+    refreshBlacklistRules
+  };
+
+  window.FDEmbedLink = api;
+  window.EmbedLink = api;
+
+  init();
+})();
