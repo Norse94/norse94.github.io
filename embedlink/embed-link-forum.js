@@ -1,13 +1,16 @@
-/* FD EMBED LINK build 2026-07-06.14 */
+/* FD EMBED LINK build 2026-07-06.15 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.14",
+    version: "2026-07-06.15",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
+    minimumImageWidth: 640,
+    minimumImageHeight: 360,
+    imageValidationTimeoutMs: 8000,
     requestTimeoutMs: 20000,
     pendingStorageKey: "fd_embed_link_pending_v1",
     submitStorageKey: "fd_embed_link_submit_v1",
@@ -72,6 +75,7 @@
     previewDisplayedUrl: "",
     previewCacheHit: null,
     previewMetadataUrls: null,
+    previewImageValidation: null,
     createInFlight: false,
     commonsModal: null,
     modalCloseAttempts: 0,
@@ -1066,6 +1070,87 @@
     return out;
   }
 
+  function validateCandidateImage(candidate, signal) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      let settled = false;
+      let timeout = 0;
+
+      const finish = (result) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeout);
+        image.onload = null;
+        image.onerror = null;
+        if (signal) {
+          signal.removeEventListener("abort", handleAbort);
+        }
+        resolve(result);
+      };
+      const handleAbort = () => {
+        image.src = "";
+        finish({ image: candidate, valid: false, reason: "aborted", width: 0, height: 0 });
+      };
+
+      image.onload = () => {
+        const width = Number(image.naturalWidth || 0);
+        const height = Number(image.naturalHeight || 0);
+        const valid = width >= CONFIG.minimumImageWidth && height >= CONFIG.minimumImageHeight;
+        finish({
+          image: candidate,
+          valid,
+          reason: valid ? "valid" : "too-small",
+          width,
+          height
+        });
+      };
+      image.onerror = () => finish({
+        image: candidate,
+        valid: false,
+        reason: "load-error",
+        width: 0,
+        height: 0
+      });
+      timeout = window.setTimeout(() => {
+        image.src = "";
+        finish({ image: candidate, valid: false, reason: "timeout", width: 0, height: 0 });
+      }, CONFIG.imageValidationTimeoutMs);
+
+      if (signal) {
+        if (signal.aborted) {
+          handleAbort();
+          return;
+        }
+        signal.addEventListener("abort", handleAbort, { once: true });
+      }
+      image.src = candidate.url;
+    });
+  }
+
+  async function validateCandidateImages(images, signal) {
+    const candidates = Array.isArray(images) ? images.slice(0, CONFIG.maxImages) : [];
+    const results = await Promise.all(candidates.map((candidate) => validateCandidateImage(candidate, signal)));
+    return {
+      images: results.filter((result) => result.valid).map((result) => ({
+        ...result.image,
+        width: result.width,
+        height: result.height
+      })),
+      report: {
+        received: candidates.length,
+        valid: results.filter((result) => result.valid).length,
+        discarded: results.filter((result) => !result.valid && result.reason !== "aborted").map((result) => ({
+          url: result.image.url,
+          reason: result.reason,
+          width: result.width,
+          height: result.height
+        }))
+      }
+    };
+  }
+
   function getSelectedImage(metadata) {
     if (!metadata || !metadata.images || !metadata.images.length) {
       return { url: "", index: -1 };
@@ -1348,7 +1433,7 @@
     ].join("\n");
   }
 
-  function renderPreviewModal() {
+  function renderPreviewContent() {
     const preview = state.preview;
     const metadata = preview.metadata;
     const existingPublications = preview.existingPublications || [];
@@ -1375,12 +1460,15 @@
     ].join("\n") : "<p class=\"fd-embed-hint\">Nessuna immagine valida trovata. L'Embed Link verra inserito senza copertina.</p>";
 
     return [
-      "<div class=\"fd-embed-preview\">",
       existingBlock,
       images,
-      card,
-      "</div>"
+      card
     ].join("\n");
+  }
+
+  function renderPreviewModal() {
+    const requestId = state.preview ? state.preview.requestId : "";
+    return `<div class="fd-embed-preview" data-fd-preview-request-id="${escapeAttr(requestId)}">${renderPreviewContent()}</div>`;
   }
 
   function renderExistingPublicationsBlock(existingPublications) {
@@ -1535,6 +1623,7 @@
     state.previewDisplayedUrl = "";
     state.previewCacheHit = null;
     state.previewMetadataUrls = null;
+    state.previewImageValidation = null;
 
     const incompleteError = incompleteUrlError(rawUrl);
     if (incompleteError) {
@@ -1561,6 +1650,7 @@
     state.previewDisplayedUrl = "";
     state.previewCacheHit = null;
     state.previewMetadataUrls = null;
+    state.previewImageValidation = null;
     state.preview = null;
     toast("info", APP_TITLE, "Recupero anteprima in corso...");
 
@@ -1575,6 +1665,12 @@
       }
 
       const metadata = normalizeMetadata(data, requestedUrl);
+      const imageValidation = await validateCandidateImages(metadata.images, controller.signal);
+      if (!isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+      metadata.images = imageValidation.images;
+      state.previewImageValidation = imageValidation.report;
       const existingPublications = await verifyExistingPublications(
         normalizeExistingPublications(data.existingPublications || data.existing_publications),
         metadata
@@ -2280,7 +2376,9 @@
 
   function handleImageChoice(target) {
     const label = target.closest("[data-fd-embed-image-index]");
-    if (!label || !state.preview) {
+    const previewRoot = label && label.closest(".fd-embed-preview");
+    if (!label || !previewRoot || !state.preview ||
+      Number(previewRoot.getAttribute("data-fd-preview-request-id")) !== state.preview.requestId) {
       return;
     }
 
@@ -2291,7 +2389,7 @@
 
     state.preview.selectedImageIndex = index;
 
-    document.querySelectorAll(".fd-embed-image-choice").forEach((item) => {
+    previewRoot.querySelectorAll(".fd-embed-image-choice").forEach((item) => {
       item.classList.toggle("is-selected", item === label);
     });
 
@@ -2301,10 +2399,41 @@
     }
 
     const image = state.preview.metadata.images[index];
-    const previewImage = document.querySelector("[data-fd-embed-preview-image]");
+    const previewImage = previewRoot.querySelector("[data-fd-embed-preview-image]");
     if (image && previewImage) {
       previewImage.setAttribute("src", image.url);
     }
+  }
+
+  function handlePreviewImageError(event) {
+    const failedImage = event.target;
+    if (!failedImage || failedImage.tagName !== "IMG") {
+      return;
+    }
+    const previewRoot = failedImage.closest(".fd-embed-preview");
+    if (!previewRoot || !state.preview || !state.preview.metadata ||
+      Number(previewRoot.getAttribute("data-fd-preview-request-id")) !== state.preview.requestId) {
+      return;
+    }
+
+    const failedUrl = failedImage.currentSrc || failedImage.getAttribute("src") || "";
+    const images = state.preview.metadata.images || [];
+    const selected = getSelectedImage(state.preview.metadata);
+    const remaining = images.filter((image) => image.url !== failedUrl);
+    if (remaining.length === images.length) {
+      return;
+    }
+
+    state.preview.metadata.images = remaining;
+    const selectedIndex = remaining.findIndex((image) => image.url === selected.url);
+    state.preview.selectedImageIndex = selectedIndex >= 0 ? selectedIndex : (remaining.length ? 0 : -1);
+    const report = state.previewImageValidation || { received: images.length, valid: images.length, discarded: [] };
+    report.valid = remaining.length;
+    if (!report.discarded.some((item) => item.url === failedUrl)) {
+      report.discarded.push({ url: failedUrl, reason: "load-error", width: 0, height: 0 });
+    }
+    state.previewImageValidation = report;
+    previewRoot.innerHTML = renderPreviewContent();
   }
 
   function handleDocumentClick(event) {
@@ -2577,6 +2706,7 @@
       previewDisplayedUrl: state.previewDisplayedUrl,
       previewCacheHit: state.previewCacheHit,
       previewMetadataUrls: state.previewMetadataUrls,
+      previewImageValidation: state.previewImageValidation,
       previewStateRequestId: state.preview ? state.preview.requestId : null,
       createInFlight: state.createInFlight,
       lastPresenceCheck: state.lastPresenceCheck,
@@ -2636,6 +2766,7 @@
     state.pasteInterceptionEnabled = loadPasteInterceptionPreference();
     removeLegacyEditorButtons();
     document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("error", handlePreviewImageError, true);
     document.addEventListener("change", handleDocumentChange);
     document.addEventListener("click", handleSubmitCapture, true);
     document.addEventListener("submit", rememberSubmitEmbeds, true);
