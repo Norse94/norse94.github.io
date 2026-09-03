@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.15 */
+/* FD EMBED LINK build 2026-07-06.16 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.15",
+    version: "2026-07-06.16",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -19,7 +19,7 @@
 
   const APP_TITLE = CONFIG.appTitle;
   const EDITOR_BUTTON_TITLE = "Embed Link";
-  const IMAGE_URL_RE = /\.(?:jpe?g|png|gif|webp|avif|svg)(?:[?#].*)?$/i;
+  const BLACKLIST_REFRESH_MS = 60_000;
   const ID_PREFIX = "fd-embed-link-";
   const EDITOR_SURFACE_SELECTOR = [
     "textarea",
@@ -107,7 +107,11 @@
     integrationMutationBatches: 0,
     integrationRelevantBatches: 0,
     initializedEditors: new WeakSet(),
-    handledPasteEvents: new WeakSet()
+    handledPasteEvents: new WeakSet(),
+    blacklistRules: [],
+    blacklistLoaded: false,
+    blacklistUpdatedAt: "",
+    blacklistRefreshTimer: 0
   };
 
   function commons() {
@@ -380,9 +384,49 @@
     return "";
   }
 
-  function isDirectImageUrl(value) {
+  function isUrlBlacklisted(value) {
     const url = parseUrl(value);
-    return Boolean(url && IMAGE_URL_RE.test(url.pathname + url.search));
+    if (!url) {
+      return null;
+    }
+
+    const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+    let pathname = url.pathname;
+    try {
+      pathname = decodeURIComponent(pathname);
+    } catch (_error) {
+      // The encoded pathname remains safe for matching.
+    }
+    pathname = pathname.toLowerCase();
+
+    return state.blacklistRules.find((rule) => {
+      const type = String(rule && rule.type || "").toLowerCase();
+      const ruleValue = String(rule && rule.value || "").toLowerCase();
+      if (type === "extension") {
+        return Boolean(ruleValue && pathname.endsWith(ruleValue));
+      }
+      if (type !== "domain" || !ruleValue) {
+        return false;
+      }
+      if (ruleValue.endsWith(".")) {
+        const base = ruleValue.slice(0, -1);
+        const labels = hostname.split(".");
+        return labels.some((label, index) => label === base && index < labels.length - 1);
+      }
+      return hostname === ruleValue || hostname.endsWith("." + ruleValue);
+    }) || null;
+  }
+
+  async function refreshBlacklistRules() {
+    try {
+      const data = await requestEdge("blacklist-rules", { user: getUser() });
+      state.blacklistRules = Array.isArray(data.rules) ? data.rules : [];
+      state.blacklistLoaded = true;
+      state.blacklistUpdatedAt = new Date().toISOString();
+    } catch (error) {
+      state.blacklistLoaded = false;
+      console.warn("[FDEmbedLink] blacklist non disponibile", error);
+    }
   }
 
   function getDomain(value) {
@@ -1637,8 +1681,9 @@
       return;
     }
 
-    if (isDirectImageUrl(parsed.href)) {
-      showUrlError("I link diretti a immagini vengono lasciati come link normali.");
+    const blacklistMatch = isUrlBlacklisted(parsed.href);
+    if (blacklistMatch) {
+      showUrlError("Questo URL e nella blacklist e viene lasciato come link normale.");
       return;
     }
 
@@ -1766,7 +1811,7 @@
 
   async function createAndInsertPlainLink(rawUrl) {
     const parsed = parseUrl(rawUrl);
-    if (!parsed || isDirectImageUrl(parsed.href)) {
+    if (!parsed || isUrlBlacklisted(parsed.href)) {
       addContentToEditor(rawUrl || "");
       closeModal();
       return;
@@ -2342,7 +2387,7 @@
     const text = clipboard ? clipboard.getData("text/plain") : "";
     const url = parseUrl(text);
 
-    if (!url || isDirectImageUrl(url.href)) {
+    if (!url || !state.blacklistLoaded || isUrlBlacklisted(url.href)) {
       return true;
     }
 
@@ -2721,6 +2766,11 @@
       lastPlainLinkId: state.lastPlainLinkId,
       lastPlainLinkUrl: state.lastPlainLinkUrl,
       lastPlainLinkError: state.lastPlainLinkError,
+      blacklist: {
+        loaded: state.blacklistLoaded,
+        updatedAt: state.blacklistUpdatedAt,
+        ruleCount: state.blacklistRules.length
+      },
       lastConfirmationAt: state.lastConfirmationAt,
       submitInfo: getSubmitInfo(),
       visualQueueReady: Boolean(utilities && Array.isArray(utilities.queue)),
@@ -2773,6 +2823,8 @@
     registerEditorButtons();
     registerPasteEvent(document);
     startIntegrationWatcher();
+    refreshBlacklistRules();
+    state.blacklistRefreshTimer = window.setInterval(refreshBlacklistRules, BLACKLIST_REFRESH_MS);
     if (document.readyState !== "complete") {
       window.addEventListener("load", refreshIntegration, { once: true });
     }
@@ -2789,7 +2841,8 @@
     buildTrackedLinkHtml: renderTrackedLinkHtml,
     confirmPublishedEmbeds,
     diagnostics,
-    refreshIntegration
+    refreshIntegration,
+    refreshBlacklistRules
   };
 
   window.FDEmbedLink = api;
