@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.12 */
+/* FD EMBED LINK build 2026-07-06.13 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.12",
+    version: "2026-07-06.13",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -65,6 +65,14 @@
     pasteInterceptionEnabled: true,
     pasteText: "",
     preview: null,
+    previewRequestId: 0,
+    previewController: null,
+    previewLoading: false,
+    previewRequestedUrl: "",
+    previewDisplayedUrl: "",
+    previewCacheHit: null,
+    previewMetadataUrls: null,
+    createInFlight: false,
     commonsModal: null,
     lastOpenAttempt: null,
     lastModalError: "",
@@ -549,6 +557,15 @@
     }
 
     const controller = new AbortController();
+    const externalSignal = options.signal || null;
+    const abortFromExternalSignal = () => controller.abort(externalSignal && externalSignal.reason);
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        abortFromExternalSignal();
+      } else {
+        externalSignal.addEventListener("abort", abortFromExternalSignal, { once: true });
+      }
+    }
     const timeout = setTimeout(() => controller.abort(), CONFIG.requestTimeoutMs);
 
     try {
@@ -579,7 +596,18 @@
       return data;
     } finally {
       clearTimeout(timeout);
+      if (externalSignal) {
+        externalSignal.removeEventListener("abort", abortFromExternalSignal);
+      }
     }
+  }
+
+  function isAbortError(error) {
+    return Boolean(error && (
+      error.name === "AbortError" ||
+      error.code === 20 ||
+      /abort/i.test(String(error.message || ""))
+    ));
   }
 
   function normalizeMetadata(raw, fallbackUrl) {
@@ -1448,10 +1476,51 @@
     ));
   }
 
+  function cancelActivePreviewRequest() {
+    if (state.previewController) {
+      state.previewController.abort();
+      state.previewController = null;
+    }
+    state.previewLoading = false;
+  }
+
+  function clearPreviewFlow(options = {}) {
+    cancelActivePreviewRequest();
+    state.previewRequestId += 1;
+    state.preview = null;
+    if (options.clearPaste !== false) {
+      state.pasteText = "";
+    }
+  }
+
+  function isCurrentPreviewRequest(requestId, controller) {
+    return state.previewRequestId === requestId &&
+      state.previewController === controller &&
+      !controller.signal.aborted;
+  }
+
+  function setPreviewInsertBusy(busy) {
+    const button = document.querySelector('[data-fd-embed-action="preview-insert"]');
+    if (!button) {
+      return;
+    }
+    button.disabled = Boolean(busy);
+    button.setAttribute("aria-disabled", busy ? "true" : "false");
+  }
+
   async function openPreviewForUrl(rawUrl) {
     if (!assertCanUse()) {
       return;
     }
+
+    cancelActivePreviewRequest();
+    const requestId = state.previewRequestId + 1;
+    state.previewRequestId = requestId;
+    state.preview = null;
+    state.previewRequestedUrl = String(rawUrl || "").trim();
+    state.previewDisplayedUrl = "";
+    state.previewCacheHit = null;
+    state.previewMetadataUrls = null;
 
     const incompleteError = incompleteUrlError(rawUrl);
     if (incompleteError) {
@@ -1470,48 +1539,93 @@
       return;
     }
 
+    const requestedUrl = parsed.href;
+    const controller = new AbortController();
+    state.previewController = controller;
+    state.previewLoading = true;
+    state.previewRequestedUrl = requestedUrl;
+    state.previewDisplayedUrl = "";
+    state.previewCacheHit = null;
+    state.previewMetadataUrls = null;
+    state.preview = null;
     toast("info", APP_TITLE, "Recupero anteprima in corso...");
 
     try {
       const data = await requestEdge("preview", {
-        url: parsed.href,
+        url: requestedUrl,
         forum: getForumContext(),
         user: getUser()
-      });
-      const metadata = normalizeMetadata(data, parsed.href);
+      }, { signal: controller.signal });
+      if (!isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+
+      const metadata = normalizeMetadata(data, requestedUrl);
       const existingPublications = await verifyExistingPublications(
         normalizeExistingPublications(data.existingPublications || data.existing_publications),
         metadata
       );
+      if (!isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+
       const visibleExistingPublications = dedupeExistingPublicationsByTopic(existingPublications);
       state.lastPreviewExistingCount = visibleExistingPublications.length;
       state.lastPreviewExistingUrls = visibleExistingPublications.map((item) => item.postUrl).slice(0, 5);
       const selectedImageIndex = metadata.images.length ? 0 : -1;
       state.preview = {
-        sourceUrl: parsed.href,
+        sourceUrl: requestedUrl,
+        requestedUrl,
+        requestId,
         metadata,
         existingPublications: visibleExistingPublications,
         selectedImageIndex
       };
+      state.previewDisplayedUrl = metadata.finalUrl || metadata.canonicalUrl || metadata.sourceUrl || requestedUrl;
+      state.previewCacheHit = Boolean(data.cache && data.cache.hit);
+      state.previewMetadataUrls = {
+        sourceUrl: metadata.sourceUrl || "",
+        finalUrl: metadata.finalUrl || "",
+        canonicalUrl: metadata.canonicalUrl || ""
+      };
+      state.previewLoading = false;
+      state.previewController = null;
+      if (state.pasteText === String(rawUrl || "").trim()) {
+        state.pasteText = "";
+      }
 
       closeModal();
       showModal("Anteprima Embed Link", renderPreviewModal(), renderPreviewFooter(), "fd-embed-modal-preview el-modal cs-modal-w50");
     } catch (error) {
+      if (isAbortError(error) || !isCurrentPreviewRequest(requestId, controller)) {
+        return;
+      }
+      state.previewLoading = false;
+      state.previewController = null;
       showUrlError(error.message || "Impossibile generare l'anteprima.");
+    } finally {
+      if (state.previewRequestId === requestId && state.previewController === controller) {
+        state.previewLoading = false;
+        state.previewController = null;
+      }
     }
   }
 
   async function createAndInsertEmbed() {
-    if (!state.preview || !state.preview.metadata) {
+    if (state.createInFlight || !state.preview || !state.preview.metadata) {
       return;
     }
 
-    const selected = getSelectedImage(state.preview.metadata);
+    const previewSnapshot = state.preview;
+    const metadataSnapshot = previewSnapshot.metadata;
+    const selected = getSelectedImage(metadataSnapshot);
+    state.createInFlight = true;
+    setPreviewInsertBusy(true);
 
     try {
       toast("info", APP_TITLE, "Creo la card...");
       const data = await requestEdge("create", {
-        metadata: state.preview.metadata,
+        metadata: metadataSnapshot,
         selectedImageUrl: selected.url || null,
         selectedImageIndex: selected.index,
         context: getForumContext(),
@@ -1519,7 +1633,7 @@
       });
       const embedId = data.embedId || data.id;
       const publishToken = data.publishToken || data.publish_token;
-      const metadata = normalizeMetadata(data.metadata || state.preview.metadata, state.preview.sourceUrl);
+      const metadata = normalizeMetadata(data.metadata || metadataSnapshot, previewSnapshot.sourceUrl);
       const html = renderCardHtml(metadata, embedId, selected.url);
 
       if (!embedId || !publishToken) {
@@ -1528,10 +1642,16 @@
 
       addContentToEditor("\n" + html + "\n");
       storePendingEmbed(embedId, publishToken, metadata, { kind: "embed" });
-      closeModal();
+      if (state.preview === previewSnapshot) {
+        closeModal();
+        clearPreviewFlow();
+      }
       toast("success", APP_TITLE, "Card inserita nell'editor.");
     } catch (error) {
       toast("error", APP_TITLE, error.message || "Creazione non riuscita.");
+    } finally {
+      state.createInFlight = false;
+      setPreviewInsertBusy(false);
     }
   }
 
@@ -2193,11 +2313,15 @@
     const action = actionButton.getAttribute("data-fd-embed-action");
 
     if (action === "url-cancel" || action === "preview-cancel") {
+      clearPreviewFlow();
       closeModal();
       return;
     }
 
     if (action === "url-preview") {
+      if (state.previewLoading) {
+        return;
+      }
       const input = document.getElementById(ID_PREFIX + "url");
       openPreviewForUrl(input ? input.value : "");
       return;
@@ -2206,17 +2330,23 @@
     if (action === "paste-disable") {
       state.pasteDisabled = true;
       addContentToEditor(state.pasteText);
+      clearPreviewFlow();
       closeModal();
       toast("info", APP_TITLE, "Intercettazione link disabilitata fino al refresh.");
       return;
     }
 
     if (action === "paste-normal") {
-      createAndInsertPlainLink(state.pasteText);
+      const pasted = state.pasteText;
+      clearPreviewFlow();
+      createAndInsertPlainLink(pasted);
       return;
     }
 
     if (action === "paste-confirm") {
+      if (state.previewLoading) {
+        return;
+      }
       const pasted = state.pasteText;
       closeModal();
       openPreviewForUrl(pasted);
@@ -2224,6 +2354,9 @@
     }
 
     if (action === "preview-insert") {
+      if (state.createInFlight) {
+        return;
+      }
       createAndInsertEmbed();
     }
   }
@@ -2422,6 +2555,14 @@
       lastOpenAttempt: state.lastOpenAttempt,
       lastPreviewExistingCount: state.lastPreviewExistingCount,
       lastPreviewExistingUrls: state.lastPreviewExistingUrls,
+      previewRequestId: state.previewRequestId,
+      previewLoading: state.previewLoading,
+      previewRequestedUrl: state.previewRequestedUrl,
+      previewDisplayedUrl: state.previewDisplayedUrl,
+      previewCacheHit: state.previewCacheHit,
+      previewMetadataUrls: state.previewMetadataUrls,
+      previewStateRequestId: state.preview ? state.preview.requestId : null,
+      createInFlight: state.createInFlight,
       lastPresenceCheck: state.lastPresenceCheck,
       lastPresenceDetails: state.lastPresenceDetails,
       lastPresenceReport: state.lastPresenceReport,
