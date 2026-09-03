@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.13 */
+/* FD EMBED LINK build 2026-07-06.14 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.13",
+    version: "2026-07-06.14",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -74,6 +74,8 @@
     previewMetadataUrls: null,
     createInFlight: false,
     commonsModal: null,
+    modalCloseAttempts: 0,
+    lastModalClose: null,
     lastOpenAttempt: null,
     lastModalError: "",
     lastPreviewExistingCount: 0,
@@ -130,18 +132,23 @@
   }
 
   function closeModal() {
+    state.modalCloseAttempts += 1;
+
     if (state.commonsModal) {
       const modal = state.commonsModal;
       state.commonsModal = null;
       if (typeof modal.hide === "function") {
+        state.lastModalClose = { at: new Date().toISOString(), hadInstance: true, method: "instance.hide" };
         modal.hide();
         return;
       }
       if (typeof modal.close === "function") {
+        state.lastModalClose = { at: new Date().toISOString(), hadInstance: true, method: "instance.close" };
         modal.close();
         return;
       }
       if (typeof modal.toggle === "function") {
+        state.lastModalClose = { at: new Date().toISOString(), hadInstance: true, method: "instance.toggle" };
         modal.toggle();
         return;
       }
@@ -149,8 +156,12 @@
 
     const C = commons();
     if (C && C.modal && typeof C.modal.close === "function") {
+      state.lastModalClose = { at: new Date().toISOString(), hadInstance: false, method: "commons.close" };
       C.modal.close();
+      return;
     }
+
+    state.lastModalClose = { at: new Date().toISOString(), hadInstance: false, method: "none" };
   }
 
   function showModal(title, content, footer, className) {
@@ -165,14 +176,17 @@
 
       if (typeof C.modal.create === "function") {
         closeModal();
-        const created = C.modal.create({
+        let created = null;
+        created = C.modal.create({
           className: modalClasses,
           title,
           content,
           footer,
           events: {
             "hide-end": () => {
-              state.commonsModal = null;
+              if (state.commonsModal === created) {
+                state.commonsModal = null;
+              }
             }
           }
         });
@@ -1389,7 +1403,7 @@
     return [
       "<div class=\"cs-buttons cs-buttons-right fd-embed-actions\">",
       "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-blue cs-modal-close el-cancel\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"preview-cancel\">Annulla</button>",
-      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-green cs-modal-close el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"preview-insert\">Inserisci</button>",
+      "  <button class=\"cs-btn cs-btn-sm cs-btn-outer-green el-confirm\" type=\"button\" data-cs-events=\"\" data-fd-embed-action=\"preview-insert\">Inserisci</button>",
       "</div>"
     ].join("\n");
   }
@@ -1643,7 +1657,6 @@
       addContentToEditor("\n" + html + "\n");
       storePendingEmbed(embedId, publishToken, metadata, { kind: "embed" });
       if (state.preview === previewSnapshot) {
-        closeModal();
         clearPreviewFlow();
       }
       toast("success", APP_TITLE, "Card inserita nell'editor.");
@@ -2358,6 +2371,7 @@
         return;
       }
       createAndInsertEmbed();
+      closeModal();
     }
   }
 
@@ -2551,6 +2565,8 @@
       modalSetReady: Boolean(C && C.modal && typeof C.modal.set === "function"),
       modalApiReady: hasAnyModalApi(),
       commonsModalOpen: Boolean(state.commonsModal),
+      modalCloseAttempts: state.modalCloseAttempts,
+      lastModalClose: state.lastModalClose,
       lastModalError: state.lastModalError,
       lastOpenAttempt: state.lastOpenAttempt,
       lastPreviewExistingCount: state.lastPreviewExistingCount,
