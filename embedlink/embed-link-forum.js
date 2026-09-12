@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.16 */
+/* FD EMBED LINK build 2026-07-06.17 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.16",
+    version: "2026-07-06.17",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -1092,12 +1092,33 @@
     }
   }
 
+  function normalizeCoverImageUrl(value) {
+    if (!value) return "";
+    try {
+      const url = new URL(value);
+      const prefix = "/cdn-cgi/image/";
+      if (!url.pathname.startsWith(prefix)) return value;
+      const end = url.pathname.indexOf("/", prefix.length);
+      if (end === -1) return value;
+      const options = url.pathname.slice(prefix.length, end).split(",");
+      const filtered = options.filter((option) =>
+        decodeURIComponent(option.split("=")[0]).trim().toLowerCase() !== "onerror"
+      );
+      if (filtered.length === options.length) return value;
+      // Remove the CDN fallback option that ForumFree mistakes for an HTML handler.
+      url.pathname = prefix + (filtered.length ? filtered.join(",") : "fit=scale-down") + url.pathname.slice(end);
+      return url.href;
+    } catch (_error) {
+      return value;
+    }
+  }
+
   function normalizeImages(images) {
     const seen = new Set();
     const out = [];
 
     for (const item of Array.isArray(images) ? images : []) {
-      const url = typeof item === "string" ? item : item && item.url;
+      const url = normalizeCoverImageUrl(typeof item === "string" ? item : item && item.url);
       if (!url || seen.has(url)) {
         continue;
       }
@@ -1209,6 +1230,7 @@
   }
 
   function renderCardHtml(metadata, embedId, selectedImageUrl, options = {}) {
+    selectedImageUrl = normalizeCoverImageUrl(selectedImageUrl);
     const url = metadata.finalUrl || metadata.sourceUrl;
     const title = truncate(decodeTextEntities(metadata.title || url), 160);
     const description = truncate(decodeTextEntities(metadata.description || ""), 260);
