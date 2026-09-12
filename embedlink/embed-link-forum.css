@@ -1,4 +1,4 @@
-/* FD EMBED LINK build 2026-07-06.17 - translation links */
+/* FD EMBED LINK build 2026-07-06.18 - translation links */
 
 .cs-modal.fd-embed-modal-preview,
 .fd-embed-modal-preview.cs-modal {
@@ -32,7 +32,7 @@
   --fd-embed-accent: #17685b;
   --fd-embed-shadow: 0 10px 28px rgba(21, 24, 25, 0.09);
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
   max-width: 640px;
   overflow: hidden;
@@ -48,7 +48,7 @@
   display: none;
 }
 
-.fd-embed-link__media {
+.fd-embed-link .fd-embed-link__media {
   position: relative;
   display: block;
   width: 100%;
@@ -61,7 +61,10 @@
 
 .fd-embed-link__media-wrap {
   position: relative;
+  display: block;
+  width: 100%;
   min-width: 0;
+  justify-self: stretch;
 }
 
 .fd-embed-link__translation-overlay {
@@ -148,18 +151,17 @@
   font-size: 11px;
 }
 
-/* Keep percentage image sizing tied to the aspect-ratio frame, including
-   Safari and forum pages with generic responsive-image rules. */
+/* Keep the cover in normal flow so it contributes to its wrapper's size. */
 .fd-embed-link .fd-embed-link__media > .fd-embed-link__image {
-  position: absolute;
-  inset: 0;
+  position: static;
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
   min-width: 0;
   min-height: 0;
   max-width: 100%;
-  max-height: 100%;
+  max-height: none;
   object-fit: cover;
   object-position: center;
   margin: 0;
@@ -283,7 +285,8 @@
   max-width: 560px;
 }
 
-.fd-embed-link--compact .fd-embed-link__media {
+.fd-embed-link.fd-embed-link--compact .fd-embed-link__media,
+.fd-embed-link.fd-embed-link--compact .fd-embed-link__media > .fd-embed-link__image {
   aspect-ratio: 2 / 1;
 }
 
@@ -559,7 +562,8 @@
     padding: 14px;
   }
 
-  .fd-embed-link__media {
+  .fd-embed-link .fd-embed-link__media,
+  .fd-embed-link .fd-embed-link__media > .fd-embed-link__image {
     aspect-ratio: 16 / 10;
   }
 }
