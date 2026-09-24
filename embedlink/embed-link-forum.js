@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-07-06.19 */
+/* FD EMBED LINK build 2026-09-24.1 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-07-06.19",
+    version: "2026-09-24.1",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -19,7 +19,6 @@
 
   const APP_TITLE = CONFIG.appTitle;
   const EDITOR_BUTTON_TITLE = "Embed Link";
-  const BLACKLIST_REFRESH_MS = 60_000;
   const ID_PREFIX = "fd-embed-link-";
   const EDITOR_SURFACE_SELECTOR = [
     "textarea",
@@ -110,8 +109,7 @@
     handledPasteEvents: new WeakSet(),
     blacklistRules: [],
     blacklistLoaded: false,
-    blacklistUpdatedAt: "",
-    blacklistRefreshTimer: 0
+    blacklistUpdatedAt: ""
   };
 
   function commons() {
@@ -2846,7 +2844,6 @@
     registerPasteEvent(document);
     startIntegrationWatcher();
     refreshBlacklistRules();
-    state.blacklistRefreshTimer = window.setInterval(refreshBlacklistRules, BLACKLIST_REFRESH_MS);
     if (document.readyState !== "complete") {
       window.addEventListener("load", refreshIntegration, { once: true });
     }
