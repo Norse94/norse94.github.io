@@ -1,10 +1,10 @@
-/* FD EMBED LINK build 2026-09-24.1 */
+/* FD EMBED LINK build 2026-09-24.2 */
 (() => {
   "use strict";
 
   const CONFIG = {
     appTitle: "FD EMBED LINK",
-    version: "2026-09-24.1",
+    version: "2026-09-24.2",
     edgeEndpoint: "https://mycvmmlezpxdoamecrhb.functions.supabase.co/embed-link",
     allowedForumHosts: ["difesa.forumfree.it", "difesaitalia.forumfree.it"],
     maxImages: 5,
@@ -415,16 +415,40 @@
     }) || null;
   }
 
-  async function refreshBlacklistRules() {
-    try {
-      const data = await requestEdge("blacklist-rules", { user: getUser() });
-      state.blacklistRules = Array.isArray(data.rules) ? data.rules : [];
-      state.blacklistLoaded = true;
-      state.blacklistUpdatedAt = new Date().toISOString();
-    } catch (error) {
+  function refreshBlacklistRules() {
+    const rules = window.FDEmbedBlacklistRules;
+    if (!Array.isArray(rules) || !rules.every(isValidBlacklistRule)) {
+      state.blacklistRules = [];
       state.blacklistLoaded = false;
-      console.warn("[FDEmbedLink] blacklist non disponibile", error);
+      state.blacklistUpdatedAt = "";
+      return false;
     }
+
+    state.blacklistRules = rules.map((rule) => ({
+      type: rule.type.trim().toLowerCase(),
+      value: rule.value.trim().toLowerCase()
+    }));
+    state.blacklistLoaded = true;
+    state.blacklistUpdatedAt = new Date().toISOString();
+    return true;
+  }
+
+  function isValidBlacklistRule(rule) {
+    if (!rule || typeof rule.type !== "string" || typeof rule.value !== "string") {
+      return false;
+    }
+    const type = rule.type.trim().toLowerCase();
+    const value = rule.value.trim().toLowerCase();
+    if (type === "extension") {
+      return /^\.[a-z0-9]+(?:\.[a-z0-9]+)*$/.test(value) && value.length <= 40;
+    }
+    if (type !== "domain" || !value || value.length > 253) {
+      return false;
+    }
+    const domain = value.endsWith(".") ? value.slice(0, -1) : value;
+    const labels = domain.split(".");
+    return (value.endsWith(".") || labels.length >= 2) &&
+      labels.every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label));
   }
 
   function getDomain(value) {
@@ -1701,6 +1725,11 @@
       return;
     }
 
+    if (!refreshBlacklistRules()) {
+      showUrlError("Blacklist del forum non configurata: impossibile creare un embed.");
+      return;
+    }
+
     const blacklistMatch = isUrlBlacklisted(parsed.href);
     if (blacklistMatch) {
       showUrlError("Questo URL e nella blacklist e viene lasciato come link normale.");
@@ -1730,6 +1759,9 @@
       }
 
       const metadata = normalizeMetadata(data, requestedUrl);
+      if ([metadata.sourceUrl, metadata.finalUrl, metadata.canonicalUrl].some(isUrlBlacklisted)) {
+        throw new Error("Questo URL e nella blacklist e viene lasciato come link normale.");
+      }
       const imageValidation = await validateCandidateImages(metadata.images, controller.signal);
       if (!isCurrentPreviewRequest(requestId, controller)) {
         return;
@@ -1791,8 +1823,22 @@
       return;
     }
 
+    if (!refreshBlacklistRules()) {
+      toast("error", APP_TITLE, "Blacklist del forum non configurata: impossibile creare un embed.");
+      return;
+    }
+
     const previewSnapshot = state.preview;
     const metadataSnapshot = previewSnapshot.metadata;
+    if ([
+      previewSnapshot.sourceUrl,
+      metadataSnapshot.sourceUrl,
+      metadataSnapshot.finalUrl,
+      metadataSnapshot.canonicalUrl
+    ].some(isUrlBlacklisted)) {
+      toast("error", APP_TITLE, "Questo URL e nella blacklist e viene lasciato come link normale.");
+      return;
+    }
     const selected = getSelectedImage(metadataSnapshot);
     state.createInFlight = true;
     setPreviewInsertBusy(true);
@@ -1831,6 +1877,12 @@
 
   async function createAndInsertPlainLink(rawUrl) {
     const parsed = parseUrl(rawUrl);
+    if (!refreshBlacklistRules()) {
+      addContentToEditor(rawUrl || "");
+      closeModal();
+      toast("error", APP_TITLE, "Blacklist del forum non configurata: link inserito senza tracking.");
+      return;
+    }
     if (!parsed || isUrlBlacklisted(parsed.href)) {
       addContentToEditor(rawUrl || "");
       closeModal();
@@ -2407,7 +2459,7 @@
     const text = clipboard ? clipboard.getData("text/plain") : "";
     const url = parseUrl(text);
 
-    if (!url || !state.blacklistLoaded || isUrlBlacklisted(url.href)) {
+    if (!url || !refreshBlacklistRules() || isUrlBlacklisted(url.href)) {
       return true;
     }
 
@@ -2843,7 +2895,6 @@
     registerEditorButtons();
     registerPasteEvent(document);
     startIntegrationWatcher();
-    refreshBlacklistRules();
     if (document.readyState !== "complete") {
       window.addEventListener("load", refreshIntegration, { once: true });
     }
